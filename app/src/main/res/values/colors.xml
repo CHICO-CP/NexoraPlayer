@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="nexora_primary">#7C4DFF</color>
+    <color name="nexora_secondary">#00E5FF</color>
+    <color name="nexora_accent">#FF4081</color>
+    <color name="nexora_gradient_start">#1A0533</color>
+    <color name="nexora_gradient_end">#0D1B2A</color>
+    <color name="bg_dark">#0D0D1A</color>
+    <color name="bg_card">#1A1A2E</color>
+    <color name="bg_surface">#16213E</color>
+    <color name="text_primary">#FFFFFF</color>
+    <color name="text_secondary">#B0B0C8</color>
+    <color name="text_hint">#666688</color>
+    <color name="nav_selected">#7C4DFF</color>
+    <color name="nav_unselected">#666688</color>
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+    <color name="transparent">#00000000</color>
+    <color name="ripple_color">#337C4DFF</color>
+</resources>

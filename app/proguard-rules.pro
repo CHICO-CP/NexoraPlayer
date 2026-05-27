@@ -1,0 +1,6 @@
+-keep class com.nexora.player.** { *; }
+-keep class androidx.media3.** { *; }
+-keep class com.bumptech.glide.** { *; }
+-dontwarn com.bumptech.glide.**
+-keep public class * implements com.bumptech.glide.module.GlideModule
+-keep public enum com.bumptech.glide.load.ImageHeaderParser$** { **[] $VALUES; public *; }

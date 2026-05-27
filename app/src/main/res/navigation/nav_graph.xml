@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/homeFragment">
+
+    <fragment android:id="@+id/homeFragment"
+        android:name="com.nexora.player.fragments.HomeFragment"
+        android:label="@string/nav_home"/>
+
+    <fragment android:id="@+id/libraryFragment"
+        android:name="com.nexora.player.fragments.LibraryFragment"
+        android:label="@string/nav_library"/>
+
+    <fragment android:id="@+id/searchFragment"
+        android:name="com.nexora.player.fragments.SearchFragment"
+        android:label="@string/nav_search"/>
+
+    <fragment android:id="@+id/settingsFragment"
+        android:name="com.nexora.player.fragments.SettingsFragment"
+        android:label="@string/nav_settings"/>
+</navigation>
