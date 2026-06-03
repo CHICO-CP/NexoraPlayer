@@ -1,26 +1,13 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <style name="Theme.NexoraPlayer" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <item name="colorPrimary">@color/nexora_primary</item>
-        <item name="colorPrimaryVariant">@color/nexora_gradient_start</item>
-        <item name="colorOnPrimary">@color/white</item>
-        <item name="colorSecondary">@color/nexora_secondary</item>
-        <item name="colorOnSecondary">@color/black</item>
-        <item name="android:windowBackground">@color/bg_dark</item>
-        <item name="android:statusBarColor">@color/bg_dark</item>
-        <item name="android:navigationBarColor">@color/bg_dark</item>
-        <item name="android:windowLightStatusBar">false</item>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <style name="Theme.Nexora" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="android:statusBarColor" tools:targetApi="l">@android:color/transparent</item>
+        <item name="android:navigationBarColor" tools:targetApi="l">@android:color/transparent</item>
     </style>
-    <style name="Theme.NexoraPlayer.Splash" parent="Theme.NexoraPlayer">
-        <item name="android:windowBackground">@color/nexora_gradient_start</item>
-        <item name="android:statusBarColor">@color/nexora_gradient_start</item>
-    </style>
-    <style name="Theme.NexoraPlayer.Player" parent="Theme.NexoraPlayer">
-        <item name="android:windowBackground">@color/bg_dark</item>
-    </style>
-    <style name="NexoraCard" parent="Widget.MaterialComponents.CardView">
-        <item name="cardBackgroundColor">@color/bg_card</item>
-        <item name="cardCornerRadius">@dimen/card_radius</item>
-        <item name="cardElevation">@dimen/card_elevation</item>
+
+    <style name="Theme.Nexora.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/nexora_splash_bg</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_logo</item>
+        <item name="windowSplashScreenIconBackgroundColor">@color/nexora_surface</item>
+        <item name="postSplashScreenTheme">@style/Theme.Nexora</item>
     </style>
 </resources>
