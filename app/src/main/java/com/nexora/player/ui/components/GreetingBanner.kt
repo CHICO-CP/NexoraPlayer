@@ -28,7 +28,7 @@ fun GreetingBanner(
             style = MaterialTheme.typography.headlineSmall
         )
         Text(
-            text = "Biblioteca local, búsqueda en tiempo real y reproducción continua.",
+            text = "El reproductor de música gratis.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
