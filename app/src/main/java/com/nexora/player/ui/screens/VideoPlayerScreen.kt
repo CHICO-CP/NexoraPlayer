@@ -61,7 +61,7 @@ fun VideoPlayerScreen(
     val context = LocalContext.current
     val view = LocalView.current
     val activity = context.findActivity()
-    val player = PlayerEngine.get(context)
+    val exoPlayer = PlayerEngine.get(context)
     val snapshot by PlayerEngine.snapshot.collectAsState()
     val audioManager = context.getSystemService<AudioManager>()
     val maxVolume = audioManager?.getStreamMaxVolume(AudioManager.STREAM_MUSIC) ?: 1
@@ -127,7 +127,7 @@ fun VideoPlayerScreen(
                     AndroidView(
                         factory = {
                             PlayerView(it).apply {
-                                player = player
+                                this.player = exoPlayer
                                 useController = true
                                 resizeMode = androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_ZOOM
                                 layoutParams = ViewGroup.LayoutParams(
@@ -190,9 +190,9 @@ fun VideoPlayerScreen(
                 )
 
                 PlaybackSeekBar(
-                    positionMs = player.currentPosition,
-                    durationMs = player.duration.takeIf { it > 0L } ?: current.durationMs,
-                    onSeekTo = { player.seekTo(it) }
+                    positionMs = exoPlayer.currentPosition,
+                    durationMs = exoPlayer.duration.takeIf { it > 0L } ?: current.durationMs,
+                    onSeekTo = { exoPlayer.seekTo(it) }
                 )
 
                 PlayerControlsRow(
