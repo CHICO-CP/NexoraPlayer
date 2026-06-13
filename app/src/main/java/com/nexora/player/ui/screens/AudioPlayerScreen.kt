@@ -7,6 +7,7 @@ import android.graphics.BitmapFactory
 import android.media.MediaMetadataRetriever
 import android.os.Build
 import android.provider.MediaStore
+import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -140,7 +141,7 @@ fun AudioPlayerScreen(
     val upNext = if (queue.isEmpty()) emptyList() else queue.drop(currentIndex + 1)
 
     BackHandler {
-        findActivity(context)?.onBackPressedDispatcher?.onBackPressed()
+        dispatchBackPress(context)
     }
 
     LaunchedEffect(current?.id, snapshot.isPlaying) {
@@ -215,7 +216,7 @@ fun AudioPlayerScreen(
             TopBar(
                 current = current,
                 isFavorite = isFavorite,
-                onBack = { findActivity(context)?.onBackPressedDispatcher?.onBackPressed() },
+                onBack = { dispatchBackPress(context) },
                 onToggleFavorite = {
                     scope.launch {
                         toggleFavorite(context, current)
@@ -594,8 +595,13 @@ private fun loadAlbumArtBitmap(context: Context, albumId: Long?): Bitmap? {
     }.getOrNull()
 }
 
-private fun findActivity(context: Context): android.app.Activity? = when (context) {
-    is android.app.Activity -> context
-    is ContextWrapper -> findActivity(context.baseContext)
+private fun dispatchBackPress(context: Context) {
+    val activity = findComponentActivity(context)
+    activity?.onBackPressedDispatcher?.onBackPressed()
+}
+
+private fun findComponentActivity(context: Context): ComponentActivity? = when (context) {
+    is ComponentActivity -> context
+    is ContextWrapper -> findComponentActivity(context.baseContext)
     else -> null
 }

@@ -7,6 +7,7 @@ import android.content.pm.ActivityInfo
 import android.content.res.Configuration
 import android.media.AudioManager
 import android.view.ViewGroup
+import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -132,7 +133,7 @@ fun VideoPlayerScreen(
         if (isLandscape) {
             activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT
         } else {
-            activity?.onBackPressedDispatcher?.onBackPressed()
+            dispatchBackPress(context)
         }
     }
 
@@ -403,8 +404,19 @@ fun VideoPlayerScreen(
     }
 }
 
+private fun dispatchBackPress(context: Context) {
+    val activity = context.findComponentActivity()
+    activity?.onBackPressedDispatcher?.onBackPressed()
+}
+
 private fun Context.findActivity(): Activity? = when (this) {
     is Activity -> this
     is ContextWrapper -> baseContext.findActivity()
+    else -> null
+}
+
+private fun Context.findComponentActivity(): ComponentActivity? = when (this) {
+    is ComponentActivity -> this
+    is ContextWrapper -> baseContext.findComponentActivity()
     else -> null
 }
