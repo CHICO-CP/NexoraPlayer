@@ -561,7 +561,7 @@ private fun PortraitScreen(
                     icon    = Icons.Filled.Brightness6,
                     label   = "Brillo",
                     value   = brightness,
-                    range   = 0.05f..1f,
+                    range   = 0f..1f,
                     onChange = onBrightnessChange
                 )
                 NxSlider(
@@ -1168,7 +1168,7 @@ private fun QueueDrawer(
                 Icon(Icons.AutoMirrored.Filled.PlaylistPlay, null, tint = NxAccent, modifier = Modifier.size(20.dp))
                 Spacer(Modifier.width(10.dp))
                 Column(Modifier.weight(1f)) {
-                    Text("Siguiente reproducción", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                    Text("A continuación", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
                     Text("Toca para saltar", color = Color.White.copy(0.45f), fontSize = 12.sp)
                 }
             }
