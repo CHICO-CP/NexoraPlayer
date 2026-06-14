@@ -215,11 +215,10 @@ class PlayerService : MediaSessionService() {
                 serviceAction(ACTION_STOP)
             )
             .setStyle(
-                MediaStyleNotificationHelper.MediaStyle(session).setShowActionsInCompactView(
-                    intArrayOf(0, 1, 2)
-                )
+                MediaStyleNotificationHelper.MediaStyle(session)
+                .setShowActionsInCompactView(0, 1, 2)
             )
-
+            
         if (durationMs > 0L) {
             val max = durationMs.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
             val progress = positionMs.coerceIn(0L, durationMs).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
