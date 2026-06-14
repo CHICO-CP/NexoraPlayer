@@ -28,7 +28,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -105,14 +104,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.roundToLong
-
-
-
-private enum class ArtworkStyle {
-    DISC,
-    SQUARE,
-    COVER
-}
 
 @Composable
 fun AudioPlayerScreen(
@@ -642,6 +633,13 @@ private fun TransportControls(
             )
         }
     }
+}
+
+
+private fun ArtworkStyle.next(): ArtworkStyle = when (this) {
+    ArtworkStyle.DISC -> ArtworkStyle.SQUARE
+    ArtworkStyle.SQUARE -> ArtworkStyle.COVER
+    ArtworkStyle.COVER -> ArtworkStyle.DISC
 }
 
 private suspend fun toggleFavorite(context: Context, entry: MediaEntry?) {
