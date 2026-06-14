@@ -73,8 +73,8 @@ class PlayerService : MediaSessionService() {
             ACTION_PLAY_PAUSE -> PlayerEngine.togglePlayPause(this)
             ACTION_NEXT -> PlayerEngine.skipNext(this)
             ACTION_PREVIOUS -> PlayerEngine.skipPrevious(this)
-            ACTION_SEEK_BACK_10 -> PlayerEngine.seekBy(this, -10_000L)
-            ACTION_SEEK_FORWARD_10 -> PlayerEngine.seekBy(this, 10_000L)
+            ACTION_SEEK_BACK_10 -> seekBy(-10_000L)
+            ACTION_SEEK_FORWARD_10 -> seekBy(10_000L)
             ACTION_STOP -> {
                 PlayerEngine.clear(this)
                 hideNotification()
@@ -324,6 +324,20 @@ class PlayerService : MediaSessionService() {
         val immutable = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0
         return PendingIntent.FLAG_UPDATE_CURRENT or immutable
     }
+
+    private fun seekBy(deltaMs: Long) {
+        val player = PlayerEngine.get(this)
+        val duration = if (player.duration > 0L && player.duration != androidx.media3.common.C.TIME_UNSET) {
+            player.duration
+        } else {
+            Long.MAX_VALUE
+        }
+        val target = (player.currentPosition + deltaMs).coerceIn(0L, duration)
+        player.seekTo(target)
+        player.playWhenReady = true
+        player.play()
+    }
+
 
     private fun loadLargeIcon(): Bitmap? {
         val drawable = ContextCompat.getDrawable(this, R.drawable.ic_launcher_foreground) ?: return null
