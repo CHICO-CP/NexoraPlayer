@@ -99,8 +99,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun refreshLibrary() {
         viewModelScope.launch {
             val audio = mediaRepository.loadAudio(_uiState.value.audioSort)
+            val hiddenIds = _uiState.value.preferences.hiddenAudioIds
+            val filteredAudio = audio.filterNot { hiddenIds.contains(it.id) }
             val videos = mediaRepository.loadVideos(_uiState.value.videoSort)
-            _uiState.value = _uiState.value.copy(audio = audio, videos = videos)
+            _uiState.value = _uiState.value.copy(audio = filteredAudio, videos = videos)
         }
     }
 
@@ -112,6 +114,20 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun setSearch(query: String) {
         _uiState.value = _uiState.value.copy(search = query)
     }
+
+    fun hideFromLibrary(entry: MediaEntry) {
+        viewModelScope.launch {
+            preferencesRepository.addHiddenAudioId(entry.id)
+        }
+    }
+
+    fun restoreHiddenAudio() {
+        viewModelScope.launch {
+            preferencesRepository.clearHiddenAudioIds()
+        }
+    }
+
+    fun hiddenAudioCount(): Int = _uiState.value.preferences.hiddenAudioIds.size
 
     fun setAudioSort(sortMode: SortMode) {
         _uiState.value = _uiState.value.copy(audioSort = sortMode)

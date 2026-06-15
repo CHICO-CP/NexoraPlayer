@@ -49,6 +49,7 @@ import com.nexora.player.data.model.AppThemeMode
 import com.nexora.player.data.model.MediaKind
 import com.nexora.player.ui.components.BottomPlayerBar
 import com.nexora.player.ui.components.GreetingBanner
+import com.nexora.player.ui.components.HomeSectionPager
 import com.nexora.player.ui.components.SearchField
 import com.nexora.player.ui.screens.FavoritesScreen
 import com.nexora.player.ui.screens.HistoryScreen
@@ -122,15 +123,12 @@ class MainActivity : AppCompatActivity() {
                                 .padding(horizontal = 10.dp, vertical = 8.dp),
                             verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            SearchField(
+                            GreetingBanner(
+                                greeting = greeting,
                                 query = state.search,
                                 expanded = searchExpanded,
                                 onExpandedChange = { searchExpanded = it },
                                 onQueryChange = viewModel::setSearch,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                            GreetingBanner(
-                                greeting = greeting,
                                 modifier = Modifier.fillMaxWidth()
                             )
                         }
@@ -265,30 +263,39 @@ private fun AppContent(
         }
     }
 
-    when (state.selectedDestination) {
-        AppDestination.MUSIC -> MusicScreen(
+    if (state.selectedDestination == AppDestination.MUSIC ||
+        state.selectedDestination == AppDestination.VIDEOS ||
+        state.selectedDestination == AppDestination.PLAYLISTS
+    ) {
+        HomeSectionPager(
             modifier = modifier,
-            items = viewModel.filteredAudio(),
+            selectedDestination = state.selectedDestination,
+            audio = viewModel.filteredAudio(),
+            videos = viewModel.filteredVideos(),
             favorites = viewModel.favoriteIds(),
             playlists = state.playlists,
-            sortMode = state.audioSort,
-            onPlay = viewModel::playFromLibrary,
+            history = state.history,
+            audioSort = state.audioSort,
+            videoSort = state.videoSort,
+            hiddenAudioCount = viewModel.hiddenAudioCount(),
+            onDestinationSelected = viewModel::setDestination,
+            onPlayAudio = viewModel::playFromLibrary,
+            onPlayVideo = viewModel::playFromLibrary,
             onToggleFavorite = viewModel::toggleFavorite,
             onAddToPlaylist = viewModel::addToPlaylist,
-            onHideFromLibrary = { },
-            onRefresh = viewModel::refreshLibrary,
-            onSortSelected = viewModel::setAudioSort
+            onHideFromLibrary = viewModel::hideFromLibrary,
+            onRefreshAudio = viewModel::refreshLibrary,
+            onRefreshVideo = viewModel::refreshLibrary,
+            onAudioSortSelected = viewModel::setAudioSort,
+            onVideoSortSelected = viewModel::setVideoSort,
+            onCreatePlaylist = viewModel::createPlaylist,
+            onDeletePlaylist = viewModel::deletePlaylist,
+            onOpenPlaylist = onOpenPlaylist
         )
+        return
+    }
 
-        AppDestination.VIDEOS -> VideoScreen(
-            modifier = modifier,
-            items = viewModel.filteredVideos(),
-            sortMode = state.videoSort,
-            onPlay = viewModel::playFromLibrary,
-            onRefresh = viewModel::refreshLibrary,
-            onSortSelected = viewModel::setVideoSort
-        )
-
+    when (state.selectedDestination) {
         AppDestination.QUEUE -> QueueScreen(
             modifier = modifier,
             queue = state.queue,
@@ -296,14 +303,6 @@ private fun AppContent(
             onPlayItem = viewModel::jumpToQueueIndex,
             onRemoveItem = viewModel::removeQueueIndex,
             onClearQueue = viewModel::clearQueue
-        )
-
-        AppDestination.PLAYLISTS -> PlaylistsScreen(
-            modifier = modifier,
-            playlists = state.playlists,
-            onCreatePlaylist = viewModel::createPlaylist,
-            onDeletePlaylist = viewModel::deletePlaylist,
-            onOpenPlaylist = onOpenPlaylist
         )
 
         AppDestination.FAVORITES -> FavoritesScreen(
@@ -321,12 +320,12 @@ private fun AppContent(
             modifier = modifier,
             themeMode = state.preferences.themeMode,
             dynamicColor = state.preferences.dynamicColor,
-            hiddenAudioCount = 0,
+            hiddenAudioCount = viewModel.hiddenAudioCount(),
             currentLanguage = rememberAppLanguage(),
             onThemeChange = viewModel::setThemeMode,
             onDynamicColorChange = viewModel::setDynamicColor,
             onLanguageChange = ::applyLanguage,
-            onRestoreHiddenAudio = { }
+            onRestoreHiddenAudio = viewModel::restoreHiddenAudio
         )
     }
 }
