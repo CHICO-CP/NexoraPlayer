@@ -121,6 +121,15 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun deleteFromLibrary(entry: MediaEntry) {
+        viewModelScope.launch {
+            runCatching {
+                context.contentResolver.delete(entry.uri, null, null)
+            }
+            refreshLibrary()
+        }
+    }
+
     fun restoreHiddenAudio() {
         viewModelScope.launch {
             preferencesRepository.clearHiddenAudioIds()

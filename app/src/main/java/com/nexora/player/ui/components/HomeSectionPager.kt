@@ -2,6 +2,7 @@ package com.nexora.player.ui.components
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -56,6 +57,7 @@ fun HomeSectionPager(
     onToggleFavorite: (MediaEntry) -> Unit,
     onAddToPlaylist: (PlaylistEntity, MediaEntry) -> Unit,
     onHideFromLibrary: (MediaEntry) -> Unit,
+    onDeleteFromLibrary: (MediaEntry) -> Unit,
     onRefreshAudio: () -> Unit,
     onRefreshVideo: () -> Unit,
     onAudioSortSelected: (SortMode) -> Unit,
@@ -145,6 +147,7 @@ fun HomeSectionPager(
                     onToggleFavorite = onToggleFavorite,
                     onAddToPlaylist = onAddToPlaylist,
                     onHideFromLibrary = onHideFromLibrary,
+                    onDeleteFromLibrary = onDeleteFromLibrary,
                     onRefresh = onRefreshAudio,
                     onSortSelected = onAudioSortSelected
                 )
@@ -166,35 +169,13 @@ fun HomeSectionPager(
                     onOpenPlaylist = onOpenPlaylist
                 )
 
-                AppDestination.QUEUE -> SectionUnavailableScreen(
-                    title = stringResource(R.string.nav_queue)
-                )
-
-                AppDestination.FAVORITES -> SectionUnavailableScreen(
-                    title = stringResource(R.string.nav_favorites)
-                )
-
-                AppDestination.HISTORY -> SectionUnavailableScreen(
-                    title = stringResource(R.string.nav_history)
-                )
-
-                AppDestination.SETTINGS -> SectionUnavailableScreen(
-                    title = stringResource(R.string.nav_settings)
-                )
+                else -> EmptyPagerPage()
             }
         }
     }
 }
 
 @Composable
-private fun SectionUnavailableScreen(title: String) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(text = title)
-    }
+private fun EmptyPagerPage() {
+    Box(modifier = Modifier.fillMaxSize())
 }

@@ -120,7 +120,8 @@ class MainActivity : AppCompatActivity() {
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 10.dp, vertical = 8.dp),
+                                .statusBarsPadding()
+                                .padding(horizontal = 10.dp, vertical = 6.dp),
                             verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             GreetingBanner(
@@ -284,6 +285,7 @@ private fun AppContent(
             onToggleFavorite = viewModel::toggleFavorite,
             onAddToPlaylist = viewModel::addToPlaylist,
             onHideFromLibrary = viewModel::hideFromLibrary,
+            onDeleteFromLibrary = viewModel::deleteFromLibrary,
             onRefreshAudio = viewModel::refreshLibrary,
             onRefreshVideo = viewModel::refreshLibrary,
             onAudioSortSelected = viewModel::setAudioSort,
