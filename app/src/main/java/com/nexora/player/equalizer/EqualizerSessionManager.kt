@@ -9,6 +9,15 @@ object EqualizerSessionManager {
 
     private var controller: EqualizerController? = null
     private var attachedSessionId: Int = Int.MIN_VALUE
+
+    private val defaultHardwareInfo = EqualizerHardwareInfo(
+        supported = false,
+        bandCount = 0,
+        minLevelDb = -15f,
+        maxLevelDb = 15f,
+        centerFrequenciesHz = emptyList()
+    )
+
     private var hardwareInfoCache: EqualizerHardwareInfo = defaultHardwareInfo
 
     val hardwareInfo: EqualizerHardwareInfo
@@ -52,12 +61,4 @@ object EqualizerSessionManager {
         attachedSessionId = Int.MIN_VALUE
         hardwareInfoCache = defaultHardwareInfo
     }
-
-    private val defaultHardwareInfo = EqualizerHardwareInfo(
-        supported = false,
-        bandCount = 0,
-        minLevelDb = -15f,
-        maxLevelDb = 15f,
-        centerFrequenciesHz = emptyList()
-    )
 }
