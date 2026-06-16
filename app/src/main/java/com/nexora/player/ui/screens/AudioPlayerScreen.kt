@@ -5,6 +5,7 @@ import android.content.ContextWrapper
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.media.MediaMetadataRetriever
+import android.media.audiofx.AudioEffect
 import android.os.Build
 import android.provider.MediaStore
 import androidx.activity.ComponentActivity
@@ -38,6 +39,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.PlaylistPlay
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Checkroom
+import androidx.compose.material.icons.filled.Equalizer
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.MusicNote
@@ -47,6 +50,13 @@ import androidx.compose.material.icons.filled.QueueMusic
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
@@ -120,6 +130,7 @@ private enum class ArtworkStyle {
         COVER -> DISC
     }
 }
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AudioPlayerScreen(
     modifier: Modifier = Modifier,
@@ -137,6 +148,8 @@ fun AudioPlayerScreen(
     var lyricsLoading by remember { mutableStateOf(false) }
     var allowOnlineLyrics by rememberSaveable(current?.id) { mutableStateOf(false) }
     var showLyricsEditor by rememberSaveable(current?.id) { mutableStateOf(false) }
+    var showQueueSheet by rememberSaveable(current?.id) { mutableStateOf(false) }
+    var showDetailsSheet by rememberSaveable(current?.id) { mutableStateOf(false) }
     var artworkStyle by rememberSaveable(current?.id) { mutableStateOf(ArtworkStyle.DISC) }
 
     var positionMs by remember { mutableLongStateOf(0L) }
@@ -269,6 +282,7 @@ fun AudioPlayerScreen(
                         toggleFavorite(context, current)
                     }
                 },
+                onOpenEqualizer = { openEqualizer(context, player.audioSessionId) },
                 onChangeArtworkStyle = {
                     artworkStyle = artworkStyle.next()
                 }
@@ -338,6 +352,19 @@ fun AudioPlayerScreen(
                     )
                 }
 
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    AssistChip(
+                        onClick = { showDetailsSheet = true },
+                        label = { Text("Detalles") },
+                        leadingIcon = { Icon(imageVector = Icons.Filled.Info, contentDescription = null) }
+                    )
+                    AssistChip(
+                        onClick = { showQueueSheet = true },
+                        label = { Text("Cola") },
+                        leadingIcon = { Icon(imageVector = Icons.Filled.QueueMusic, contentDescription = null) }
+                    )
+                }
+
                 PlaybackProgressSection(
                     positionMs = positionMs,
                     durationMs = durationMs,
@@ -363,9 +390,32 @@ fun AudioPlayerScreen(
                 onJumpToQueueItem = { PlayerEngine.jumpTo(context, it) },
                 onSearchOnline = { allowOnlineLyrics = true },
                 onEditManual = { showLyricsEditor = true },
+                onShowQueue = { showQueueSheet = true },
                 modifier = Modifier.fillMaxWidth()
             )
         }
+    }
+
+    if (showQueueSheet && current != null) {
+        QueueSheet(
+            current = current,
+            queue = queue,
+            currentIndex = currentIndex,
+            onDismiss = { showQueueSheet = false },
+            onJumpToQueueItem = { PlayerEngine.jumpTo(context, it) },
+            onOpenEqualizer = { openEqualizer(context, player.audioSessionId) }
+        )
+    }
+
+    if (showDetailsSheet && current != null) {
+        DetailsSheet(
+            current = current,
+            queue = queue,
+            currentIndex = currentIndex,
+            onDismiss = { showDetailsSheet = false },
+            onShowQueue = { showQueueSheet = true },
+            onOpenEqualizer = { openEqualizer(context, player.audioSessionId) }
+        )
     }
 
     if (showLyricsEditor && current != null) {
@@ -400,6 +450,7 @@ private fun TopBar(
     artworkStyle: ArtworkStyle,
     onBack: () -> Unit,
     onToggleFavorite: () -> Unit,
+    onOpenEqualizer: () -> Unit,
     onChangeArtworkStyle: () -> Unit
 ) {
     Row(
@@ -433,22 +484,234 @@ private fun TopBar(
             )
         }
 
-        Surface(
-            color = Color.White.copy(alpha = 0.08f),
-            shape = CircleShape
-        ) {
-            IconButton(onClick = onChangeArtworkStyle) {
-                Icon(
-                    imageVector = Icons.Filled.Checkroom,
-                    contentDescription = when (artworkStyle) {
-                        ArtworkStyle.DISC -> "Cambiar a carátula cuadrada"
-                        ArtworkStyle.SQUARE -> "Cambiar a portada"
-                        ArtworkStyle.COVER -> "Cambiar a disco"
-                    },
-                    tint = Color.White
-                )
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Surface(
+                color = Color.White.copy(alpha = 0.08f),
+                shape = CircleShape
+            ) {
+                IconButton(onClick = onOpenEqualizer) {
+                    Icon(
+                        imageVector = Icons.Filled.Equalizer,
+                        contentDescription = "Abrir ecualizador",
+                        tint = Color.White
+                    )
+                }
+            }
+
+            Surface(
+                color = Color.White.copy(alpha = 0.08f),
+                shape = CircleShape
+            ) {
+                IconButton(onClick = onChangeArtworkStyle) {
+                    Icon(
+                        imageVector = Icons.Filled.Checkroom,
+                        contentDescription = when (artworkStyle) {
+                            ArtworkStyle.DISC -> "Cambiar a carátula cuadrada"
+                            ArtworkStyle.SQUARE -> "Cambiar a portada"
+                            ArtworkStyle.COVER -> "Cambiar a disco"
+                        },
+                        tint = Color.White
+                    )
+                }
             }
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DetailsSheet(
+    current: MediaEntry,
+    queue: List<MediaEntry>,
+    currentIndex: Int,
+    onDismiss: () -> Unit,
+    onShowQueue: () -> Unit,
+    onOpenEqualizer: () -> Unit
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 18.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Text(
+                text = "Detalles de la canción",
+                style = MaterialTheme.typography.titleLarge
+            )
+            Text(
+                text = "Desliza hacia abajo para cerrar",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            ElevatedCard {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text(text = current.title, style = MaterialTheme.typography.titleLarge)
+                    Text(
+                        text = listOfNotNull(current.artist.takeIf { it.isNotBlank() }, current.album.takeIf { it.isNotBlank() }).joinToString(" • "),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    HorizontalDivider()
+                    ListItem(
+                        headlineContent = { Text("Duración") },
+                        supportingContent = { Text(formatDuration(current.durationMs)) },
+                        leadingContent = { Icon(imageVector = Icons.Filled.MusicNote, contentDescription = null) }
+                    )
+                    ListItem(
+                        headlineContent = { Text("Artista") },
+                        supportingContent = { Text(current.artist.ifBlank { "Desconocido" }) },
+                        leadingContent = { Icon(imageVector = Icons.Filled.Info, contentDescription = null) }
+                    )
+                    ListItem(
+                        headlineContent = { Text("Álbum") },
+                        supportingContent = { Text(current.album.ifBlank { "Sin álbum" }) },
+                        leadingContent = { Icon(imageVector = Icons.AutoMirrored.Filled.PlaylistPlay, contentDescription = null) }
+                    )
+                    ListItem(
+                        headlineContent = { Text("Carpeta") },
+                        supportingContent = { Text(current.folder.orEmpty().ifBlank { "No disponible" }) },
+                        leadingContent = { Icon(imageVector = Icons.Filled.QueueMusic, contentDescription = null) }
+                    )
+                }
+            }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                AssistChip(
+                    onClick = onOpenEqualizer,
+                    label = { Text("Ecualizador") },
+                    leadingIcon = { Icon(imageVector = Icons.Filled.Equalizer, contentDescription = null) }
+                )
+                AssistChip(
+                    onClick = onShowQueue,
+                    label = { Text("Mostrar cola") },
+                    leadingIcon = { Icon(imageVector = Icons.Filled.QueueMusic, contentDescription = null) }
+                )
+            }
+
+            Text(
+                text = "Siguiente en reproducción: ${queue.drop(currentIndex + 1).size}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun QueueSheet(
+    current: MediaEntry,
+    queue: List<MediaEntry>,
+    currentIndex: Int,
+    onDismiss: () -> Unit,
+    onJumpToQueueItem: (Int) -> Unit,
+    onOpenEqualizer: () -> Unit
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 18.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = current.title,
+                        style = MaterialTheme.typography.titleLarge,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = listOfNotNull(
+                            current.artist.takeIf { it.isNotBlank() },
+                            current.album.takeIf { it.isNotBlank() }
+                        ).joinToString(" • ").ifBlank { "Detalles de la canción" },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                IconButton(onClick = onOpenEqualizer) {
+                    Icon(imageVector = Icons.Filled.Equalizer, contentDescription = "Ecualizador")
+                }
+            }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                AssistChip(
+                    onClick = onOpenEqualizer,
+                    label = { Text("Ecualizador") },
+                    leadingIcon = { Icon(imageVector = Icons.Filled.Equalizer, contentDescription = null) }
+                )
+                AssistChip(
+                    onClick = { },
+                    label = { Text("Información") },
+                    leadingIcon = { Icon(imageVector = Icons.Filled.Info, contentDescription = null) }
+                )
+            }
+
+            HorizontalDivider()
+
+            Text(
+                text = "Lista de reproducción",
+                style = MaterialTheme.typography.titleMedium
+            )
+
+            if (queue.isEmpty()) {
+                Text(
+                    text = "No hay canciones en cola.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                LazyColumn(
+                    modifier = Modifier.heightIn(max = 320.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    itemsIndexed(queue) { index, item ->
+                        MediaItemRow(
+                            item = item,
+                            onClick = { onJumpToQueueItem(index) }
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+    }
+}
+
+private fun openEqualizer(context: android.content.Context, audioSessionId: Int) {
+    runCatching {
+        val intent = android.content.Intent(AudioEffect.ACTION_DISPLAY_AUDIO_EFFECT_CONTROL_PANEL).apply {
+            putExtra(AudioEffect.EXTRA_PACKAGE_NAME, context.packageName)
+            putExtra(AudioEffect.EXTRA_CONTENT_TYPE, AudioEffect.CONTENT_TYPE_MUSIC)
+            putExtra(AudioEffect.EXTRA_AUDIO_SESSION, audioSessionId)
+            addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        context.startActivity(intent)
     }
 }
 

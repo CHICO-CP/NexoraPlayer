@@ -44,6 +44,9 @@ interface PlaylistsDao {
     @Query("DELETE FROM playlist_items WHERE playlistId = :playlistId")
     suspend fun deleteItemsForPlaylist(playlistId: Long)
 
+    @Query("DELETE FROM playlist_items WHERE mediaId = :mediaId AND mediaKind = :mediaKind")
+    suspend fun deleteItemsByMediaId(mediaId: Long, mediaKind: String)
+
     @Query("DELETE FROM playlist_items WHERE id = :itemId")
     suspend fun deletePlaylistItem(itemId: Long)
 }
@@ -58,6 +61,9 @@ interface HistoryDao {
 
     @Query("DELETE FROM playback_history")
     suspend fun clear()
+
+    @Query("DELETE FROM playback_history WHERE mediaId = :mediaId")
+    suspend fun deleteByMediaId(mediaId: Long)
 }
 
 @Dao

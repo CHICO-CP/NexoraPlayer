@@ -9,13 +9,14 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.PlaylistPlay
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
@@ -32,6 +33,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -39,6 +41,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.core.content.ContextCompat
 import androidx.core.os.LocaleListCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
@@ -50,7 +54,6 @@ import com.nexora.player.data.model.AppThemeMode
 import com.nexora.player.data.model.MediaKind
 import com.nexora.player.ui.components.BottomPlayerBar
 import com.nexora.player.ui.components.GreetingBanner
-import com.nexora.player.ui.components.HomeSectionPager
 import com.nexora.player.ui.components.SearchField
 import com.nexora.player.ui.screens.FavoritesScreen
 import com.nexora.player.ui.screens.HistoryScreen
@@ -120,17 +123,20 @@ class MainActivity : AppCompatActivity() {
                     topBar = {
                         Column(
                             modifier = Modifier
-                                .fillMaxWidth()
                                 .statusBarsPadding()
-                                .padding(horizontal = 10.dp, vertical = 6.dp),
+                                .fillMaxWidth()
+                                .padding(horizontal = 10.dp, vertical = 12.dp),
                             verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            GreetingBanner(
-                                greeting = greeting,
+                            SearchField(
                                 query = state.search,
                                 expanded = searchExpanded,
                                 onExpandedChange = { searchExpanded = it },
                                 onQueryChange = viewModel::setSearch,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            GreetingBanner(
+                                greeting = greeting,
                                 modifier = Modifier.fillMaxWidth()
                             )
                         }
@@ -218,6 +224,8 @@ class MainActivity : AppCompatActivity() {
     }
 }
 
+
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun AppContent(
     modifier: Modifier = Modifier,
@@ -265,78 +273,122 @@ private fun AppContent(
         }
     }
 
-    if (state.selectedDestination == AppDestination.MUSIC ||
-        state.selectedDestination == AppDestination.VIDEOS ||
-        state.selectedDestination == AppDestination.PLAYLISTS
-    ) {
-        HomeSectionPager(
-            modifier = modifier,
-            selectedDestination = state.selectedDestination,
-            audio = viewModel.filteredAudio(),
-            videos = viewModel.filteredVideos(),
-            favorites = viewModel.favoriteIds(),
-            playlists = state.playlists,
-            history = state.history,
-            audioSort = state.audioSort,
-            videoSort = state.videoSort,
-            hiddenAudioCount = viewModel.hiddenAudioCount(),
-            onDestinationSelected = viewModel::setDestination,
-            onPlayAudio = viewModel::playFromLibrary,
-            onPlayVideo = viewModel::playFromLibrary,
-            onToggleFavorite = viewModel::toggleFavorite,
-            onAddToPlaylist = viewModel::addToPlaylist,
-            onHideFromLibrary = viewModel::hideFromLibrary,
-            onDeleteFromLibrary = viewModel::deleteFromLibrary,
-            onRefreshAudio = viewModel::refreshLibrary,
-            onRefreshVideo = viewModel::refreshLibrary,
-            onAudioSortSelected = viewModel::setAudioSort,
-            onVideoSortSelected = viewModel::setVideoSort,
-            onCreatePlaylist = viewModel::createPlaylist,
-            onDeletePlaylist = viewModel::deletePlaylist,
-            onOpenPlaylist = onOpenPlaylist
-        )
-        return
-    }
-
-    when (state.selectedDestination) {
-        AppDestination.MUSIC,
-        AppDestination.VIDEOS,
-        AppDestination.PLAYLISTS -> Unit
-
-        AppDestination.QUEUE -> QueueScreen(
-            modifier = modifier,
-            queue = state.queue,
-            currentIndex = state.queueIndex,
-            onPlayItem = viewModel::jumpToQueueIndex,
-            onRemoveItem = viewModel::removeQueueIndex,
-            onClearQueue = viewModel::clearQueue
-        )
-
-        AppDestination.FAVORITES -> FavoritesScreen(
-            modifier = modifier,
-            favorites = state.favorites,
-            onPlayFavorite = viewModel::playFavorite
-        )
-
-        AppDestination.HISTORY -> HistoryScreen(
-            modifier = modifier,
-            history = state.history
-        )
-
-        AppDestination.SETTINGS -> SettingsScreen(
-            modifier = modifier,
-            themeMode = state.preferences.themeMode,
-            dynamicColor = state.preferences.dynamicColor,
-            hiddenAudioCount = viewModel.hiddenAudioCount(),
-            currentLanguage = rememberAppLanguage(),
-            onThemeChange = viewModel::setThemeMode,
-            onDynamicColorChange = viewModel::setDynamicColor,
-            onLanguageChange = ::applyLanguage,
-            onRestoreHiddenAudio = viewModel::restoreHiddenAudio
-        )
-    }
+    DestinationPagerContent(
+        modifier = modifier,
+        state = state,
+        viewModel = viewModel,
+        onOpenPlaylist = onOpenPlaylist
+    )
 }
 
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun DestinationPagerContent(
+    modifier: Modifier,
+    state: AppUiState,
+    viewModel: AppViewModel,
+    onOpenPlaylist: (PlaylistEntity) -> Unit
+) {
+    val destinations = listOf(
+        AppDestination.MUSIC,
+        AppDestination.VIDEOS,
+        AppDestination.QUEUE,
+        AppDestination.PLAYLISTS,
+        AppDestination.FAVORITES,
+        AppDestination.HISTORY,
+        AppDestination.SETTINGS
+    )
+
+    val pagerState = rememberPagerState(
+        initialPage = destinations.indexOf(state.selectedDestination).coerceAtLeast(0),
+        pageCount = { destinations.size }
+    )
+
+    LaunchedEffect(state.selectedDestination) {
+        val target = destinations.indexOf(state.selectedDestination).coerceAtLeast(0)
+        if (pagerState.currentPage != target) {
+            pagerState.animateScrollToPage(target)
+        }
+    }
+
+    LaunchedEffect(pagerState.currentPage) {
+        val destination = destinations[pagerState.currentPage]
+        if (state.selectedDestination != destination) {
+            viewModel.setDestination(destination)
+        }
+    }
+
+    HorizontalPager(
+        state = pagerState,
+        modifier = modifier.fillMaxSize()
+    ) { page ->
+        when (destinations[page]) {
+            AppDestination.MUSIC -> MusicScreen(
+                modifier = Modifier.fillMaxSize(),
+                items = viewModel.filteredAudio(),
+                favorites = viewModel.favoriteIds(),
+                playlists = state.playlists,
+                sortMode = state.audioSort,
+                onPlay = viewModel::playFromLibrary,
+                onToggleFavorite = viewModel::toggleFavorite,
+                onAddToPlaylist = viewModel::addToPlaylist,
+                onHideFromLibrary = viewModel::hideFromLibrary,
+                onDeleteFromLibrary = viewModel::deleteFromLibrary,
+                onRefresh = viewModel::refreshLibrary,
+                onSortSelected = viewModel::setAudioSort
+            )
+
+            AppDestination.VIDEOS -> VideoScreen(
+                modifier = Modifier.fillMaxSize(),
+                items = viewModel.filteredVideos(),
+                sortMode = state.videoSort,
+                onPlay = viewModel::playFromLibrary,
+                onRefresh = viewModel::refreshLibrary,
+                onSortSelected = viewModel::setVideoSort
+            )
+
+            AppDestination.QUEUE -> QueueScreen(
+                modifier = Modifier.fillMaxSize(),
+                queue = state.queue,
+                currentIndex = state.queueIndex,
+                onPlayItem = viewModel::jumpToQueueIndex,
+                onRemoveItem = viewModel::removeQueueIndex,
+                onClearQueue = viewModel::clearQueue
+            )
+
+            AppDestination.PLAYLISTS -> PlaylistsScreen(
+                modifier = Modifier.fillMaxSize(),
+                playlists = state.playlists,
+                onCreatePlaylist = viewModel::createPlaylist,
+                onDeletePlaylist = viewModel::deletePlaylist,
+                onOpenPlaylist = onOpenPlaylist
+            )
+
+            AppDestination.FAVORITES -> FavoritesScreen(
+                modifier = Modifier.fillMaxSize(),
+                favorites = state.favorites,
+                onPlayFavorite = viewModel::playFavorite
+            )
+
+            AppDestination.HISTORY -> HistoryScreen(
+                modifier = Modifier.fillMaxSize(),
+                history = state.history
+            )
+
+            AppDestination.SETTINGS -> SettingsScreen(
+                modifier = Modifier.fillMaxSize(),
+                themeMode = state.preferences.themeMode,
+                dynamicColor = state.preferences.dynamicColor,
+                hiddenAudioCount = state.preferences.hiddenAudioIds.size,
+                currentLanguage = rememberAppLanguage(),
+                onThemeChange = viewModel::setThemeMode,
+                onDynamicColorChange = viewModel::setDynamicColor,
+                onLanguageChange = ::applyLanguage,
+                onRestoreHiddenAudio = viewModel::restoreHiddenAudio
+            )
+        }
+    }
+}
 @Composable
 private fun rememberGreeting(): String {
     val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)

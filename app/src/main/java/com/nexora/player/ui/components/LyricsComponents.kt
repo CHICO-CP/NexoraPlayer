@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.QueueMusic
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -62,6 +63,7 @@ fun LyricsAndQueueCard(
     onJumpToQueueItem: (Int) -> Unit,
     onSearchOnline: () -> Unit,
     onEditManual: () -> Unit,
+    onShowQueue: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var tabIndex by rememberSaveable(lyrics?.mediaId) { mutableIntStateOf(0) }
@@ -104,9 +106,11 @@ fun LyricsAndQueueCard(
                 )
             } else {
                 QueuePreview(
+                    queue = queue,
                     upNext = upNext,
                     currentIndex = currentIndex,
                     onJumpToQueueItem = onJumpToQueueItem,
+                    onShowQueue = onShowQueue,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -267,9 +271,11 @@ private fun EmptyLyricsState(
 
 @Composable
 private fun QueuePreview(
+    queue: List<MediaEntry>,
     upNext: List<MediaEntry>,
     currentIndex: Int,
     onJumpToQueueItem: (Int) -> Unit,
+    onShowQueue: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -286,31 +292,30 @@ private fun QueuePreview(
                 color = Color.White
             )
             Text(
-                text = upNext.size.toString(),
+                text = queue.size.toString(),
                 style = MaterialTheme.typography.labelMedium,
                 color = Color.White.copy(alpha = 0.7f)
             )
         }
 
-        if (upNext.isEmpty()) {
-            Text(
-                text = uiStringResource(R.string.queue_empty_short),
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color.White.copy(alpha = 0.72f)
+        Text(
+            text = if (upNext.isEmpty()) uiStringResource(R.string.queue_empty_short) else "${upNext.size} canciones en la cola",
+            style = MaterialTheme.typography.bodyMedium,
+            color = Color.White.copy(alpha = 0.72f)
+        )
+
+        androidx.compose.material3.FilledTonalButton(
+            onClick = onShowQueue,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Icon(
+                imageVector = QueueMusic,
+                contentDescription = null
             )
-        } else {
-            LazyColumn(
-                modifier = Modifier.heightIn(max = 240.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                itemsIndexed(upNext.take(4), key = { index, item -> item.id + index }) { index, item ->
-                    MediaItemRow(
-                        item = item,
-                        onClick = { onJumpToQueueItem(currentIndex + index + 1) }
-                    )
-                }
-            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Mostrar lista de reproducción")
         }
+
     }
 }
 

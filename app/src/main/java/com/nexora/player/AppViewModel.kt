@@ -98,11 +98,11 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun refreshLibrary() {
         viewModelScope.launch {
-            val audio = mediaRepository.loadAudio(_uiState.value.audioSort)
             val hiddenIds = _uiState.value.preferences.hiddenAudioIds
-            val filteredAudio = audio.filterNot { hiddenIds.contains(it.id) }
+            val audio = mediaRepository.loadAudio(_uiState.value.audioSort)
+                .filterNot { it.id in hiddenIds }
             val videos = mediaRepository.loadVideos(_uiState.value.videoSort)
-            _uiState.value = _uiState.value.copy(audio = filteredAudio, videos = videos)
+            _uiState.value = _uiState.value.copy(audio = audio, videos = videos)
         }
     }
 
@@ -114,29 +114,6 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun setSearch(query: String) {
         _uiState.value = _uiState.value.copy(search = query)
     }
-
-    fun hideFromLibrary(entry: MediaEntry) {
-        viewModelScope.launch {
-            preferencesRepository.addHiddenAudioId(entry.id)
-        }
-    }
-
-    fun deleteFromLibrary(entry: MediaEntry) {
-        viewModelScope.launch {
-            runCatching {
-                context.contentResolver.delete(entry.uri, null, null)
-            }
-            refreshLibrary()
-        }
-    }
-
-    fun restoreHiddenAudio() {
-        viewModelScope.launch {
-            preferencesRepository.clearHiddenAudioIds()
-        }
-    }
-
-    fun hiddenAudioCount(): Int = _uiState.value.preferences.hiddenAudioIds.size
 
     fun setAudioSort(sortMode: SortMode) {
         _uiState.value = _uiState.value.copy(audioSort = sortMode)
@@ -208,6 +185,32 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         PlayerEngine.clear(context)
     }
 
+    fun hideFromLibrary(entry: MediaEntry) {
+        viewModelScope.launch {
+            preferencesRepository.addHiddenAudioId(entry.id)
+            refreshLibrary()
+        }
+    }
+
+    fun restoreHiddenAudio() {
+        viewModelScope.launch {
+            preferencesRepository.clearHiddenAudioIds()
+            refreshLibrary()
+        }
+    }
+
+    fun deleteFromLibrary(entry: MediaEntry) {
+        viewModelScope.launch {
+            try {
+                context.contentResolver.delete(entry.uri, null, null)
+            } finally {
+                cleanupAfterMediaChange(entry)
+                preferencesRepository.removeHiddenAudioId(entry.id)
+                refreshLibrary()
+            }
+        }
+    }
+
     fun toggleFavorite(entry: MediaEntry) {
         viewModelScope.launch {
             val mediaKind = entry.kind.name
@@ -275,6 +278,24 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun playFavorite(favorite: FavoriteMediaEntity) {
         play(favorite.toMediaEntry())
+    }
+
+    private suspend fun cleanupAfterMediaChange(entry: MediaEntry) {
+        val snapshot = PlayerEngine.snapshot.value
+        val queueIndex = snapshot.queue.indexOfFirst { it.id == entry.id && it.kind == entry.kind }
+        if (queueIndex >= 0) {
+            PlayerEngine.removeAt(context, queueIndex)
+        }
+        if (snapshot.currentItem?.id == entry.id && snapshot.currentItem?.kind == entry.kind) {
+            when {
+                snapshot.queue.size > 1 -> PlayerEngine.skipNext(context)
+                else -> PlayerEngine.clear(context)
+            }
+        }
+        database.favoritesDao().delete(entry.id, entry.kind.name)
+        database.playlistsDao().deleteItemsByMediaId(entry.id, entry.kind.name)
+        database.lyricsDao().deleteByMediaId(entry.id)
+        database.historyDao().deleteByMediaId(entry.id)
     }
 
     fun playPlaylistItem(item: PlaylistItemEntity) {
