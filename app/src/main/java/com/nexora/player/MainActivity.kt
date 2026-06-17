@@ -401,8 +401,6 @@ private fun DestinationPagerContent(
         }
     }
 }
-@Composable
-
 private fun FavoriteMediaEntity.toMediaEntry(): MediaEntry = MediaEntry(
     id = mediaId,
     kind = if (mediaKind == MediaKind.VIDEO.name) MediaKind.VIDEO else MediaKind.AUDIO,
@@ -423,6 +421,7 @@ private fun PlaybackHistoryEntity.toMediaEntry(): MediaEntry = MediaEntry(
     durationMs = durationMs
 )
 
+@Composable
 private fun rememberGreeting(): String {
     val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
     return when (hour) {
