@@ -47,7 +47,10 @@ import androidx.core.content.ContextCompat
 import androidx.core.os.LocaleListCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.nexora.player.data.local.FavoriteMediaEntity
+import com.nexora.player.data.local.PlaybackHistoryEntity
 import com.nexora.player.data.local.PlaylistEntity
+import com.nexora.player.data.model.MediaEntry
 import com.nexora.player.data.model.AppDestination
 import com.nexora.player.data.model.AppLanguage
 import com.nexora.player.data.model.AppThemeMode
@@ -373,12 +376,13 @@ private fun DestinationPagerContent(
                 modifier = Modifier.fillMaxSize(),
                 favorites = state.favorites.filter { it.mediaKind == com.nexora.player.data.model.MediaKind.AUDIO.name },
                 onPlayFavoriteQueue = viewModel::playFavoriteQueue,
-                onToggleFavorite = viewModel::toggleFavorite
+                onToggleFavorite = { favorite -> viewModel.toggleFavorite(favorite.toMediaEntry()) }
             )
 
             AppDestination.HISTORY -> HistoryScreen(
                 modifier = Modifier.fillMaxSize(),
-                history = state.history
+                history = state.history,
+                onPlayItem = { historyItem -> viewModel.play(historyItem.toMediaEntry()) }
             )
 
             AppDestination.SETTINGS -> SettingsScreen(
@@ -398,6 +402,27 @@ private fun DestinationPagerContent(
     }
 }
 @Composable
+
+private fun FavoriteMediaEntity.toMediaEntry(): MediaEntry = MediaEntry(
+    id = mediaId,
+    kind = if (mediaKind == MediaKind.VIDEO.name) MediaKind.VIDEO else MediaKind.AUDIO,
+    uri = android.net.Uri.parse(uriString),
+    title = title,
+    album = album,
+    artist = artist,
+    durationMs = durationMs
+)
+
+private fun PlaybackHistoryEntity.toMediaEntry(): MediaEntry = MediaEntry(
+    id = mediaId,
+    kind = if (mediaKind == MediaKind.VIDEO.name) MediaKind.VIDEO else MediaKind.AUDIO,
+    uri = android.net.Uri.parse(uriString),
+    title = title,
+    album = album,
+    artist = artist,
+    durationMs = durationMs
+)
+
 private fun rememberGreeting(): String {
     val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
     return when (hour) {

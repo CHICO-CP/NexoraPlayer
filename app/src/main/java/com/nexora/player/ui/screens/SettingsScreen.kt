@@ -131,9 +131,9 @@ fun SettingsScreen(
                 modifier = Modifier.fillMaxWidth().padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Text(stringResource(R.string.settings_online_music_title), style = MaterialTheme.typography.titleMedium)
+                Text("Online search", style = MaterialTheme.typography.titleMedium)
                 Text(
-                    stringResource(R.string.settings_online_music_desc),
+                    "Enable or disable only internet music search. The rest of the app, including lyrics, keeps working normally.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -142,10 +142,10 @@ fun SettingsScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(modifier = Modifier.fillMaxWidth(0.8f)) {
-                        Text(stringResource(R.string.settings_online_music_switch_title))
+                        Text("Online mode for music")
                         Text(
-                            if (onlineMusicSearchEnabled) stringResource(R.string.settings_online_music_on)
-                            else stringResource(R.string.settings_online_music_off),
+                            if (onlineMusicSearchEnabled) "Online search is enabled."
+                            else "Online search is disabled.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -188,14 +188,14 @@ fun SettingsScreen(
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Text(stringResource(R.string.settings_developer), style = MaterialTheme.typography.titleMedium)
-                Text("Ghost Developer")
+                Text("Ghost Developer · CHICO-CP")
                 Text(
                     stringResource(R.string.settings_free_notice),
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     AssistChip(
-                        onClick = { uriHandler.openUri("https://github.com/Gh0stDeveloper") },
+                        onClick = { uriHandler.openUri("https://github.com/CHICO-CP") },
                         label = { Text(stringResource(R.string.settings_github)) },
                         leadingIcon = { androidx.compose.material3.Icon(Icons.Filled.Code, contentDescription = null) }
                     )

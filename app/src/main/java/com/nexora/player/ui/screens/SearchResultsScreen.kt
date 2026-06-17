@@ -75,8 +75,8 @@ fun SearchResultsScreen(
                             onClick = {},
                             label = {
                                 Text(
-                                    if (onlineEnabled) stringResource(R.string.online_search_enabled)
-                                    else stringResource(R.string.online_search_disabled)
+                                    if (onlineEnabled) "Online active"
+                                    else "Online disabled"
                                 )
                             }
                         )
@@ -139,17 +139,17 @@ fun SearchResultsScreen(
                     modifier = Modifier.fillMaxWidth().padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text(stringResource(R.string.online_results_title), style = MaterialTheme.typography.titleMedium)
+                    Text("Online results", style = MaterialTheme.typography.titleMedium)
                     when {
                         !onlineEnabled -> Text(
-                            stringResource(R.string.online_results_disabled_hint),
+                            "Online search is disabled in Settings.",
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             style = MaterialTheme.typography.bodyMedium
                         )
                         onlineLoading -> Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             CircularProgressIndicator(modifier = Modifier.padding(vertical = 4.dp))
                             Text(
-                                stringResource(R.string.online_search_loading),
+                                "Searching online sources…",
                                 modifier = Modifier.padding(top = 6.dp)
                             )
                         }
@@ -159,12 +159,12 @@ fun SearchResultsScreen(
                             style = MaterialTheme.typography.bodyMedium
                         )
                         onlineTracks.isEmpty() && query.isNotBlank() -> Text(
-                            stringResource(R.string.online_results_empty),
+                            "No results were returned from the available online sources.",
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             style = MaterialTheme.typography.bodyMedium
                         )
                         onlineTracks.isEmpty() -> Text(
-                            stringResource(R.string.online_results_hint),
+                            "Enable online search to query iTunes and Jamendo.",
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             style = MaterialTheme.typography.bodyMedium
                         )
