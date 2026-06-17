@@ -47,6 +47,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.os.LocaleListCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.nexora.player.data.local.FavoriteMediaEntity
 import com.nexora.player.data.local.PlaylistEntity
 import com.nexora.player.data.model.AppDestination
 import com.nexora.player.data.model.AppLanguage
@@ -366,7 +367,7 @@ private fun DestinationPagerContent(
                 modifier = Modifier.fillMaxSize(),
                 favorites = state.favorites.filter { it.mediaKind == com.nexora.player.data.model.MediaKind.AUDIO.name },
                 onPlayFavoriteQueue = viewModel::playFavoriteQueue,
-                onToggleFavorite = viewModel::toggleFavorite
+                onToggleFavorite = { favorite -> viewModel.toggleFavorite(favorite.toMediaEntry()) }
             )
 
             AppDestination.HISTORY -> HistoryScreen(
@@ -411,6 +412,16 @@ private fun applyLanguage(language: AppLanguage) {
     }
     AppCompatDelegate.setApplicationLocales(locales)
 }
+
+private fun FavoriteMediaEntity.toMediaEntry() = com.nexora.player.data.model.MediaEntry(
+    id = mediaId,
+    kind = if (mediaKind == MediaKind.VIDEO.name) MediaKind.VIDEO else MediaKind.AUDIO,
+    uri = android.net.Uri.parse(uriString),
+    title = title,
+    artist = artist,
+    album = album,
+    durationMs = durationMs
+)
 
 private fun iconFor(destination: AppDestination) = when (destination) {
     AppDestination.MUSIC -> Icons.Filled.LibraryMusic
