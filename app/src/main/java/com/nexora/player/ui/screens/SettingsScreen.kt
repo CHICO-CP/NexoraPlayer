@@ -1,3 +1,4 @@
+
 package com.nexora.player.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
@@ -36,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import com.nexora.player.R
 import com.nexora.player.data.model.AppLanguage
 import com.nexora.player.data.model.AppThemeMode
+import com.nexora.player.data.model.DownloadStorageMode
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -45,10 +47,12 @@ fun SettingsScreen(
     dynamicColor: Boolean,
     hiddenAudioCount: Int,
     onlineMusicSearchEnabled: Boolean,
+    downloadStorageMode: DownloadStorageMode,
     currentLanguage: AppLanguage,
     onThemeChange: (AppThemeMode) -> Unit,
     onDynamicColorChange: (Boolean) -> Unit,
     onOnlineMusicSearchChange: (Boolean) -> Unit,
+    onDownloadStorageModeChange: (DownloadStorageMode) -> Unit,
     onLanguageChange: (AppLanguage) -> Unit,
     onRestoreHiddenAudio: () -> Unit
 ) {
@@ -155,6 +159,42 @@ fun SettingsScreen(
                         onCheckedChange = onOnlineMusicSearchChange
                     )
                 }
+            }
+        }
+
+        ElevatedCard {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Text("Download storage", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    "Choose where NexoraPlayer stores music downloaded from online sources.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                SingleChoiceSegmentedButtonRow {
+                    SegmentedButton(
+                        selected = downloadStorageMode == DownloadStorageMode.ASK_FIRST_TIME,
+                        onClick = { onDownloadStorageModeChange(DownloadStorageMode.ASK_FIRST_TIME) },
+                        shape = SegmentedButtonDefaults.itemShape(index = 0, count = 3)
+                    ) { Text("Ask first") }
+                    SegmentedButton(
+                        selected = downloadStorageMode == DownloadStorageMode.APP_PRIVATE,
+                        onClick = { onDownloadStorageModeChange(DownloadStorageMode.APP_PRIVATE) },
+                        shape = SegmentedButtonDefaults.itemShape(index = 1, count = 3)
+                    ) { Text("Only in app") }
+                    SegmentedButton(
+                        selected = downloadStorageMode == DownloadStorageMode.PUBLIC_DOWNLOADS,
+                        onClick = { onDownloadStorageModeChange(DownloadStorageMode.PUBLIC_DOWNLOADS) },
+                        shape = SegmentedButtonDefaults.itemShape(index = 2, count = 3)
+                    ) { Text("Visible folder") }
+                }
+                Text(
+                    "Visible downloads are saved to Downloads/NexoraPlayer/audios/ when the source allows it.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
 

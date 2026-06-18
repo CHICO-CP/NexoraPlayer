@@ -1,3 +1,4 @@
+
 package com.nexora.player.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
@@ -43,6 +44,7 @@ fun SearchResultsScreen(
     onPlayOnline: (List<OnlineTrack>, OnlineTrack) -> Unit,
     onToggleFavorite: (MediaEntry) -> Unit,
     onToggleSaveOnline: (OnlineTrack) -> Unit,
+    onDownloadOnline: (OnlineTrack) -> Unit,
     favoriteIds: Set<Long>
 ) {
     val totalLocal = audio.size + videos.size
@@ -74,10 +76,7 @@ fun SearchResultsScreen(
                         AssistChip(
                             onClick = {},
                             label = {
-                                Text(
-                                    if (onlineEnabled) "Online active"
-                                    else "Online disabled"
-                                )
+                                Text(if (onlineEnabled) "Online active" else "Online disabled")
                             }
                         )
                     }
@@ -179,7 +178,8 @@ fun SearchResultsScreen(
                     track = track,
                     isSaved = savedOnlineKeys.contains(track.key),
                     onPlay = { onPlayOnline(onlineTracks, track) },
-                    onSaveToggle = { onToggleSaveOnline(track) }
+                    onSaveToggle = { onToggleSaveOnline(track) },
+                    onDownload = track.downloadUrl?.let { { onDownloadOnline(track) } }
                 )
             }
         }

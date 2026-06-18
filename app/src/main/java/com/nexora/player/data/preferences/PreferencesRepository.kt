@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.nexora.player.data.model.AppDestination
 import com.nexora.player.data.model.AppThemeMode
+import com.nexora.player.data.model.DownloadStorageMode
 import com.nexora.player.data.model.SortMode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -24,6 +25,7 @@ class PreferencesRepository(private val context: Context) {
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")
         val ONLINE_MUSIC_SEARCH_ENABLED = booleanPreferencesKey("online_music_search_enabled")
+        val DOWNLOAD_STORAGE_MODE = stringPreferencesKey("download_storage_mode")
         val HIDDEN_AUDIO_IDS = stringSetPreferencesKey("hidden_audio_ids")
     }
 
@@ -35,6 +37,7 @@ class PreferencesRepository(private val context: Context) {
             themeMode = prefs.stringValue(Keys.THEME_MODE, AppThemeMode.SYSTEM.name).toThemeMode(),
             dynamicColor = prefs[Keys.DYNAMIC_COLOR] ?: true,
             onlineMusicSearchEnabled = prefs[Keys.ONLINE_MUSIC_SEARCH_ENABLED] ?: true,
+            downloadStorageMode = prefs.stringValue(Keys.DOWNLOAD_STORAGE_MODE, DownloadStorageMode.ASK_FIRST_TIME.name).toDownloadStorageMode(),
             hiddenAudioIds = prefs.stringSetValue(Keys.HIDDEN_AUDIO_IDS, emptySet())
                 .mapNotNull { it.toLongOrNull() }
                 .toSet()
@@ -63,6 +66,11 @@ class PreferencesRepository(private val context: Context) {
 
     suspend fun setOnlineMusicSearchEnabled(enabled: Boolean) {
         context.dataStore.edit { it[Keys.ONLINE_MUSIC_SEARCH_ENABLED] = enabled }
+    }
+
+
+    suspend fun setDownloadStorageMode(mode: DownloadStorageMode) {
+        context.dataStore.edit { it[Keys.DOWNLOAD_STORAGE_MODE] = mode.name }
     }
 
     suspend fun setHiddenAudioIds(ids: Set<Long>) {
@@ -105,3 +113,4 @@ private fun Preferences.stringSetValue(
 private fun String.toSortMode(): SortMode = runCatching { SortMode.valueOf(this) }.getOrDefault(SortMode.DATE_ADDED_DESC)
 private fun String.toDestination(): AppDestination = runCatching { AppDestination.valueOf(this) }.getOrDefault(AppDestination.MUSIC)
 private fun String.toThemeMode(): AppThemeMode = runCatching { AppThemeMode.valueOf(this) }.getOrDefault(AppThemeMode.SYSTEM)
+private fun String.toDownloadStorageMode(): DownloadStorageMode = runCatching { DownloadStorageMode.valueOf(this) }.getOrDefault(DownloadStorageMode.ASK_FIRST_TIME)
