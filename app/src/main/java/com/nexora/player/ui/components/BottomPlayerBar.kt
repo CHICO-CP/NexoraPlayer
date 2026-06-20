@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FastForward
 import androidx.compose.material.icons.filled.FastRewind
@@ -39,8 +40,10 @@ fun BottomPlayerBar(
 
     Surface(
         tonalElevation = 6.dp,
+        shape = RoundedCornerShape(28.dp),
         modifier = Modifier
             .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 8.dp)
             .clickable(onClick = onClick)
     ) {
         Column {
@@ -80,9 +83,11 @@ fun BottomPlayerBar(
                 }
             }
 
-            if (isPlaying) {
-                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-            }
+            LinearProgressIndicator(
+                progress = { 0f },
+                modifier = Modifier.fillMaxWidth(),
+                trackColor = MaterialTheme.colorScheme.surfaceVariant
+            )
         }
     }
 }

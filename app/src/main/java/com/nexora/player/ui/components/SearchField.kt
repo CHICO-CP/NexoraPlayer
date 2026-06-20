@@ -13,6 +13,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -34,7 +35,7 @@ fun SearchField(
             value = query,
             onValueChange = onQueryChange,
             modifier = modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(22.dp),
+            shape = RoundedCornerShape(24.dp),
             leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
             trailingIcon = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -53,16 +54,24 @@ fun SearchField(
             colors = OutlinedTextFieldDefaults.colors()
         )
     } else {
-        FilledTonalButton(
-            onClick = { onExpandedChange(true) }
+        Surface(
+            modifier = modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(24.dp),
+            tonalElevation = 1.dp
         ) {
-            Icon(
-                Icons.Filled.Search,
-                contentDescription = null,
-                modifier = Modifier.size(18.dp)
-            )
-            androidx.compose.foundation.layout.Spacer(Modifier.size(8.dp))
-            Text(stringResource(R.string.search_open))
+            FilledTonalButton(
+                onClick = { onExpandedChange(true) },
+                shape = RoundedCornerShape(24.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    Icons.Filled.Search,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                androidx.compose.foundation.layout.Spacer(Modifier.size(8.dp))
+                Text(stringResource(R.string.search_open))
+            }
         }
     }
 }

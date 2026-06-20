@@ -106,10 +106,10 @@ import kotlin.math.abs
 import kotlin.math.roundToInt
 
 // ── Paleta Nexora Player ──────────────────────────────────────────────────────
-private val NxAccent   = Color(0xFF00C2FF)          // cyan-blue
-private val NxAccent2  = Color(0xFF7B61FF)          // purple (gradiente secundario)
-private val NxBg       = Color(0xFF080808)
-private val NxCard     = Color(0xFF141414)
+private val NxAccent   = Color(0xFFF54047)          // cyan-blue
+private val NxAccent2  = Color(0xFFE64366)          // purple (gradiente secundario)
+private val NxBg       = Color(0xFF090B14)
+private val NxCard     = Color(0xFF1C1C1E)
 private val NxDivider  = Color.White.copy(alpha = 0.07f)
 
 private val GradientAccent = Brush.horizontalGradient(listOf(NxAccent, NxAccent2))

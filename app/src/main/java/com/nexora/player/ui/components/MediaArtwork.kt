@@ -53,21 +53,29 @@ fun MediaArtwork(
         }
     }.value
 
-    val colors = if (item.kind == MediaKind.VIDEO) {
-        listOf(Color(0xFF0F172A), Color(0xFF1D4ED8), Color(0xFF22D3EE))
+    val palette = if (item.kind == MediaKind.VIDEO) {
+        listOf(
+            Color(0xFF090B14),
+            Color(0xFFE64366).copy(alpha = 0.80f),
+            Color(0xFFF54047).copy(alpha = 0.95f)
+        )
     } else {
-        listOf(Color(0xFF111827), Color(0xFF7C3AED), Color(0xFF22D3EE))
+        listOf(
+            Color(0xFF090B14),
+            Color(0xFFF54047).copy(alpha = 0.82f),
+            Color(0xFFFFE4E6).copy(alpha = 0.26f)
+        )
     }
 
     Card(
-        modifier = modifier,
+        modifier = modifier.clip(RoundedCornerShape(24.dp)),
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = Color.Transparent)
     ) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(brush = Brush.linearGradient(colors))
+                .background(brush = Brush.linearGradient(palette))
         ) {
             if (artwork != null) {
                 Image(
@@ -92,7 +100,7 @@ fun MediaArtwork(
                         .background(
                             Brush.radialGradient(
                                 colors = listOf(
-                                    Color.White.copy(alpha = 0.08f),
+                                    Color.White.copy(alpha = 0.10f),
                                     Color.Transparent
                                 )
                             )
@@ -107,7 +115,7 @@ fun MediaArtwork(
                         contentDescription = null,
                         tint = Color.White,
                         modifier = Modifier
-                            .size(60.dp)
+                            .size(58.dp)
                             .align(Alignment.Center)
                     )
                 } else {
@@ -115,7 +123,7 @@ fun MediaArtwork(
                         painter = painterResource(id = R.drawable.ic_video_placeholder),
                         contentDescription = null,
                         modifier = Modifier
-                            .size(60.dp)
+                            .size(58.dp)
                             .align(Alignment.Center)
                     )
                 }

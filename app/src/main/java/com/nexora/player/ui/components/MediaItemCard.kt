@@ -36,7 +36,7 @@ fun MediaItemRow(
     onMoreClick: (() -> Unit)? = null
 ) {
     ElevatedCard(
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(28.dp),
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
@@ -51,7 +51,10 @@ fun MediaItemRow(
                 modifier = Modifier.size(72.dp)
             )
 
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
                 Text(
                     item.title,
                     style = MaterialTheme.typography.titleMedium,
@@ -88,9 +91,15 @@ fun MediaItemRow(
                 )
             }
 
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp), horizontalAlignment = Alignment.End) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalAlignment = Alignment.End
+            ) {
                 if (onFavoriteClick != null) {
-                    FilledTonalIconButton(onClick = onFavoriteClick, modifier = Modifier.size(44.dp)) {
+                    FilledTonalIconButton(
+                        onClick = onFavoriteClick,
+                        modifier = Modifier.size(44.dp)
+                    ) {
                         Icon(
                             imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
                             contentDescription = if (isFavorite) {
@@ -103,7 +112,10 @@ fun MediaItemRow(
                 }
 
                 if (onMoreClick != null) {
-                    FilledTonalIconButton(onClick = onMoreClick, modifier = Modifier.size(44.dp)) {
+                    FilledTonalIconButton(
+                        onClick = onMoreClick,
+                        modifier = Modifier.size(44.dp)
+                    ) {
                         Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.media_more_actions))
                     }
                 }

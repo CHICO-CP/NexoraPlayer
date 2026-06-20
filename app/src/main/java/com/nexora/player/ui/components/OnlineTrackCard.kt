@@ -1,4 +1,3 @@
-
 package com.nexora.player.ui.components
 
 import androidx.compose.foundation.background
@@ -7,17 +6,16 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
@@ -43,7 +41,6 @@ fun OnlineTrackCard(
     isSaved: Boolean,
     onPlay: () -> Unit,
     onSaveToggle: () -> Unit,
-    onDownload: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     ElevatedCard(
@@ -132,14 +129,9 @@ fun OnlineTrackCard(
                 }
                 FilledTonalIconButton(onClick = onSaveToggle, modifier = Modifier.size(44.dp)) {
                     Icon(
-                        imageVector = if (isSaved) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                        imageVector = if (isSaved) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder,
                         contentDescription = null
                     )
-                }
-                if (onDownload != null && !track.downloadUrl.isNullOrBlank()) {
-                    FilledTonalIconButton(onClick = onDownload, modifier = Modifier.size(44.dp)) {
-                        Icon(Icons.Filled.Download, contentDescription = null)
-                    }
                 }
             }
         }

@@ -12,13 +12,11 @@ import com.nexora.player.data.local.PlaylistEntity
 import com.nexora.player.data.local.PlaylistItemEntity
 import com.nexora.player.data.model.AppDestination
 import com.nexora.player.data.model.AppThemeMode
-import com.nexora.player.data.model.DownloadStorageMode
 import com.nexora.player.data.model.MediaEntry
 import com.nexora.player.data.model.MediaKind
 import com.nexora.player.data.model.SortMode
 import com.nexora.player.data.online.OnlineMusicRepository
 import com.nexora.player.data.online.OnlineTrack
-import com.nexora.player.data.online.OnlineTrackDownloader
 import com.nexora.player.data.preferences.AppPreferences
 import com.nexora.player.data.preferences.PreferencesRepository
 import com.nexora.player.data.repository.MediaStoreRepository
@@ -163,22 +161,6 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch { preferencesRepository.setDynamicColor(enabled) }
     }
 
-
-    fun setDownloadStorageMode(mode: DownloadStorageMode) {
-        viewModelScope.launch { preferencesRepository.setDownloadStorageMode(mode) }
-    }
-
-    fun downloadOnlineTrack(track: OnlineTrack, mode: DownloadStorageMode = _uiState.value.preferences.downloadStorageMode) {
-        if (track.downloadUrl.isNullOrBlank() || mode == DownloadStorageMode.ASK_FIRST_TIME) return
-        viewModelScope.launch {
-            try {
-                OnlineTrackDownloader.download(context, track, mode)
-            } catch (_: Throwable) {
-                // Intentionally ignore download failures here; caller UI handles flow.
-            }
-        }
-    }
-
     fun setOnlineMusicSearchEnabled(enabled: Boolean) {
         viewModelScope.launch { preferencesRepository.setOnlineMusicSearchEnabled(enabled) }
         if (!enabled) {
@@ -207,20 +189,21 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         onlineSearchJob = viewModelScope.launch {
             delay(250)
             _uiState.value = _uiState.value.copy(onlineLoading = true, onlineError = null)
-            try {
-                val results = onlineRepository.search(query, limit = 20)
-                _uiState.value = _uiState.value.copy(
-                    onlineLoading = false,
-                    onlineTracks = results,
-                    onlineError = null
-                )
-            } catch (throwable: Throwable) {
-                _uiState.value = _uiState.value.copy(
-                    onlineLoading = false,
-                    onlineTracks = emptyList(),
-                    onlineError = throwable.message ?: "Online search failed"
-                )
-            }
+            val results = runCatching { onlineRepository.search(query, limit = 20) }
+                .getOrElse { throwable ->
+                    _uiState.value = _uiState.value.copy(
+                        onlineLoading = false,
+                        onlineTracks = emptyList(),
+                        onlineError = throwable.message ?: "Online search failed"
+                    )
+                    return@launch
+                }
+
+            _uiState.value = _uiState.value.copy(
+                onlineLoading = false,
+                onlineTracks = results,
+                onlineError = null
+            )
         }
     }
 

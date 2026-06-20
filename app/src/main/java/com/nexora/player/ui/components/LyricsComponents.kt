@@ -71,7 +71,7 @@ fun LyricsAndQueueCard(
 
     Card(
         shape = RoundedCornerShape(32.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.08f)),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)),
         modifier = modifier.fillMaxWidth()
     ) {
         Column(
@@ -128,7 +128,7 @@ fun LyricsView(
     onEditManual: () -> Unit
 ) {
     val listState = rememberLazyListState()
-    val accent = Color(0xFF7C3AED)
+    val accent = MaterialTheme.colorScheme.primary
 
     val currentIndex = remember(lyrics?.mediaId, positionMs, lyrics?.updatedAt) {
         lyrics?.currentLineIndex(positionMs) ?: -1

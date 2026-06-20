@@ -1,4 +1,3 @@
-
 package com.nexora.player.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
@@ -22,6 +21,9 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -34,7 +36,6 @@ import androidx.compose.ui.unit.dp
 import com.nexora.player.R
 import com.nexora.player.data.model.AppLanguage
 import com.nexora.player.data.model.AppThemeMode
-import com.nexora.player.data.model.DownloadStorageMode
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -44,12 +45,10 @@ fun SettingsScreen(
     dynamicColor: Boolean,
     hiddenAudioCount: Int,
     onlineMusicSearchEnabled: Boolean,
-    downloadStorageMode: DownloadStorageMode,
     currentLanguage: AppLanguage,
     onThemeChange: (AppThemeMode) -> Unit,
     onDynamicColorChange: (Boolean) -> Unit,
     onOnlineMusicSearchChange: (Boolean) -> Unit,
-    onDownloadStorageModeChange: (DownloadStorageMode) -> Unit,
     onLanguageChange: (AppLanguage) -> Unit,
     onRestoreHiddenAudio: () -> Unit
 ) {
@@ -71,19 +70,43 @@ fun SettingsScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(stringResource(R.string.settings_language), style = MaterialTheme.typography.titleMedium)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = { onLanguageChange(AppLanguage.SYSTEM) }) { Text(stringResource(AppLanguage.SYSTEM.labelRes)) }
-                    OutlinedButton(onClick = { onLanguageChange(AppLanguage.SPANISH) }) { Text(stringResource(AppLanguage.SPANISH.labelRes)) }
-                    OutlinedButton(onClick = { onLanguageChange(AppLanguage.ENGLISH) }) { Text(stringResource(AppLanguage.ENGLISH.labelRes)) }
+                SingleChoiceSegmentedButtonRow {
+                    SegmentedButton(
+                        selected = currentLanguage == AppLanguage.SYSTEM,
+                        onClick = { onLanguageChange(AppLanguage.SYSTEM) },
+                        shape = SegmentedButtonDefaults.itemShape(index = 0, count = 3)
+                    ) { Text(stringResource(AppLanguage.SYSTEM.labelRes)) }
+                    SegmentedButton(
+                        selected = currentLanguage == AppLanguage.SPANISH,
+                        onClick = { onLanguageChange(AppLanguage.SPANISH) },
+                        shape = SegmentedButtonDefaults.itemShape(index = 1, count = 3)
+                    ) { Text(stringResource(AppLanguage.SPANISH.labelRes)) }
+                    SegmentedButton(
+                        selected = currentLanguage == AppLanguage.ENGLISH,
+                        onClick = { onLanguageChange(AppLanguage.ENGLISH) },
+                        shape = SegmentedButtonDefaults.itemShape(index = 2, count = 3)
+                    ) { Text(stringResource(AppLanguage.ENGLISH.labelRes)) }
                 }
 
                 HorizontalDivider()
 
                 Text(stringResource(R.string.settings_theme), style = MaterialTheme.typography.titleMedium)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = { onThemeChange(AppThemeMode.SYSTEM) }) { Text(stringResource(R.string.settings_system)) }
-                    OutlinedButton(onClick = { onThemeChange(AppThemeMode.LIGHT) }) { Text(stringResource(R.string.settings_light)) }
-                    OutlinedButton(onClick = { onThemeChange(AppThemeMode.DARK) }) { Text(stringResource(R.string.settings_dark)) }
+                SingleChoiceSegmentedButtonRow {
+                    SegmentedButton(
+                        selected = themeMode == AppThemeMode.SYSTEM,
+                        onClick = { onThemeChange(AppThemeMode.SYSTEM) },
+                        shape = SegmentedButtonDefaults.itemShape(index = 0, count = 3)
+                    ) { Text(stringResource(R.string.settings_system)) }
+                    SegmentedButton(
+                        selected = themeMode == AppThemeMode.LIGHT,
+                        onClick = { onThemeChange(AppThemeMode.LIGHT) },
+                        shape = SegmentedButtonDefaults.itemShape(index = 1, count = 3)
+                    ) { Text(stringResource(R.string.settings_light)) }
+                    SegmentedButton(
+                        selected = themeMode == AppThemeMode.DARK,
+                        onClick = { onThemeChange(AppThemeMode.DARK) },
+                        shape = SegmentedButtonDefaults.itemShape(index = 2, count = 3)
+                    ) { Text(stringResource(R.string.settings_dark)) }
                 }
 
                 Row(
@@ -132,42 +155,6 @@ fun SettingsScreen(
                         onCheckedChange = onOnlineMusicSearchChange
                     )
                 }
-            }
-        }
-
-        ElevatedCard {
-            Column(
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Text("Download storage", style = MaterialTheme.typography.titleMedium)
-                Text(
-                    "Choose where NexoraPlayer stores music downloaded from online sources.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(
-                        onClick = { onDownloadStorageModeChange(DownloadStorageMode.ASK_FIRST_TIME) }
-                    ) {
-                        Text("Ask first")
-                    }
-                    OutlinedButton(
-                        onClick = { onDownloadStorageModeChange(DownloadStorageMode.APP_PRIVATE) }
-                    ) {
-                        Text("Only in app")
-                    }
-                    OutlinedButton(
-                        onClick = { onDownloadStorageModeChange(DownloadStorageMode.PUBLIC_DOWNLOADS) }
-                    ) {
-                        Text("Visible folder")
-                    }
-                }
-                Text(
-                    "Visible downloads are saved to Downloads/NexoraPlayer/audios/ when the source allows it.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
             }
         }
 

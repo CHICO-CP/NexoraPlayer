@@ -235,7 +235,7 @@ fun AudioPlayerScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFF04050A))
+            .background(Color(0xFF090B14))
     ) {
         if (current == null) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -264,8 +264,8 @@ fun AudioPlayerScreen(
                     .background(
                         Brush.radialGradient(
                             colors = listOf(
-                                Color(0xFF7C3AED).copy(alpha = 0.42f),
-                                Color(0xFF111827).copy(alpha = 0.95f)
+                                Color(0xFFF54047).copy(alpha = 0.42f),
+                                Color(0xFF1C1C1E).copy(alpha = 0.95f)
                             )
                         )
                     )
@@ -874,7 +874,7 @@ private fun PlaybackProgressSection(
             modifier = Modifier.fillMaxWidth(),
             colors = SliderDefaults.colors(
                 thumbColor = Color.White,
-                activeTrackColor = Color(0xFF7C3AED),
+                activeTrackColor = Color(0xFFF54047),
                 inactiveTrackColor = Color.White.copy(alpha = 0.18f)
             )
         )

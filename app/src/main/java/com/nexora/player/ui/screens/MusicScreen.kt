@@ -92,7 +92,7 @@ fun MusicScreen(
 
     Column(modifier = modifier.fillMaxSize()) {
         ElevatedCard(
-            modifier = Modifier.padding(12.dp)
+            modifier = Modifier.padding(14.dp)
         ) {
             Column(
                 modifier = Modifier
@@ -154,7 +154,7 @@ fun MusicScreen(
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(items, key = { it.id }) { item ->

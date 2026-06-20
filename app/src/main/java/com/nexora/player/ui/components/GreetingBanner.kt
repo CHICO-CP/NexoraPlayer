@@ -1,11 +1,10 @@
 package com.nexora.player.ui.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AssistChip
@@ -14,6 +13,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -29,14 +30,25 @@ fun GreetingBanner(
     onQueryChange: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val cardBrush = Brush.linearGradient(
+        listOf(
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.16f),
+            MaterialTheme.colorScheme.secondary.copy(alpha = 0.10f),
+            MaterialTheme.colorScheme.surface
+        )
+    )
+
     ElevatedCard(
         modifier = modifier
             .fillMaxWidth()
             .padding(top = 6.dp),
-        shape = RoundedCornerShape(32.dp)
+        shape = RoundedCornerShape(34.dp)
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 18.dp, vertical = 18.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(cardBrush)
+                .padding(horizontal = 18.dp, vertical = 18.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Row(
@@ -68,8 +80,6 @@ fun GreetingBanner(
                     label = { Text(greeting) }
                 )
             }
-
-            Spacer(modifier = Modifier.height(2.dp))
 
             SearchField(
                 query = query,
