@@ -1,11 +1,12 @@
+
 package com.nexora.player.ui.screens
 
+import android.content.ContentUris
 import android.content.Context
 import android.content.ContextWrapper
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.media.MediaMetadataRetriever
-import android.os.Build
 import android.provider.MediaStore
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -26,22 +27,22 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.PlaylistPlay
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Checkroom
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Equalizer
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
@@ -49,69 +50,68 @@ import androidx.compose.material.icons.filled.QueueMusic
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material3.AssistChip
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.ListItem
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.nexora.player.R
 import com.nexora.player.data.local.FavoriteMediaEntity
 import com.nexora.player.data.local.NexoraDatabase
-import com.nexora.player.equalizer.EqualizerPreferencesRepository
-import com.nexora.player.equalizer.EqualizerSessionManager
-import com.nexora.player.equalizer.EqualizerSettings
-import com.nexora.player.equalizer.NexoraEqualizerTemplates
 import com.nexora.player.data.lyrics.LrcParser
 import com.nexora.player.data.lyrics.Lyrics
 import com.nexora.player.data.lyrics.LyricsRepository
-import com.nexora.player.ui.components.LyricsAndQueueCard
-import com.nexora.player.ui.screens.LyricsEditorDialog
 import com.nexora.player.data.model.MediaEntry
 import com.nexora.player.data.model.MediaKind
+import com.nexora.player.equalizer.EqualizerPreferencesRepository
+import com.nexora.player.equalizer.EqualizerSessionManager
+import com.nexora.player.equalizer.EqualizerSettings
+import com.nexora.player.equalizer.NEXORA_CUSTOM_TEMPLATE_ID
+import com.nexora.player.equalizer.NexoraEqualizerTemplates
 import com.nexora.player.playback.PlayerEngine
+import com.nexora.player.ui.components.LyricsAndQueueCard
 import com.nexora.player.ui.components.MediaItemRow
 import com.nexora.player.ui.components.formatDuration
 import kotlinx.coroutines.Dispatchers
@@ -120,19 +120,18 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.roundToLong
 
-
-
 private enum class ArtworkStyle {
     DISC,
-    SQUARE,
-    COVER;
+    COVER,
+    SQUARE;
 
     fun next(): ArtworkStyle = when (this) {
-        DISC -> SQUARE
-        SQUARE -> COVER
-        COVER -> DISC
+        DISC -> COVER
+        COVER -> SQUARE
+        SQUARE -> DISC
     }
 }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AudioPlayerScreen(
@@ -144,13 +143,15 @@ fun AudioPlayerScreen(
     val player = PlayerEngine.get(context)
     val snapshot by PlayerEngine.snapshot.collectAsState()
     val scope = rememberCoroutineScope()
-    val favorites by NexoraDatabase.get(context).favoritesDao().observeAll().collectAsState(initial = emptyList())
 
-    val lyricsRepository = remember(context) { LyricsRepository(context, NexoraDatabase.get(context)) }
+    val db = remember(context) { NexoraDatabase.get(context) }
+    val favorites by db.favoritesDao().observeAll().collectAsState(initial = emptyList())
+    val lyricsRepository = remember(context) { LyricsRepository(context, db) }
     val equalizerRepository = remember(context) { EqualizerPreferencesRepository(context) }
     val equalizerSettings by equalizerRepository.settings.collectAsState(initial = EqualizerSettings())
+
     val equalizerPresetLabel = remember(equalizerSettings.templateId, equalizerSettings.customName) {
-        if (equalizerSettings.templateId == com.nexora.player.equalizer.NEXORA_CUSTOM_TEMPLATE_ID) {
+        if (equalizerSettings.templateId == NEXORA_CUSTOM_TEMPLATE_ID) {
             equalizerSettings.customName.trim().ifBlank { "Personalizado" }
         } else {
             NexoraEqualizerTemplates.resolve(equalizerSettings.templateId).name
@@ -168,6 +169,7 @@ fun AudioPlayerScreen(
 
     var positionMs by remember { mutableLongStateOf(0L) }
     var durationMs by remember { mutableLongStateOf(0L) }
+
     val artwork by produceState<ImageBitmap?>(
         initialValue = null,
         key1 = current?.id,
@@ -200,14 +202,6 @@ fun AudioPlayerScreen(
         }
     }
 
-    val queue = snapshot.queue
-    val currentIndex = snapshot.currentIndex.coerceAtLeast(0)
-    val upNext = if (queue.isEmpty()) emptyList() else queue.drop(currentIndex + 1)
-
-    BackHandler {
-        onClose()
-    }
-
     LaunchedEffect(current?.id, snapshot.isPlaying) {
         if (current == null) return@LaunchedEffect
         while (true) {
@@ -225,11 +219,30 @@ fun AudioPlayerScreen(
             return@LaunchedEffect
         }
         lyricsLoading = true
-        lyrics = null
-        lyrics = runCatching {
-            lyricsRepository.loadLyrics(item, allowOnlineSearch = allowOnlineLyrics)
-        }.getOrNull()
+        lyrics = runCatching { lyricsRepository.loadLyrics(item, allowOnlineSearch = allowOnlineLyrics) }.getOrNull()
         lyricsLoading = false
+    }
+
+    val queue = snapshot.queue
+    val currentIndex = snapshot.currentIndex.coerceAtLeast(0)
+    val upNext = if (queue.isEmpty()) emptyList() else queue.drop(currentIndex + 1)
+
+    BackHandler { onClose() }
+
+    if (current == null) {
+        Box(
+            modifier = modifier
+                .fillMaxSize()
+                .background(Color(0xFF090B14)),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = stringResource(R.string.audio_no_playback),
+                style = MaterialTheme.typography.headlineSmall,
+                color = Color.White.copy(alpha = 0.88f)
+            )
+        }
+        return
     }
 
     Box(
@@ -237,17 +250,6 @@ fun AudioPlayerScreen(
             .fillMaxSize()
             .background(Color(0xFF090B14))
     ) {
-        if (current == null) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(
-                    text = stringResource(R.string.audio_no_playback),
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = Color.White.copy(alpha = 0.88f)
-                )
-            }
-            return@Box
-        }
-
         if (artwork != null) {
             Image(
                 bitmap = artwork!!,
@@ -255,7 +257,7 @@ fun AudioPlayerScreen(
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .fillMaxSize()
-                    .blur(38.dp)
+                    .blur(42.dp)
             )
         } else {
             Box(
@@ -264,8 +266,8 @@ fun AudioPlayerScreen(
                     .background(
                         Brush.radialGradient(
                             colors = listOf(
-                                Color(0xFFF54047).copy(alpha = 0.42f),
-                                Color(0xFF1C1C1E).copy(alpha = 0.95f)
+                                Color(0xFFF54047).copy(alpha = 0.40f),
+                                Color(0xFF090B14).copy(alpha = 0.94f)
                             )
                         )
                     )
@@ -278,9 +280,9 @@ fun AudioPlayerScreen(
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
-                            Color.Black.copy(alpha = 0.32f),
-                            Color.Black.copy(alpha = 0.72f),
-                            Color.Black.copy(alpha = 0.92f)
+                            Color.Black.copy(alpha = 0.18f),
+                            Color.Black.copy(alpha = 0.60f),
+                            Color.Black.copy(alpha = 0.94f)
                         )
                     )
                 )
@@ -289,122 +291,58 @@ fun AudioPlayerScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp, vertical = 18.dp),
-            verticalArrangement = Arrangement.SpaceBetween
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            TopBar(
+            TopHeader(
                 current = current,
                 isFavorite = isFavorite,
-                artworkStyle = artworkStyle,
-                onBack = { onClose() },
+                onBack = onClose,
                 onToggleFavorite = {
                     scope.launch {
                         toggleFavorite(context, current)
                     }
                 },
-                onOpenEqualizer = { showEqualizerSheet = true },
-                onChangeArtworkStyle = {
-                    artworkStyle = artworkStyle.next()
-                }
+                onOpenDetails = { showDetailsSheet = true }
             )
 
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                ArtworkDisplay(
-                    artwork = artwork,
-                    title = current.title,
-                    isPlaying = snapshot.isPlaying,
-                    rotation = rotation,
-                    style = artworkStyle
-                )
+            ArtworkDisplay(
+                artwork = artwork,
+                title = current.title,
+                isPlaying = snapshot.isPlaying,
+                rotation = rotation,
+                style = artworkStyle,
+                modifier = Modifier.fillMaxWidth()
+            )
 
-                Spacer(modifier = Modifier.height(26.dp))
+            NowPlayingSummary(
+                current = current,
+                equalizerPresetLabel = equalizerPresetLabel,
+                durationMs = durationMs,
+                artworkStyle = artworkStyle,
+                onCycleArtworkStyle = { artworkStyle = artworkStyle.next() }
+            )
 
-                Text(
-                    text = current.title,
-                    style = MaterialTheme.typography.headlineSmall.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 28.sp
-                    ),
-                    color = Color.White,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(horizontal = 18.dp)
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-                Text(
-                    text = listOfNotNull(
-                        current.artist.takeIf { it.isNotBlank() },
-                        current.album.takeIf { it.isNotBlank() }
-                    ).joinToString(" • ").ifBlank { stringResource(R.string.app_name) },
-                    style = MaterialTheme.typography.titleMedium,
-                    color = Color.White.copy(alpha = 0.74f),
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(horizontal = 24.dp)
-                )
+            PlaybackProgressSection(
+                positionMs = positionMs,
+                durationMs = durationMs,
+                onSeek = { PlayerEngine.seekTo(context, it) }
+            )
 
-                Spacer(modifier = Modifier.height(18.dp))
+            TransportControls(
+                isPlaying = snapshot.isPlaying,
+                onPrevious = { PlayerEngine.skipPrevious(context) },
+                onTogglePlay = { PlayerEngine.togglePlayPause(context) },
+                onNext = { PlayerEngine.skipNext(context) }
+            )
 
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    AssistChip(onClick = {}, label = { Text(formatDuration(current.durationMs)) })
-                    AssistChip(onClick = {}, label = { Text("${currentIndex + 1}/${queue.size.coerceAtLeast(1)}") })
-                    AssistChip(onClick = {}, label = { Text(if (snapshot.isPlaying) "En reproducción" else "En pausa") })
-                    AssistChip(
-                        onClick = { showEqualizerSheet = true },
-                        label = { Text(if (equalizerSettings.enabled) "EQ: ${equalizerPresetLabel}" else "EQ desactivado") },
-                        leadingIcon = { Icon(imageVector = Icons.Filled.Equalizer, contentDescription = null) }
-                    )
-                    AssistChip(
-                        onClick = {
-                            scope.launch { toggleFavorite(context, current) }
-                        },
-                        label = { Text(if (isFavorite) "Favorito" else "Agregar favorito") },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                                contentDescription = null
-                            )
-                        }
-                    )
-                }
-
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    AssistChip(
-                        onClick = { showDetailsSheet = true },
-                        label = { Text("Detalles") },
-                        leadingIcon = { Icon(imageVector = Icons.Filled.Info, contentDescription = null) }
-                    )
-                    AssistChip(
-                        onClick = { showQueueSheet = true },
-                        label = { Text("Cola") },
-                        leadingIcon = { Icon(imageVector = Icons.Filled.QueueMusic, contentDescription = null) }
-                    )
-                }
-
-                PlaybackProgressSection(
-                    positionMs = positionMs,
-                    durationMs = durationMs,
-                    onSeek = { target -> PlayerEngine.seekTo(context, target) },
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                TransportControls(
-                    isPlaying = snapshot.isPlaying,
-                    onPrevious = { PlayerEngine.skipPrevious(context) },
-                    onTogglePlay = { PlayerEngine.togglePlayPause(context) },
-                    onNext = { PlayerEngine.skipNext(context) },
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
+            ActionStrip(
+                onQueue = { showQueueSheet = true },
+                onDetails = { showDetailsSheet = true },
+                onEqualizer = { showEqualizerSheet = true },
+                onLyrics = { showLyricsEditor = true }
+            )
 
             LyricsAndQueueCard(
                 lyrics = lyrics,
@@ -413,40 +351,54 @@ fun AudioPlayerScreen(
                 queue = queue,
                 currentIndex = currentIndex,
                 onJumpToQueueItem = { PlayerEngine.jumpTo(context, it) },
-                onSearchOnline = { allowOnlineLyrics = true },
-                onEditManual = { showLyricsEditor = true },
-                onShowQueue = { showQueueSheet = true },
-                modifier = Modifier.fillMaxWidth()
+                onSearchOnline = {
+                    allowOnlineLyrics = true
+                },
+                onEditManual = {
+                    showLyricsEditor = true
+                },
+                onShowQueue = {
+                    showQueueSheet = true
+                }
             )
+
+            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 
-    if (showQueueSheet && current != null) {
+    if (showQueueSheet) {
         QueueSheet(
-            current = current,
             queue = queue,
             currentIndex = currentIndex,
             onDismiss = { showQueueSheet = false },
-            onJumpToQueueItem = { PlayerEngine.jumpTo(context, it) },
-            onOpenEqualizer = { showEqualizerSheet = true }
+            onJumpTo = {
+                PlayerEngine.jumpTo(context, it)
+                showQueueSheet = false
+            }
         )
     }
 
-    if (showEqualizerSheet && current != null) {
+    if (showDetailsSheet) {
+        DetailsSheet(
+            current = current,
+            durationMs = durationMs,
+            equalizerPresetLabel = equalizerPresetLabel,
+            artworkStyle = artworkStyle,
+            allowOnlineLyrics = allowOnlineLyrics,
+            onToggleOnlineLyrics = { allowOnlineLyrics = it },
+            onCycleArtworkStyle = { artworkStyle = artworkStyle.next() },
+            onOpenEqualizer = {
+                showDetailsSheet = false
+                showEqualizerSheet = true
+            },
+            onDismiss = { showDetailsSheet = false }
+        )
+    }
+
+    if (showEqualizerSheet) {
         EqualizerSheet(
             audioSessionId = player.audioSessionId,
             onDismiss = { showEqualizerSheet = false }
-        )
-    }
-
-    if (showDetailsSheet && current != null) {
-        DetailsSheet(
-            current = current,
-            queue = queue,
-            currentIndex = currentIndex,
-            onDismiss = { showDetailsSheet = false },
-            onShowQueue = { showQueueSheet = true },
-            onOpenEqualizer = { showEqualizerSheet = true }
         )
     }
 
@@ -474,264 +426,141 @@ fun AudioPlayerScreen(
     }
 }
 
-
 @Composable
-private fun TopBar(
+private fun TopHeader(
     current: MediaEntry,
     isFavorite: Boolean,
-    artworkStyle: ArtworkStyle,
     onBack: () -> Unit,
     onToggleFavorite: () -> Unit,
-    onOpenEqualizer: () -> Unit,
-    onChangeArtworkStyle: () -> Unit
+    onOpenDetails: () -> Unit
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Surface(
-            color = Color.White.copy(alpha = 0.08f),
-            shape = CircleShape
-        ) {
-            IconButton(onClick = onBack) {
-                Icon(
-                    imageVector = Icons.Filled.ArrowBack,
-                    contentDescription = "Volver",
-                    tint = Color.White
-                )
-            }
+        IconButton(onClick = onBack) {
+            Icon(Icons.Filled.ArrowBack, contentDescription = null, tint = Color.White)
         }
 
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
-                text = "Now playing",
-                style = MaterialTheme.typography.labelLarge,
-                color = Color.White.copy(alpha = 0.7f)
+                text = "Now Playing",
+                color = Color.White,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
             )
             Text(
-                text = if (current.kind == MediaKind.AUDIO) "Audio" else "Media",
-                style = MaterialTheme.typography.labelMedium,
-                color = Color.White.copy(alpha = 0.5f)
+                text = if (current.kind == MediaKind.VIDEO) "Video" else "Audio",
+                color = Color.White.copy(alpha = 0.68f),
+                style = MaterialTheme.typography.labelMedium
             )
         }
 
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Surface(
-                color = Color.White.copy(alpha = 0.08f),
-                shape = CircleShape
-            ) {
-                IconButton(onClick = onOpenEqualizer) {
-                    Icon(
-                        imageVector = Icons.Filled.Equalizer,
-                        contentDescription = "Abrir ecualizador",
-                        tint = Color.White
-                    )
-                }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = onToggleFavorite) {
+                Icon(
+                    imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                    contentDescription = null,
+                    tint = if (isFavorite) Color(0xFFF54047) else Color.White
+                )
             }
-
-            Surface(
-                color = Color.White.copy(alpha = 0.08f),
-                shape = CircleShape
-            ) {
-                IconButton(onClick = onChangeArtworkStyle) {
-                    Icon(
-                        imageVector = Icons.Filled.Checkroom,
-                        contentDescription = when (artworkStyle) {
-                            ArtworkStyle.DISC -> "Cambiar a carátula cuadrada"
-                            ArtworkStyle.SQUARE -> "Cambiar a portada"
-                            ArtworkStyle.COVER -> "Cambiar a disco"
-                        },
-                        tint = Color.White
-                    )
-                }
+            IconButton(onClick = onOpenDetails) {
+                Icon(Icons.Filled.Info, contentDescription = null, tint = Color.White)
             }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun DetailsSheet(
+private fun NowPlayingSummary(
     current: MediaEntry,
-    queue: List<MediaEntry>,
-    currentIndex: Int,
-    onDismiss: () -> Unit,
-    onShowQueue: () -> Unit,
-    onOpenEqualizer: () -> Unit
+    equalizerPresetLabel: String,
+    durationMs: Long,
+    artworkStyle: ArtworkStyle,
+    onCycleArtworkStyle: () -> Unit
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
-
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState
+    ElevatedCard(
+        shape = RoundedCornerShape(28.dp),
+        colors = CardDefaults.elevatedCardColors(containerColor = Color.White.copy(alpha = 0.08f)),
+        modifier = Modifier.fillMaxWidth()
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 18.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text(
-                text = "Detalles de la canción",
-                style = MaterialTheme.typography.titleLarge
-            )
-            Text(
-                text = "Desliza hacia abajo para cerrar",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            ElevatedCard {
-                Column(
-                    modifier = Modifier.fillMaxWidth().padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Text(text = current.title, style = MaterialTheme.typography.titleLarge)
-                    Text(
-                        text = listOfNotNull(current.artist.takeIf { it.isNotBlank() }, current.album.takeIf { it.isNotBlank() }).joinToString(" • "),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    HorizontalDivider()
-                    ListItem(
-                        headlineContent = { Text("Duración") },
-                        supportingContent = { Text(formatDuration(current.durationMs)) },
-                        leadingContent = { Icon(imageVector = Icons.Filled.MusicNote, contentDescription = null) }
-                    )
-                    ListItem(
-                        headlineContent = { Text("Artista") },
-                        supportingContent = { Text(current.artist.ifBlank { "Desconocido" }) },
-                        leadingContent = { Icon(imageVector = Icons.Filled.Info, contentDescription = null) }
-                    )
-                    ListItem(
-                        headlineContent = { Text("Álbum") },
-                        supportingContent = { Text(current.album.ifBlank { "Sin álbum" }) },
-                        leadingContent = { Icon(imageVector = Icons.AutoMirrored.Filled.PlaylistPlay, contentDescription = null) }
-                    )
-                    ListItem(
-                        headlineContent = { Text("Carpeta") },
-                        supportingContent = { Text(current.folder.orEmpty().ifBlank { "No disponible" }) },
-                        leadingContent = { Icon(imageVector = Icons.Filled.QueueMusic, contentDescription = null) }
-                    )
-                }
-            }
-
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                AssistChip(
-                    onClick = onOpenEqualizer,
-                    label = { Text("Ecualizador") },
-                    leadingIcon = { Icon(imageVector = Icons.Filled.Equalizer, contentDescription = null) }
-                )
-                AssistChip(
-                    onClick = onShowQueue,
-                    label = { Text("Mostrar cola") },
-                    leadingIcon = { Icon(imageVector = Icons.Filled.QueueMusic, contentDescription = null) }
-                )
-            }
-
-            Text(
-                text = "Siguiente en reproducción: ${queue.drop(currentIndex + 1).size}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun QueueSheet(
-    current: MediaEntry,
-    queue: List<MediaEntry>,
-    currentIndex: Int,
-    onDismiss: () -> Unit,
-    onJumpToQueueItem: (Int) -> Unit,
-    onOpenEqualizer: () -> Unit
-) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
-
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 18.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = current.title,
-                        style = MaterialTheme.typography.titleLarge,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Text(
-                        text = listOfNotNull(
-                            current.artist.takeIf { it.isNotBlank() },
-                            current.album.takeIf { it.isNotBlank() }
-                        ).joinToString(" • ").ifBlank { "Detalles de la canción" },
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-                IconButton(onClick = onOpenEqualizer) {
-                    Icon(imageVector = Icons.Filled.Equalizer, contentDescription = "Ecualizador")
-                }
-            }
-
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                AssistChip(
-                    onClick = onOpenEqualizer,
-                    label = { Text("Ecualizador") },
-                    leadingIcon = { Icon(imageVector = Icons.Filled.Equalizer, contentDescription = null) }
-                )
-                AssistChip(
-                    onClick = { },
-                    label = { Text("Información") },
-                    leadingIcon = { Icon(imageVector = Icons.Filled.Info, contentDescription = null) }
-                )
-            }
-
-            HorizontalDivider()
-
-            Text(
-                text = "Lista de reproducción",
-                style = MaterialTheme.typography.titleMedium
-            )
-
-            if (queue.isEmpty()) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    text = "No hay canciones en cola.",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    text = current.title,
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = Color.White,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
                 )
-            } else {
-                LazyColumn(
-                    modifier = Modifier.heightIn(max = 320.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    itemsIndexed(queue) { index, item ->
-                        MediaItemRow(
-                            item = item,
-                            onClick = { onJumpToQueueItem(index) }
-                        )
-                    }
+                val subtitle = buildList {
+                    if (current.artist.isNotBlank()) add(current.artist)
+                    if (current.album.isNotBlank()) add(current.album)
+                }.joinToString(" • ")
+                if (subtitle.isNotBlank()) {
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.White.copy(alpha = 0.72f),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                AssistChip(onClick = {}, label = { Text(if (current.kind == MediaKind.VIDEO) "Video" else "Audio") })
+                AssistChip(onClick = {}, label = { Text(equalizerPresetLabel) }, leadingIcon = { Icon(Icons.Filled.Equalizer, null) })
+                AssistChip(onClick = onCycleArtworkStyle, label = { Text(styleLabel(artworkStyle)) }, leadingIcon = { Icon(Icons.Filled.QueueMusic, null) })
+            }
+
+            Text(
+                text = formatDuration(durationMs),
+                color = Color.White.copy(alpha = 0.62f),
+                style = MaterialTheme.typography.labelMedium
+            )
         }
+    }
+}
+
+@Composable
+private fun ActionStrip(
+    onQueue: () -> Unit,
+    onDetails: () -> Unit,
+    onEqualizer: () -> Unit,
+    onLyrics: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        ActionChip(label = "Cola", icon = Icons.Filled.QueueMusic, onClick = onQueue, modifier = Modifier.weight(1f))
+        ActionChip(label = "Letras", icon = Icons.AutoMirrored.Filled.PlaylistPlay, onClick = onLyrics, modifier = Modifier.weight(1f))
+        ActionChip(label = "EQ", icon = Icons.Filled.Equalizer, onClick = onEqualizer, modifier = Modifier.weight(1f))
+        ActionChip(label = "Detalles", icon = Icons.Filled.Info, onClick = onDetails, modifier = Modifier.weight(1f))
+    }
+}
+
+@Composable
+private fun ActionChip(
+    label: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    FilledTonalButton(
+        onClick = onClick,
+        modifier = modifier,
+        shape = RoundedCornerShape(18.dp)
+    ) {
+        Icon(imageVector = icon, contentDescription = null)
+        Spacer(modifier = Modifier.width(6.dp))
+        Text(label)
     }
 }
 
@@ -746,44 +575,26 @@ private fun ArtworkDisplay(
 ) {
     val outerShape = when (style) {
         ArtworkStyle.DISC -> CircleShape
-        ArtworkStyle.SQUARE -> RoundedCornerShape(34.dp)
-        ArtworkStyle.COVER -> RoundedCornerShape(42.dp)
+        ArtworkStyle.COVER -> RoundedCornerShape(40.dp)
+        ArtworkStyle.SQUARE -> RoundedCornerShape(28.dp)
     }
-
     val outerSize = when (style) {
-        ArtworkStyle.DISC -> 310.dp
-        ArtworkStyle.SQUARE -> 304.dp
-        ArtworkStyle.COVER -> 304.dp
-    }
-
-    val innerSize = when (style) {
-        ArtworkStyle.DISC -> 262.dp
-        ArtworkStyle.SQUARE -> 260.dp
-        ArtworkStyle.COVER -> 260.dp
+        ArtworkStyle.DISC -> 318.dp
+        ArtworkStyle.COVER -> 314.dp
+        ArtworkStyle.SQUARE -> 300.dp
     }
 
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier
-            .size(outerSize)
-            .shadow(30.dp, outerShape, clip = false)
-            .clip(outerShape)
-            .background(Color.White.copy(alpha = 0.06f))
-            .border(width = 1.dp, color = Color.White.copy(alpha = 0.12f), shape = outerShape)
     ) {
         Box(
             modifier = Modifier
-                .size(innerSize)
-                .shadow(18.dp, outerShape, clip = false)
+                .size(outerSize)
+                .shadow(34.dp, outerShape, clip = false)
                 .clip(outerShape)
-                .background(
-                    Brush.radialGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = 0.08f),
-                            Color.Black.copy(alpha = 0.45f)
-                        )
-                    )
-                )
+                .background(Color.White.copy(alpha = 0.06f))
+                .border(1.dp, Color.White.copy(alpha = 0.12f), outerShape)
         ) {
             if (artwork != null) {
                 Image(
@@ -792,45 +603,55 @@ private fun ArtworkDisplay(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .fillMaxSize()
-                        .clip(outerShape)
-                        .shadow(14.dp, outerShape)
                         .graphicsLayer(rotationZ = if (style == ArtworkStyle.DISC && isPlaying) rotation else 0f)
                 )
             } else {
-                Icon(
-                    imageVector = Icons.Filled.MusicNote,
-                    contentDescription = null,
-                    tint = Color.White,
+                Box(
                     modifier = Modifier
-                        .size(92.dp)
-                        .align(Alignment.Center)
-                )
+                        .fillMaxSize()
+                        .background(
+                            Brush.radialGradient(
+                                colors = listOf(
+                                    Color(0xFFF54047).copy(alpha = 0.32f),
+                                    Color.Black.copy(alpha = 0.20f)
+                                )
+                            )
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.MusicNote,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(92.dp)
+                    )
+                }
             }
 
             if (style == ArtworkStyle.DISC) {
                 Box(
                     modifier = Modifier
-                        .size(78.dp)
+                        .size(84.dp)
                         .align(Alignment.Center)
                         .clip(CircleShape)
-                        .background(Color.Black.copy(alpha = 0.35f))
+                        .background(Color.Black.copy(alpha = 0.26f))
                         .border(1.dp, Color.White.copy(alpha = 0.08f), CircleShape)
                 )
             }
 
             Box(
                 modifier = Modifier
-                    .matchParentSize()
-                    .background(
-                        Brush.radialGradient(
-                            colors = listOf(
-                                Color.Transparent,
-                                Color.Black.copy(alpha = 0.12f)
-                            ),
-                            radius = 420f
-                        )
-                    )
-            )
+                    .align(Alignment.BottomEnd)
+                    .padding(14.dp)
+                    .background(Color.Black.copy(alpha = 0.28f), RoundedCornerShape(999.dp))
+                    .padding(horizontal = 12.dp, vertical = 8.dp)
+            ) {
+                Text(
+                    text = styleLabel(style),
+                    color = Color.White,
+                    style = MaterialTheme.typography.labelMedium
+                )
+            }
         }
     }
 }
@@ -842,57 +663,30 @@ private fun PlaybackProgressSection(
     onSeek: (Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var isDragging by rememberSaveable { mutableStateOf(false) }
-    var progress by remember(positionMs, durationMs) {
-        mutableStateOf(
-            if (durationMs > 0L) positionMs.toFloat() / durationMs.toFloat() else 0f
-        )
-    }
+    val safeDuration = durationMs.coerceAtLeast(1L)
+    val progress = (positionMs.coerceIn(0L, safeDuration).toFloat() / safeDuration.toFloat()).coerceIn(0f, 1f)
 
-    LaunchedEffect(positionMs, durationMs, isDragging) {
-        if (!isDragging) {
-            progress = if (durationMs > 0L) positionMs.toFloat() / durationMs.toFloat() else 0f
-        }
-    }
-
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+    Card(
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.06f)),
+        modifier = modifier.fillMaxWidth()
     ) {
-        Slider(
-            value = progress.coerceIn(0f, 1f),
-            onValueChange = {
-                isDragging = true
-                progress = it
-            },
-            onValueChangeFinished = {
-                isDragging = false
-                if (durationMs > 0L) {
-                    onSeek((progress.coerceIn(0f, 1f) * durationMs.toFloat()).roundToLong())
-                }
-            },
-            modifier = Modifier.fillMaxWidth(),
-            colors = SliderDefaults.colors(
-                thumbColor = Color.White,
-                activeTrackColor = Color(0xFFF54047),
-                inactiveTrackColor = Color.White.copy(alpha = 0.18f)
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Slider(
+                value = progress,
+                onValueChange = { onSeek((safeDuration * it).roundToLong()) },
+                modifier = Modifier.fillMaxWidth(),
+                colors = SliderDefaults.colors(
+                    thumbColor = Color.White,
+                    activeTrackColor = Color(0xFFF54047),
+                    inactiveTrackColor = Color.White.copy(alpha = 0.18f)
+                )
             )
-        )
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = formatDuration(positionMs.coerceAtLeast(0L)),
-                style = MaterialTheme.typography.labelMedium,
-                color = Color.White.copy(alpha = 0.72f)
-            )
-            Text(
-                text = formatDuration(durationMs.coerceAtLeast(0L)),
-                style = MaterialTheme.typography.labelMedium,
-                color = Color.White.copy(alpha = 0.72f)
-            )
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(formatDuration(positionMs), color = Color.White.copy(alpha = 0.74f), style = MaterialTheme.typography.labelMedium)
+                Text(formatDuration(durationMs), color = Color.White.copy(alpha = 0.74f), style = MaterialTheme.typography.labelMedium)
+            }
         }
     }
 }
@@ -902,35 +696,157 @@ private fun TransportControls(
     isPlaying: Boolean,
     onPrevious: () -> Unit,
     onTogglePlay: () -> Unit,
-    onNext: () -> Unit,
-    modifier: Modifier = Modifier
+    onNext: () -> Unit
 ) {
     Row(
-        modifier = modifier,
+        modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
         FilledTonalIconButton(onClick = onPrevious) {
-            Icon(
-                imageVector = Icons.Filled.SkipPrevious,
-                contentDescription = "Anterior"
-            )
+            Icon(Icons.Filled.SkipPrevious, contentDescription = stringResource(R.string.player_previous))
         }
         Spacer(modifier = Modifier.width(18.dp))
         FilledTonalIconButton(onClick = onTogglePlay) {
             Icon(
                 imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-                contentDescription = if (isPlaying) "Pausar" else "Reproducir"
+                contentDescription = if (isPlaying) stringResource(R.string.player_pause) else stringResource(R.string.player_play)
             )
         }
         Spacer(modifier = Modifier.width(18.dp))
         FilledTonalIconButton(onClick = onNext) {
-            Icon(
-                imageVector = Icons.Filled.SkipNext,
-                contentDescription = "Siguiente"
-            )
+            Icon(Icons.Filled.SkipNext, contentDescription = stringResource(R.string.player_next))
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun QueueSheet(
+    queue: List<MediaEntry>,
+    currentIndex: Int,
+    onDismiss: () -> Unit,
+    onJumpTo: (Int) -> Unit
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 18.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Column {
+                    Text("Cola de reproducción", style = MaterialTheme.typography.titleLarge)
+                    Text("Selecciona un elemento para saltar directamente.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                IconButton(onClick = onDismiss) { Icon(Icons.Filled.Close, contentDescription = null) }
+            }
+
+            HorizontalDivider()
+
+            if (queue.isEmpty()) {
+                Text("No hay elementos en cola.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.heightIn(max = 420.dp)) {
+                    queue.forEachIndexed { index, item ->
+                        val highlighted = index == currentIndex
+                        OutlinedCard(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.outlinedCardColors(containerColor = if (highlighted) MaterialTheme.colorScheme.primary.copy(alpha = 0.10f) else Color.Transparent)
+                        ) {
+                            MediaItemRow(
+                                item = item,
+                                onClick = { onJumpTo(index) }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DetailsSheet(
+    current: MediaEntry,
+    durationMs: Long,
+    equalizerPresetLabel: String,
+    artworkStyle: ArtworkStyle,
+    allowOnlineLyrics: Boolean,
+    onToggleOnlineLyrics: (Boolean) -> Unit,
+    onCycleArtworkStyle: () -> Unit,
+    onOpenEqualizer: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 18.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(current.title, style = MaterialTheme.typography.titleLarge, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    Text(
+                        text = listOfNotNull(current.artist.takeIf { it.isNotBlank() }, current.album.takeIf { it.isNotBlank() }).joinToString(" • ").ifBlank { "Detalles de reproducción" },
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                IconButton(onClick = onDismiss) { Icon(Icons.Filled.Close, contentDescription = null) }
+            }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                AssistChip(onClick = onOpenEqualizer, label = { Text(equalizerPresetLabel) }, leadingIcon = { Icon(Icons.Filled.Equalizer, null) })
+                AssistChip(onClick = onCycleArtworkStyle, label = { Text(styleLabel(artworkStyle)) }, leadingIcon = { Icon(Icons.Filled.QueueMusic, null) })
+            }
+
+            ListItem(
+                headlineContent = { Text("Letras online") },
+                supportingContent = { Text("Permite buscar coincidencias en línea cuando no hay letras locales.") },
+                trailingContent = {
+                    Switch(
+                        checked = allowOnlineLyrics,
+                        onCheckedChange = onToggleOnlineLyrics
+                    )
+                }
+            )
+
+            HorizontalDivider()
+
+            DetailsRow("Duración", formatDuration(durationMs))
+            DetailsRow("Tipo", if (current.kind == MediaKind.VIDEO) "Video" else "Audio")
+            DetailsRow("Resolución", current.resolutionLabel)
+            DetailsRow("Carpeta", current.folder.orEmpty().ifBlank { "—" })
+            DetailsRow("Álbum", current.album.ifBlank { "—" })
+            DetailsRow("Artista", current.artist.ifBlank { "—" })
+        }
+    }
+}
+
+@Composable
+private fun DetailsRow(label: String, value: String) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(value, fontWeight = FontWeight.Medium)
+    }
+}
+
+@Composable
+private fun styleLabel(style: ArtworkStyle): String = when (style) {
+    ArtworkStyle.DISC -> "Disco"
+    ArtworkStyle.COVER -> "Portada"
+    ArtworkStyle.SQUARE -> "Cuadrado"
 }
 
 private suspend fun toggleFavorite(context: Context, entry: MediaEntry?) {
@@ -973,7 +889,7 @@ private fun loadArtworkBitmap(context: Context, item: MediaEntry): Bitmap? {
 private fun loadAlbumArtBitmap(context: Context, albumId: Long?): Bitmap? {
     if (albumId == null || albumId <= 0L) return null
     return runCatching {
-        val albumUri = android.content.ContentUris.withAppendedId(MediaStore.Audio.Albums.EXTERNAL_CONTENT_URI, albumId)
+        val albumUri = ContentUris.withAppendedId(MediaStore.Audio.Albums.EXTERNAL_CONTENT_URI, albumId)
         context.contentResolver.query(
             albumUri,
             arrayOf(MediaStore.Audio.Albums.ALBUM_ART),
@@ -988,11 +904,6 @@ private fun loadAlbumArtBitmap(context: Context, albumId: Long?): Bitmap? {
             } else null
         }
     }.getOrNull()
-}
-
-private fun dispatchBackPress(context: Context) {
-    val activity = findComponentActivity(context)
-    activity?.onBackPressedDispatcher?.onBackPressed()
 }
 
 private fun findComponentActivity(context: Context): ComponentActivity? = when (context) {
