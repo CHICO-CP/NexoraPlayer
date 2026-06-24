@@ -23,8 +23,8 @@ class OnlineMusicRepository() {
                 .forEach { provider ->
                     val providerResults = runCatching {
                         when (provider.id) {
-                            "itunes" -> searchItunes(normalized, limit)
                             "jamendo" -> searchJamendo(normalized, limit)
+                            "itunes" -> searchItunes(normalized, limit)
                             else -> emptyList()
                         }
                     }.getOrElse { emptyList() }
