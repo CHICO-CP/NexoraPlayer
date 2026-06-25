@@ -57,7 +57,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -128,12 +127,14 @@ private const val PREFS_NAME = "nexora_player_ui"
 private const val KEY_ARTWORK_STYLE = "artwork_style"
 
 private enum class ArtworkStyle {
-    DISC, SQUARE, COVER;
+    DISC, VINYL, SQUARE, COVER, TILE;
 
     fun next(): ArtworkStyle = when (this) {
-        DISC   -> SQUARE
+        DISC   -> VINYL
+        VINYL  -> SQUARE
         SQUARE -> COVER
-        COVER  -> DISC
+        COVER  -> TILE
+        TILE   -> DISC
     }
 
     companion object {
@@ -357,18 +358,7 @@ fun AudioPlayerScreen(
                     style     = artworkStyle
                 )
 
-                Spacer(Modifier.height(10.dp))
-
-                // Style selector chips
-                ArtworkStyleSelector(
-                    currentStyle = artworkStyle,
-                    onSelect     = { selected ->
-                        artworkStyle = selected
-                        uiPrefs.edit().putString(KEY_ARTWORK_STYLE, selected.name).apply()
-                    }
-                )
-
-                Spacer(Modifier.height(20.dp))
+                Spacer(Modifier.height(22.dp))
 
                 // ── Song info + favorite ──
                 Row(
@@ -586,7 +576,7 @@ private fun PlayerTopBar(
         // Title
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
-                text  = "Now Playing",
+                text  = "Nexora Player",
                 style = MaterialTheme.typography.labelLarge,
                 color = Color.White.copy(alpha = 0.72f)
             )
@@ -610,9 +600,11 @@ private fun PlayerTopBar(
                 Icon(
                     imageVector = Icons.Filled.Checkroom,
                     contentDescription = when (artworkStyle) {
-                        ArtworkStyle.DISC   -> "Cambiar a cuadrado"
+                        ArtworkStyle.DISC   -> "Cambiar a vinilo"
+                        ArtworkStyle.VINYL  -> "Cambiar a cuadrado"
                         ArtworkStyle.SQUARE -> "Cambiar a portada"
-                        ArtworkStyle.COVER  -> "Cambiar a disco"
+                        ArtworkStyle.COVER  -> "Cambiar a tile"
+                        ArtworkStyle.TILE   -> "Cambiar a disco"
                     },
                     tint = Color.White
                 )
@@ -634,13 +626,20 @@ private fun ArtworkDisplay(
     style: ArtworkStyle,
     modifier: Modifier = Modifier
 ) {
-    val shape     = when (style) {
-        ArtworkStyle.DISC   -> CircleShape
+    val shape = when (style) {
+        ArtworkStyle.DISC, ArtworkStyle.VINYL -> CircleShape
         ArtworkStyle.SQUARE -> RoundedCornerShape(34.dp)
         ArtworkStyle.COVER  -> RoundedCornerShape(42.dp)
+        ArtworkStyle.TILE   -> RoundedCornerShape(8.dp)
     }
-    val outerSize = when (style) { ArtworkStyle.DISC -> 340.dp; else -> 330.dp }
-    val innerSize = when (style) { ArtworkStyle.DISC -> 290.dp; else -> 284.dp }
+    val outerSize = when (style) {
+        ArtworkStyle.DISC, ArtworkStyle.VINYL -> 340.dp
+        else -> 330.dp
+    }
+    val innerSize = when (style) {
+        ArtworkStyle.DISC, ArtworkStyle.VINYL -> 290.dp
+        else -> 284.dp
+    }
 
     Box(
         contentAlignment = Alignment.Center,
@@ -674,7 +673,9 @@ private fun ArtworkDisplay(
                         .fillMaxSize()
                         .clip(shape)
                         .graphicsLayer(
-                            rotationZ = if (style == ArtworkStyle.DISC && isPlaying) rotation else 0f
+                            rotationZ = if (
+                                (style == ArtworkStyle.DISC || style == ArtworkStyle.VINYL) && isPlaying
+                            ) rotation else 0f
                         )
                 )
             } else {
@@ -686,15 +687,28 @@ private fun ArtworkDisplay(
                 )
             }
 
-            // Disc hole overlay
-            if (style == ArtworkStyle.DISC) {
+            // VINYL: groove rings drawn over the artwork
+            if (style == ArtworkStyle.VINYL) {
+                listOf(230.dp, 190.dp, 150.dp, 110.dp).forEach { ringSize ->
+                    Box(
+                        modifier = Modifier
+                            .size(ringSize)
+                            .align(Alignment.Center)
+                            .border(0.8.dp, Color.Black.copy(alpha = 0.30f), CircleShape)
+                    )
+                }
+            }
+
+            // Center hole for DISC and VINYL
+            if (style == ArtworkStyle.DISC || style == ArtworkStyle.VINYL) {
+                val holeSize = if (style == ArtworkStyle.VINYL) 58.dp else 46.dp
                 Box(
                     modifier = Modifier
-                        .size(78.dp)
+                        .size(holeSize)
                         .align(Alignment.Center)
                         .clip(CircleShape)
-                        .background(Color.Black.copy(alpha = 0.38f))
-                        .border(1.dp, Color.White.copy(alpha = 0.08f), CircleShape)
+                        .background(Color(0xFF04050A))
+                        .border(1.dp, Color.White.copy(alpha = 0.12f), CircleShape)
                 )
             }
 
@@ -767,40 +781,6 @@ private fun PlaybackProgressSection(
                 text  = formatDuration(durationMs.coerceAtLeast(0L)),
                 style = MaterialTheme.typography.labelMedium,
                 color = Color.White.copy(alpha = 0.60f)
-            )
-        }
-    }
-}
-
-// ---------------------------------------------------------------------------
-// Artwork style selector chips
-// ---------------------------------------------------------------------------
-
-@Composable
-private fun ArtworkStyleSelector(
-    currentStyle: ArtworkStyle,
-    onSelect: (ArtworkStyle) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment     = Alignment.CenterVertically
-    ) {
-        listOf(ArtworkStyle.DISC, ArtworkStyle.SQUARE, ArtworkStyle.COVER).forEach { style ->
-            FilterChip(
-                selected = currentStyle == style,
-                onClick  = { onSelect(style) },
-                label    = {
-                    Text(
-                        when (style) {
-                            ArtworkStyle.DISC   -> "Disco"
-                            ArtworkStyle.SQUARE -> "Cuadrado"
-                            ArtworkStyle.COVER  -> "Portada"
-                        }
-                    )
-                },
-                modifier = Modifier.padding(horizontal = 4.dp)
             )
         }
     }
@@ -913,30 +893,90 @@ private fun InlineLyricsSection(
             }
 
             else -> {
-                if (displayLines.isEmpty()) {
-                    Text(
-                        text      = lyrics.rawText.take(300),
-                        style     = MaterialTheme.typography.bodyLarge,
-                        color     = Color.White.copy(alpha = 0.75f),
-                        lineHeight = 26.sp
-                    )
-                } else {
-                    displayLines.forEachIndexed { index, line ->
-                        val isCurrent = lrcLines.isNotEmpty() && index == currentLineIndex
+                // ── 3-line window: previous · current · next ────────────────
+                // Make the whole block tappable to expand full lyrics
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color.White.copy(alpha = 0.06f))
+                        .padding(horizontal = 18.dp, vertical = 14.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    if (displayLines.isEmpty()) {
+                        // No clean lines to show, raw fallback
                         Text(
-                            text   = line,
-                            style  = MaterialTheme.typography.bodyLarge.copy(
-                                fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal,
-                                fontSize   = if (isCurrent) 19.sp else 16.sp,
-                                lineHeight = 28.sp
-                            ),
-                            color  = if (isCurrent) Color.White
-                                     else Color.White.copy(alpha = 0.45f),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 5.dp)
+                            text      = lyrics.rawText.take(120),
+                            style     = MaterialTheme.typography.bodyLarge,
+                            color     = Color.White.copy(alpha = 0.75f),
+                            lineHeight = 26.sp
                         )
+                    } else {
+                        val hasTiming = lrcLines.isNotEmpty() && currentLineIndex >= 0
+                        val pivotIdx  = if (hasTiming) currentLineIndex
+                                        else 0   // plain text: anchor at first line
+
+                        val prevIdx = (pivotIdx - 1).takeIf { it >= 0 }
+                        val currIdx = pivotIdx.takeIf { it < displayLines.size }
+                        val nextIdx = (pivotIdx + 1).takeIf { it < displayLines.size }
+
+                        // Previous line
+                        if (prevIdx != null) {
+                            Text(
+                                text     = displayLines[prevIdx],
+                                style    = MaterialTheme.typography.bodyMedium,
+                                color    = Color.White.copy(alpha = 0.32f),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+
+                        // Current line — bright, bold, bigger
+                        if (currIdx != null) {
+                            Text(
+                                text     = displayLines[currIdx],
+                                style    = MaterialTheme.typography.bodyLarge.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize   = 20.sp,
+                                    lineHeight = 28.sp
+                                ),
+                                color    = Color.White,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+
+                        // Next line
+                        if (nextIdx != null) {
+                            Text(
+                                text     = displayLines[nextIdx],
+                                style    = MaterialTheme.typography.bodyMedium,
+                                color    = Color.White.copy(alpha = 0.45f),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
                     }
+                }
+
+                Spacer(Modifier.height(10.dp))
+
+                // Tap to see full lyrics
+                Surface(
+                    onClick = onExpand,
+                    shape   = RoundedCornerShape(50),
+                    color   = Color.White.copy(alpha = 0.08f),
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                ) {
+                    Text(
+                        text     = "Ver letra completa",
+                        style    = MaterialTheme.typography.labelMedium,
+                        color    = Color.White.copy(alpha = 0.60f),
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
                 }
             }
         }
