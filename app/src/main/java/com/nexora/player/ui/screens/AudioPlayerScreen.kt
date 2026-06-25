@@ -55,7 +55,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -197,7 +196,7 @@ fun AudioPlayerScreen(
     // ── UI state ──
     var lyrics           by remember { mutableStateOf<Lyrics?>(null) }
     var lyricsLoading    by remember { mutableStateOf(false) }
-    var allowOnlineLyrics by rememberSaveable(current?.id) { mutableStateOf(true) }
+    var allowOnlineLyrics by rememberSaveable(current?.id) { mutableStateOf(false) }
     var showLyricsEditor  by rememberSaveable(current?.id) { mutableStateOf(false) }
     var showLyricsSheet   by rememberSaveable { mutableStateOf(false) }
     var showPlaylistSheet by rememberSaveable { mutableStateOf(false) }
@@ -355,17 +354,7 @@ fun AudioPlayerScreen(
                     style     = artworkStyle
                 )
 
-                Spacer(Modifier.height(10.dp))
-
-                ArtworkStyleSelector(
-                    currentStyle = artworkStyle,
-                    onSelect     = { selected ->
-                        artworkStyle = selected
-                        uiPrefs.edit().putString(KEY_ARTWORK_STYLE, selected.name).apply()
-                    }
-                )
-
-                Spacer(Modifier.height(22.dp))
+                Spacer(Modifier.height(24.dp))
 
                 // ── Song info + favorite ──
                 Row(
@@ -504,12 +493,13 @@ fun AudioPlayerScreen(
 
             // ── Compact lyrics preview (bottom) ──
             CompactLyricsCard(
-                lyrics        = lyrics,
-                lyricsLoading = lyricsLoading,
-                positionMs    = positionMs,
-                onExpand      = { showLyricsSheet = true },
+                lyrics         = lyrics,
+                lyricsLoading  = lyricsLoading,
+                positionMs     = positionMs,
+                onExpand       = { showLyricsSheet = true },
                 onSearchOnline = { allowOnlineLyrics = true },
-                modifier      = Modifier.fillMaxWidth()
+                onEdit         = { showLyricsEditor = true },
+                modifier       = Modifier.fillMaxWidth()
             )
         }
     }
@@ -736,40 +726,6 @@ private fun ArtworkDisplay(
 }
 
 // ---------------------------------------------------------------------------
-// Artwork style selector chips
-// ---------------------------------------------------------------------------
-
-@Composable
-private fun ArtworkStyleSelector(
-    currentStyle: ArtworkStyle,
-    onSelect: (ArtworkStyle) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment     = Alignment.CenterVertically
-    ) {
-        listOf(ArtworkStyle.DISC, ArtworkStyle.SQUARE, ArtworkStyle.COVER).forEach { style ->
-            FilterChip(
-                selected = currentStyle == style,
-                onClick  = { onSelect(style) },
-                label    = {
-                    Text(
-                        when (style) {
-                            ArtworkStyle.DISC   -> "Disco"
-                            ArtworkStyle.SQUARE -> "Cuadrado"
-                            ArtworkStyle.COVER  -> "Portada"
-                        }
-                    )
-                },
-                modifier = Modifier.padding(horizontal = 4.dp)
-            )
-        }
-    }
-}
-
-// ---------------------------------------------------------------------------
 // Playback progress
 // ---------------------------------------------------------------------------
 
@@ -840,60 +796,157 @@ private fun CompactLyricsCard(
     positionMs: Long,
     onExpand: () -> Unit,
     onSearchOnline: () -> Unit,
+    onEdit: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     // Parse LRC timestamps once per lyrics object
     val lrcLines = remember(lyrics?.rawText) { parseLrcLines(lyrics?.rawText) }
 
-    // Current synced line
+    // Current synced line — recomputed every time positionMs ticks
     val currentLine = remember(lrcLines, positionMs) {
-        lrcLines.lastOrNull { it.timestampMs <= positionMs }?.text
+        if (lrcLines.isEmpty()) null
+        else lrcLines.lastOrNull { it.timestampMs <= positionMs }?.text
             ?: lrcLines.firstOrNull()?.text
     }
 
-    Card(
-        onClick  = onExpand,
-        modifier = modifier,
-        colors   = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.10f)),
-        shape    = RoundedCornerShape(20.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 18.dp, vertical = 14.dp),
-            verticalAlignment     = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text  = "Letra",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Color.White.copy(alpha = 0.45f)
-                )
-                Spacer(Modifier.height(3.dp))
-                Text(
-                    text = when {
-                        lyricsLoading       -> "Cargando..."
-                        currentLine != null -> currentLine
-                        lyrics != null      -> "Ver letra completa"
-                        else                -> "Sin letra · Toca para agregar"
-                    },
-                    style    = MaterialTheme.typography.bodyMedium,
-                    color    = when {
-                        lyrics != null && !lyricsLoading -> Color.White.copy(alpha = 0.88f)
-                        else                             -> Color.White.copy(alpha = 0.40f)
-                    },
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
+    // Plain-text fallback: first non-blank line with LRC tags stripped
+    val plainPreview = remember(lyrics?.rawText) {
+        lyrics?.rawText
+            ?.lines()
+            ?.map { it.replace(Regex("\\[.*?\\]"), "").trim() }
+            ?.firstOrNull { it.isNotBlank() }
+    }
+
+    val cardColor = CardDefaults.cardColors(
+        containerColor = Color.White.copy(alpha = 0.10f)
+    )
+    val cardShape = RoundedCornerShape(20.dp)
+
+    when {
+        // ── Loading ──────────────────────────────────────────────────────────
+        lyricsLoading -> {
+            Card(modifier = modifier, colors = cardColor, shape = cardShape) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 18.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.MusicNote,
+                        contentDescription = null,
+                        tint = Color.White.copy(alpha = 0.45f),
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Text(
+                        text  = "Buscando letra...",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.White.copy(alpha = 0.50f)
+                    )
+                }
             }
-            Spacer(Modifier.width(8.dp))
-            Icon(
-                imageVector    = Icons.Filled.ExpandLess,
-                contentDescription = "Ver letra completa",
-                tint           = Color.White.copy(alpha = 0.45f),
-                modifier       = Modifier.size(20.dp)
-            )
+        }
+
+        // ── Has lyrics → tappable preview with current line ──────────────────
+        lyrics != null -> {
+            Card(
+                onClick  = onExpand,
+                modifier = modifier,
+                colors   = cardColor,
+                shape    = cardShape
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 18.dp, vertical = 14.dp),
+                    verticalAlignment     = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text  = "Letra",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color.White.copy(alpha = 0.45f)
+                        )
+                        Spacer(Modifier.height(3.dp))
+                        Text(
+                            // Prefer synced LRC line → plain text preview → generic label
+                            text = currentLine
+                                ?: plainPreview
+                                ?: "Ver letra completa",
+                            style    = MaterialTheme.typography.bodyMedium,
+                            color    = Color.White.copy(alpha = 0.88f),
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    Icon(
+                        imageVector        = Icons.Filled.ExpandLess,
+                        contentDescription = "Ver letra completa",
+                        tint               = Color.White.copy(alpha = 0.50f),
+                        modifier           = Modifier.size(20.dp)
+                    )
+                }
+            }
+        }
+
+        // ── No lyrics → show search / write buttons ───────────────────────
+        else -> {
+            Card(modifier = modifier, colors = cardColor, shape = cardShape) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 18.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            imageVector        = Icons.Filled.MusicNote,
+                            contentDescription = null,
+                            tint               = Color.White.copy(alpha = 0.40f),
+                            modifier           = Modifier.size(16.dp)
+                        )
+                        Text(
+                            text  = "Sin letra",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = Color.White.copy(alpha = 0.45f)
+                        )
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        // Buscar en línea
+                        Surface(
+                            onClick = onSearchOnline,
+                            shape   = RoundedCornerShape(50),
+                            color   = Color.White.copy(alpha = 0.14f)
+                        ) {
+                            Text(
+                                text     = "Buscar en línea",
+                                style    = MaterialTheme.typography.labelMedium,
+                                color    = Color.White.copy(alpha = 0.90f),
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
+                            )
+                        }
+                        // Escribir letra
+                        Surface(
+                            onClick = onEdit,
+                            shape   = RoundedCornerShape(50),
+                            color   = Color.White.copy(alpha = 0.08f)
+                        ) {
+                            Text(
+                                text     = "Escribir letra",
+                                style    = MaterialTheme.typography.labelMedium,
+                                color    = Color.White.copy(alpha = 0.70f),
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }
