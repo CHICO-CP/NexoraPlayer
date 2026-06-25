@@ -489,7 +489,7 @@ private fun SyncModeContent(
             parsed.lines.forEachIndexed { index, line ->
                 LyricSyncRow(
                     text        = line.text,
-                    timestampMs = line.timestampMs,
+                    timestampMs = extractTimestampMs(line),
                     onTap       = { onLineTapped(index) }
                 )
             }
@@ -620,6 +620,28 @@ private fun LyricSyncRow(
             }
         }
     }
+}
+
+
+private fun extractTimestampMs(line: Any): Long {
+    val getters = listOf(
+        "getTimestampMs",
+        "getTimeMs",
+        "getTimestamp",
+        "getTime"
+    )
+
+    for (getterName in getters) {
+        val method = line.javaClass.methods.firstOrNull { it.name == getterName && it.parameterCount == 0 }
+        val value = method?.invoke(line)
+        when (value) {
+            is Long -> return value
+            is Int -> return value.toLong()
+            is Number -> return value.toLong()
+        }
+    }
+
+    return 0L
 }
 
 // ---------------------------------------------------------------------------
