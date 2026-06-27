@@ -2,6 +2,7 @@ package com.nexora.player.ui.screens
 
 import android.content.Context
 import android.content.ContextWrapper
+import androidx.appcompat.app.AppCompatDelegate
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.media.MediaMetadataRetriever
@@ -100,6 +101,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nexora.player.R
 import com.nexora.player.data.local.FavoriteMediaEntity
+import com.nexora.player.data.lyrics.LyricsTranslator
+import com.nexora.player.data.preferences.AppPreferences
+import com.nexora.player.data.preferences.PreferencesRepository
 import com.nexora.player.data.local.NexoraDatabase
 import com.nexora.player.equalizer.EqualizerPreferencesRepository
 import com.nexora.player.equalizer.EqualizerSessionManager
@@ -117,6 +121,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.util.Locale
 import kotlin.math.roundToLong
 
 // ---------------------------------------------------------------------------
@@ -166,6 +171,13 @@ private fun parseLrcLines(rawText: String?): List<LrcLine> {
         .sortedBy { it.timestampMs }
 }
 
+private fun displayLyricsLines(rawText: String?): List<String> {
+    if (rawText.isNullOrBlank()) return emptyList()
+    return rawText.lines()
+        .map { it.replace(Regex("\\[.*?\\]"), "").trim() }
+        .filter { it.isNotBlank() }
+}
+
 // ---------------------------------------------------------------------------
 // Main screen
 // ---------------------------------------------------------------------------
@@ -185,6 +197,8 @@ fun AudioPlayerScreen(
         .observeAll().collectAsState(initial = emptyList())
 
     val lyricsRepository    = remember(context) { LyricsRepository(context, NexoraDatabase.get(context)) }
+    val preferencesRepository = remember(context) { PreferencesRepository(context) }
+    val appPreferences by preferencesRepository.preferences.collectAsState(initial = AppPreferences())
     val equalizerRepository = remember(context) { EqualizerPreferencesRepository(context) }
     val equalizerSettings   by equalizerRepository.settings.collectAsState(initial = EqualizerSettings())
 
@@ -206,6 +220,26 @@ fun AudioPlayerScreen(
     var showPlaylistSheet by rememberSaveable { mutableStateOf(false) }
     var showDetailsSheet  by rememberSaveable(current?.id) { mutableStateOf(false) }
     var showEqualizerSheet by rememberSaveable(current?.id) { mutableStateOf(false) }
+
+    val targetLanguageTag = remember(appPreferences, current?.id) {
+        val locales = AppCompatDelegate.getApplicationLocales().toLanguageTags()
+        val tag = locales.substringBefore(",").takeIf { it.isNotBlank() } ?: Locale.getDefault().toLanguageTag()
+        tag
+    }
+
+    val translatedRawLyrics by produceState<String?>(
+        initialValue = null,
+        key1 = lyrics?.rawText,
+        key2 = current?.id,
+        key3 = appPreferences.lyricsTranslationEnabled,
+        key4 = targetLanguageTag
+    ) {
+        value = if (lyrics == null || !appPreferences.lyricsTranslationEnabled) {
+            null
+        } else {
+            LyricsTranslator.translateRawLyrics(lyrics.rawText, targetLanguageTag)
+        }
+    }
 
     // ── Playback position ──
     var positionMs by remember { mutableLongStateOf(0L) }
@@ -496,12 +530,13 @@ fun AudioPlayerScreen(
 
     if (showLyricsSheet && current != null) {
         FullLyricsSheet(
-            lyrics         = lyrics,
-            lyricsLoading  = lyricsLoading,
-            positionMs     = positionMs,
-            onDismiss      = { showLyricsSheet = false },
-            onEdit         = { showLyricsSheet = false; showLyricsEditor = true },
-            onSearchOnline = { allowOnlineLyrics = true }
+            lyrics            = lyrics,
+            translatedRawText  = translatedRawLyrics,
+            lyricsLoading      = lyricsLoading,
+            positionMs         = positionMs,
+            onDismiss          = { showLyricsSheet = false },
+            onEdit             = { showLyricsSheet = false; showLyricsEditor = true },
+            onSearchOnline     = { allowOnlineLyrics = true }
         )
     }
 
@@ -794,6 +829,7 @@ private fun PlaybackProgressSection(
 @Composable
 private fun InlineLyricsSection(
     lyrics: Lyrics?,
+    translatedRawText: String?,
     lyricsLoading: Boolean,
     positionMs: Long,
     onSearchOnline: () -> Unit,
@@ -802,6 +838,7 @@ private fun InlineLyricsSection(
     modifier: Modifier = Modifier
 ) {
     val lrcLines = remember(lyrics?.rawText) { parseLrcLines(lyrics?.rawText) }
+    val translatedLines = remember(translatedRawText) { displayLyricsLines(translatedRawText) }
 
     val currentLineIndex = remember(lrcLines, positionMs) {
         if (lrcLines.isEmpty()) -1
@@ -811,13 +848,7 @@ private fun InlineLyricsSection(
         }
     }
 
-    val displayLines = remember(lyrics?.rawText) {
-        lyrics?.rawText
-            ?.lines()
-            ?.map { it.replace(Regex("\\[.*?\\]"), "").trim() }
-            ?.filter { it.isNotBlank() }
-            ?: emptyList()
-    }
+    val displayLines = remember(lyrics?.rawText) { displayLyricsLines(lyrics?.rawText) }
 
     Column(modifier = modifier) {
 
@@ -934,18 +965,30 @@ private fun InlineLyricsSection(
 
                         // Current line — bright, bold, bigger
                         if (currIdx != null) {
-                            Text(
-                                text     = displayLines[currIdx],
-                                style    = MaterialTheme.typography.bodyLarge.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize   = 20.sp,
-                                    lineHeight = 28.sp
-                                ),
-                                color    = Color.White,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.fillMaxWidth()
-                            )
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text(
+                                    text     = displayLines[currIdx],
+                                    style    = MaterialTheme.typography.bodyLarge.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize   = 20.sp,
+                                        lineHeight = 28.sp
+                                    ),
+                                    color    = Color.White,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                translatedLines.getOrNull(currIdx)?.let { translated ->
+                                    Text(
+                                        text     = translated,
+                                        style    = MaterialTheme.typography.bodySmall,
+                                        color    = Color.White.copy(alpha = 0.78f),
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                }
+                            }
                         }
 
                         // Next line
@@ -1158,6 +1201,7 @@ private fun CompactLyricsCard(
 @Composable
 private fun FullLyricsSheet(
     lyrics: Lyrics?,
+    translatedRawText: String?,
     lyricsLoading: Boolean,
     positionMs: Long,
     onDismiss: () -> Unit,
@@ -1166,6 +1210,7 @@ private fun FullLyricsSheet(
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val lrcLines   = remember(lyrics?.rawText) { parseLrcLines(lyrics?.rawText) }
+    val translatedLines = remember(translatedRawText) { displayLyricsLines(translatedRawText) }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -1207,13 +1252,9 @@ private fun FullLyricsSheet(
 
                 lyrics != null -> {
                     val displayLines = if (lrcLines.isNotEmpty()) {
-                        // Use parsed timed lines
                         lrcLines.map { it.text }.filter { it.isNotBlank() }
                     } else {
-                        // Plain text fallback: strip any leftover LRC tags
-                        lyrics.rawText.lines()
-                            .map { it.replace(Regex("\\[\\d+:\\d+\\.\\d+\\]"), "").trim() }
-                            .filter { it.isNotBlank() }
+                        displayLyricsLines(lyrics.rawText)
                     }
 
                     // Highlight current line index
@@ -1228,18 +1269,31 @@ private fun FullLyricsSheet(
                     ) {
                         itemsIndexed(displayLines) { index, line ->
                             val isCurrentLine = lrcLines.isNotEmpty() && index == currentLineIndex
-                            Text(
-                                text     = line,
-                                style    = MaterialTheme.typography.bodyLarge.copy(
-                                    fontWeight = if (isCurrentLine) FontWeight.Bold else FontWeight.Normal,
-                                    fontSize   = if (isCurrentLine) 18.sp else 16.sp
-                                ),
-                                color    = if (isCurrentLine) MaterialTheme.colorScheme.primary
-                                           else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                            Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(vertical = 8.dp)
-                            )
+                                    .padding(vertical = 8.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    text     = line,
+                                    style    = MaterialTheme.typography.bodyLarge.copy(
+                                        fontWeight = if (isCurrentLine) FontWeight.Bold else FontWeight.Normal,
+                                        fontSize   = if (isCurrentLine) 18.sp else 16.sp
+                                    ),
+                                    color    = if (isCurrentLine) MaterialTheme.colorScheme.primary
+                                               else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                translatedLines.getOrNull(index)?.takeIf { it.isNotBlank() }?.let { translated ->
+                                    Text(
+                                        text     = translated,
+                                        style    = MaterialTheme.typography.bodySmall,
+                                        color    = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                }
+                            }
                         }
                     }
                 }

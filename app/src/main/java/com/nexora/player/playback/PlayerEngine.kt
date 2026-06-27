@@ -9,6 +9,7 @@ import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import com.nexora.player.data.model.MediaEntry
 import com.nexora.player.data.model.PlaybackSnapshot
+import com.nexora.player.audio.VolumeBoostSessionManager
 import com.nexora.player.equalizer.EqualizerSessionManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -142,6 +143,7 @@ object PlayerEngine {
         player = null
         synchronized(queueLock) { queue = emptyList() }
         EqualizerSessionManager.release()
+        VolumeBoostSessionManager.release()
         _snapshot.value = PlaybackSnapshot()
     }
 
@@ -150,6 +152,7 @@ object PlayerEngine {
             val sessionId = player.audioSessionId
             if (sessionId > 0) {
                 EqualizerSessionManager.attach(sessionId)
+                VolumeBoostSessionManager.attach(sessionId)
             }
         }
 
@@ -164,5 +167,13 @@ object PlayerEngine {
     private fun ensureService(context: Context) {
         val intent = Intent().setClassName(context.packageName, SERVICE_CLASS)
         ContextCompat.startForegroundService(context, intent)
+    }
+    fun setVolumeBoost(enabled: Boolean, gainMillibels: Int) {
+        VolumeBoostSessionManager.update(enabled, gainMillibels)
+        player?.let { current ->
+            if (current.audioSessionId > 0) {
+                VolumeBoostSessionManager.attach(current.audioSessionId)
+            }
+        }
     }
 }

@@ -17,9 +17,11 @@ import com.nexora.player.data.model.MediaKind
 import com.nexora.player.data.model.SortMode
 import com.nexora.player.data.online.OnlineMusicRepository
 import com.nexora.player.data.online.OnlineTrack
+import com.nexora.player.audio.VolumeBoostSessionManager
 import com.nexora.player.data.preferences.AppPreferences
 import com.nexora.player.data.preferences.PreferencesRepository
 import com.nexora.player.data.repository.MediaStoreRepository
+import com.nexora.player.notifications.MediaLibraryNotifier
 import com.nexora.player.playback.PlayerEngine
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -65,12 +67,14 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     val uiState: StateFlow<AppUiState> = _uiState.asStateFlow()
 
     private var onlineSearchJob: Job? = null
+    private var libraryRefreshJob: Job? = null
 
     init {
         observePlayback()
         observeDatabase()
         observePreferences()
         refreshLibrary()
+        startLibraryPolling()
     }
 
     private fun observePlayback() {
@@ -128,6 +132,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 .filterNot { it.id in hiddenIds }
             val videos = mediaRepository.loadVideos(_uiState.value.videoSort)
             _uiState.value = _uiState.value.copy(audio = audio, videos = videos)
+
+            if (_uiState.value.preferences.libraryChangeNotificationsEnabled) {
+                MediaLibraryNotifier.maybeNotify(context, audio, videos)
+            }
         }
     }
 
@@ -159,6 +167,28 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setDynamicColor(enabled: Boolean) {
         viewModelScope.launch { preferencesRepository.setDynamicColor(enabled) }
+    }
+
+    fun setLyricsTranslationEnabled(enabled: Boolean) {
+        viewModelScope.launch { preferencesRepository.setLyricsTranslationEnabled(enabled) }
+    }
+
+    fun setVolumeBoostEnabled(enabled: Boolean) {
+        viewModelScope.launch { preferencesRepository.setVolumeBoostEnabled(enabled) }
+        PlayerEngine.setVolumeBoost(enabled, _uiState.value.preferences.volumeBoostGainMb)
+        if (!enabled) {
+            VolumeBoostSessionManager.update(false, _uiState.value.preferences.volumeBoostGainMb)
+        }
+    }
+
+    fun setVolumeBoostGainMb(gainMb: Int) {
+        val safeGain = gainMb.coerceIn(0, 1800)
+        viewModelScope.launch { preferencesRepository.setVolumeBoostGainMb(safeGain) }
+        PlayerEngine.setVolumeBoost(_uiState.value.preferences.volumeBoostEnabled, safeGain)
+    }
+
+    fun setLibraryChangeNotificationsEnabled(enabled: Boolean) {
+        viewModelScope.launch { preferencesRepository.setLibraryChangeNotificationsEnabled(enabled) }
     }
 
     fun setOnlineMusicSearchEnabled(enabled: Boolean) {
@@ -482,6 +512,16 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         val q = _uiState.value.search.trim().lowercase()
         return _uiState.value.audio.filter {
             q.isBlank() || it.title.lowercase().contains(q) || it.artist.lowercase().contains(q) || it.album.lowercase().contains(q)
+        }
+    }
+
+    private fun startLibraryPolling() {
+        libraryRefreshJob?.cancel()
+        libraryRefreshJob = viewModelScope.launch {
+            while (true) {
+                delay(10 * 60 * 1000L)
+                refreshLibrary()
+            }
         }
     }
 

@@ -32,6 +32,9 @@ import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Gavel
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.Translate
+import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Palette
@@ -205,10 +208,16 @@ fun SettingsScreen(
     hiddenAudioCount: Int,
     hiddenAudioItems: List<HiddenAudioItem> = emptyList(),
     onlineMusicSearchEnabled: Boolean,
+    lyricsTranslationEnabled: Boolean,
+    volumeBoostEnabled: Boolean,
+    libraryChangeNotificationsEnabled: Boolean,
     currentLanguage: AppLanguage,
     onThemeChange: (AppThemeMode) -> Unit,
     onDynamicColorChange: (Boolean) -> Unit,
     onOnlineMusicSearchChange: (Boolean) -> Unit,
+    onLyricsTranslationChange: (Boolean) -> Unit,
+    onVolumeBoostChange: (Boolean) -> Unit,
+    onLibraryChangeNotificationsChange: (Boolean) -> Unit,
     onLanguageChange: (AppLanguage) -> Unit,
     onRestoreHiddenAudio: () -> Unit,
     onRestoreHiddenItem: (Long) -> Unit = {}
@@ -320,6 +329,43 @@ fun SettingsScreen(
                 subtitle        = stringResource(R.string.settings_dynamic_color_desc),
                 checked         = dynamicColor,
                 onCheckedChange = onDynamicColorChange
+            )
+        }
+
+        // ════════════════════════════════════════════════════════════════════
+        // LETRAS Y AUDIO
+        // ════════════════════════════════════════════════════════════════════
+        SectionHeader("LETRAS Y AUDIO")
+        SettingsGroup {
+            SettingsToggleRow(
+                icon            = Icons.Filled.Translate,
+                iconColor       = Color(0xFF34C759),
+                title           = "Traducir letras automáticamente",
+                subtitle        = "Si la letra coincide con el idioma de la app o del sistema, no se traduce.",
+                checked         = lyricsTranslationEnabled,
+                onCheckedChange = onLyricsTranslationChange
+            )
+
+            RowDivider()
+
+            SettingsToggleRow(
+                icon            = Icons.Filled.VolumeUp,
+                iconColor       = Color(0xFF5856D6),
+                title           = "Volumen ampliado",
+                subtitle        = "Sube el nivel por encima del sistema. Puede distorsionar el audio o dañar altavoces y oído.",
+                checked         = volumeBoostEnabled,
+                onCheckedChange = onVolumeBoostChange
+            )
+
+            RowDivider()
+
+            SettingsToggleRow(
+                icon            = Icons.Filled.NotificationsActive,
+                iconColor       = Color(0xFF007AFF),
+                title           = "Avisar cuando haya nuevos archivos",
+                subtitle        = "Muestra una notificación cuando cambie la música o los videos disponibles.",
+                checked         = libraryChangeNotificationsEnabled,
+                onCheckedChange = onLibraryChangeNotificationsChange
             )
         }
 

@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.PlaylistPlay
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
@@ -27,9 +28,6 @@ import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarDefaults
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -57,6 +55,7 @@ import com.nexora.player.data.model.AppLanguage
 import com.nexora.player.data.model.AppThemeMode
 import com.nexora.player.data.model.MediaKind
 import com.nexora.player.ui.components.BottomPlayerBar
+import com.nexora.player.ui.components.ux.IosBottomTabBar
 import com.nexora.player.ui.components.GreetingBanner
 import com.nexora.player.ui.screens.FavoritesScreen
 import com.nexora.player.ui.screens.HistoryScreen
@@ -142,7 +141,7 @@ class MainActivity : AppCompatActivity() {
                         }
                     },
                     bottomBar = {
-                        Column {
+                        Column(modifier = Modifier.navigationBarsPadding()) {
                             BottomPlayerBar(
                                 current = state.currentItem,
                                 isPlaying = state.isPlaying,
@@ -151,29 +150,16 @@ class MainActivity : AppCompatActivity() {
                                 onTogglePlay = viewModel::togglePlayPause,
                                 onNext = viewModel::playNext
                             )
-                            NavigationBar(
-                                tonalElevation = 6.dp,
-                                containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface.copy(alpha = 0.98f)
-                            ) {
-                                destinations.forEach { destination ->
-                                    val selected = state.selectedDestination == destination
-                                    NavigationBarItem(
-                                        selected = selected,
-                                        onClick = {
-                                            searchExpanded = false
-                                            selectedPlaylistId = null
-                                            viewModel.setDestination(destination)
-                                        },
-                                        icon = {
-                                            Icon(
-                                                iconFor(destination),
-                                                contentDescription = stringResource(destination.labelRes)
-                                            )
-                                        },
-                                        label = { Text(stringResource(destination.labelRes)) }
-                                    )
-                                }
-                            }
+                            IosBottomTabBar(
+                                destinations = destinations,
+                                selected = state.selectedDestination,
+                                onDestinationSelected = { destination ->
+                                    searchExpanded = false
+                                    selectedPlaylistId = null
+                                    viewModel.setDestination(destination)
+                                },
+                                iconFor = ::iconFor
+                            )
                         }
                     }
                 ) { padding ->
@@ -394,10 +380,16 @@ private fun DestinationPagerContent(
                 dynamicColor = state.preferences.dynamicColor,
                 hiddenAudioCount = state.preferences.hiddenAudioIds.size,
                 onlineMusicSearchEnabled = state.preferences.onlineMusicSearchEnabled,
+                lyricsTranslationEnabled = state.preferences.lyricsTranslationEnabled,
+                volumeBoostEnabled = state.preferences.volumeBoostEnabled,
+                libraryChangeNotificationsEnabled = state.preferences.libraryChangeNotificationsEnabled,
                 currentLanguage = rememberAppLanguage(),
                 onThemeChange = viewModel::setThemeMode,
                 onDynamicColorChange = viewModel::setDynamicColor,
                 onOnlineMusicSearchChange = viewModel::setOnlineMusicSearchEnabled,
+                onLyricsTranslationChange = viewModel::setLyricsTranslationEnabled,
+                onVolumeBoostChange = viewModel::setVolumeBoostEnabled,
+                onLibraryChangeNotificationsChange = viewModel::setLibraryChangeNotificationsEnabled,
                 onLanguageChange = ::applyLanguage,
                 onRestoreHiddenAudio = viewModel::restoreHiddenAudio
             )

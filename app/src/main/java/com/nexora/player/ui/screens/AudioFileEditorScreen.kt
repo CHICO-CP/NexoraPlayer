@@ -34,43 +34,43 @@ import java.util.logging.Logger
  * Dependency required in app/build.gradle:
  *   implementation("net.jthink:jaudiotagger:3.0.1")
  */
- 
-private fun guessArtworkMimeType(bytes: ByteArray): String = when {
-    bytes.size >= 3 &&
-        bytes[0] == 0xFF.toByte() &&
-        bytes[1] == 0xD8.toByte() &&
-        bytes[2] == 0xFF.toByte() -> "image/jpeg"
-
-    bytes.size >= 8 &&
-        bytes[0] == 0x89.toByte() &&
-        bytes[1] == 'P'.code.toByte() &&
-        bytes[2] == 'N'.code.toByte() &&
-        bytes[3] == 'G'.code.toByte() &&
-        bytes[4] == 0x0D.toByte() &&
-        bytes[5] == 0x0A.toByte() &&
-        bytes[6] == 0x1A.toByte() &&
-        bytes[7] == 0x0A.toByte() -> "image/png"
-
-    bytes.size >= 6 &&
-        bytes[0] == 'G'.code.toByte() &&
-        bytes[1] == 'I'.code.toByte() &&
-        bytes[2] == 'F'.code.toByte() &&
-        bytes[3] == '8'.code.toByte() &&
-        bytes[4] == '7'.code.toByte() &&
-        bytes[5] == 'a'.code.toByte() -> "image/gif"
-
-    bytes.size >= 6 &&
-        bytes[0] == 'G'.code.toByte() &&
-        bytes[1] == 'I'.code.toByte() &&
-        bytes[2] == 'F'.code.toByte() &&
-        bytes[3] == '8'.code.toByte() &&
-        bytes[4] == '9'.code.toByte() &&
-        bytes[5] == 'a'.code.toByte() -> "image/gif"
-
-    else -> "image/jpeg"
-}
-
 object AudioFileEditor {
+
+    private fun guessArtworkMimeType(bytes: ByteArray): String = when {
+        bytes.size >= 3 &&
+            bytes[0] == 0xFF.toByte() &&
+            bytes[1] == 0xD8.toByte() &&
+            bytes[2] == 0xFF.toByte() -> "image/jpeg"
+
+        bytes.size >= 8 &&
+            bytes[0] == 0x89.toByte() &&
+            bytes[1] == 'P'.code.toByte() &&
+            bytes[2] == 'N'.code.toByte() &&
+            bytes[3] == 'G'.code.toByte() &&
+            bytes[4] == 0x0D.toByte() &&
+            bytes[5] == 0x0A.toByte() &&
+            bytes[6] == 0x1A.toByte() &&
+            bytes[7] == 0x0A.toByte() -> "image/png"
+
+        bytes.size >= 6 &&
+            bytes[0] == 'G'.code.toByte() &&
+            bytes[1] == 'I'.code.toByte() &&
+            bytes[2] == 'F'.code.toByte() &&
+            bytes[3] == '8'.code.toByte() &&
+            bytes[4] == '7'.code.toByte() &&
+            bytes[5] == 'a'.code.toByte() -> "image/gif"
+
+        bytes.size >= 6 &&
+            bytes[0] == 'G'.code.toByte() &&
+            bytes[1] == 'I'.code.toByte() &&
+            bytes[2] == 'F'.code.toByte() &&
+            bytes[3] == '8'.code.toByte() &&
+            bytes[4] == '9'.code.toByte() &&
+            bytes[5] == 'a'.code.toByte() -> "image/gif"
+
+        else -> "image/jpeg"
+    }
+
 
     init {
         // JAudioTagger's verbose logging is unnecessary on Android
@@ -230,7 +230,7 @@ object AudioFileEditor {
                 val artwork = ArtworkFactory.getNew()
                 artwork.binaryData  = bytes
                 artwork.mimeType    = guessArtworkMimeType(bytes)
-                artwork.pictureType = 3
+                artwork.pictureType = 3  // 3 = Front Cover (ID3 standard, replaces PictureTypes.DEFAULT_ID)
                 tag.deleteArtworkField()
                 tag.setField(artwork)
             }

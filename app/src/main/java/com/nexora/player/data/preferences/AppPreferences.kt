@@ -11,5 +11,9 @@ data class AppPreferences(
     val themeMode: AppThemeMode = AppThemeMode.SYSTEM,
     val dynamicColor: Boolean = true,
     val onlineMusicSearchEnabled: Boolean = true,
+    val lyricsTranslationEnabled: Boolean = true,
+    val volumeBoostEnabled: Boolean = false,
+    val volumeBoostGainMb: Int = 600,
+    val libraryChangeNotificationsEnabled: Boolean = true,
     val hiddenAudioIds: Set<Long> = emptySet()
 )
