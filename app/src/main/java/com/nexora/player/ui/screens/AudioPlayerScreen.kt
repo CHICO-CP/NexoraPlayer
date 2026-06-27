@@ -227,17 +227,18 @@ fun AudioPlayerScreen(
         tag
     }
 
+    val lyricsSnapshot = lyrics
     val translatedRawLyrics by produceState<String?>(
         initialValue = null,
-        key1 = lyrics?.rawText,
-        key2 = current?.id,
-        key3 = appPreferences.lyricsTranslationEnabled,
-        key4 = targetLanguageTag
+        lyricsSnapshot?.rawText,
+        current?.id,
+        appPreferences.lyricsTranslationEnabled,
+        targetLanguageTag
     ) {
-        value = if (lyrics == null || !appPreferences.lyricsTranslationEnabled) {
+        value = if (lyricsSnapshot == null || !appPreferences.lyricsTranslationEnabled) {
             null
         } else {
-            LyricsTranslator.translateRawLyrics(lyrics.rawText, targetLanguageTag)
+            LyricsTranslator.translateRawLyrics(lyricsSnapshot.rawText, targetLanguageTag)
         }
     }
 
@@ -502,13 +503,14 @@ fun AudioPlayerScreen(
 
                 // ── Lyrics section (inline, scrollable with the rest) ──
                 InlineLyricsSection(
-                    lyrics         = lyrics,
-                    lyricsLoading  = lyricsLoading,
-                    positionMs     = positionMs,
-                    onSearchOnline = { allowOnlineLyrics = true },
-                    onEdit         = { showLyricsEditor = true },
-                    onExpand       = { showLyricsSheet = true },
-                    modifier       = Modifier.fillMaxWidth()
+                    lyrics            = lyrics,
+                    translatedRawText  = translatedRawLyrics,
+                    lyricsLoading     = lyricsLoading,
+                    positionMs        = positionMs,
+                    onSearchOnline    = { allowOnlineLyrics = true },
+                    onEdit            = { showLyricsEditor = true },
+                    onExpand          = { showLyricsSheet = true },
+                    modifier          = Modifier.fillMaxWidth()
                 )
 
                 Spacer(Modifier.height(48.dp))
