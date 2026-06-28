@@ -34,6 +34,8 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Gavel
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Widgets
+import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Translate
@@ -88,6 +90,7 @@ import com.nexora.player.R
 import com.nexora.player.data.model.AppLanguage
 import com.nexora.player.data.model.AppThemeMode
 import com.nexora.player.data.model.NexoraRepeatMode
+import com.nexora.player.data.share.NexoraShareText
 
 // ── Data model for selectively restoring hidden audio ────────────────────────
 
@@ -252,6 +255,8 @@ fun SettingsScreen(
     onRemoveHiddenFolder: (String) -> Unit = {},
     onClearHiddenFolders: () -> Unit = {},
     onOpenFolderManager: () -> Unit = {},
+    onOpenNotificationCenter: () -> Unit = {},
+    onOpenStats: () -> Unit = {},
     onCheckUpdates: () -> Unit = {},
     onRestoreHiddenItem: (Long) -> Unit = {}
 ) {
@@ -337,22 +342,33 @@ fun SettingsScreen(
                         style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium)
                     )
                 }
-                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                    SegmentedButton(
-                        selected = themeMode == AppThemeMode.SYSTEM,
-                        onClick  = { onThemeChange(AppThemeMode.SYSTEM) },
-                        shape    = SegmentedButtonDefaults.itemShape(0, 3)
-                    ) { Text(stringResource(R.string.settings_system), fontSize = 13.sp) }
-                    SegmentedButton(
-                        selected = themeMode == AppThemeMode.LIGHT,
-                        onClick  = { onThemeChange(AppThemeMode.LIGHT) },
-                        shape    = SegmentedButtonDefaults.itemShape(1, 3)
-                    ) { Text(stringResource(R.string.settings_light), fontSize = 13.sp) }
-                    SegmentedButton(
-                        selected = themeMode == AppThemeMode.DARK,
-                        onClick  = { onThemeChange(AppThemeMode.DARK) },
-                        shape    = SegmentedButtonDefaults.itemShape(2, 3)
-                    ) { Text(stringResource(R.string.settings_dark), fontSize = 13.sp) }
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(
+                        AppThemeMode.SYSTEM,
+                        AppThemeMode.NEXORA_DARK,
+                        AppThemeMode.IOS_LIGHT,
+                        AppThemeMode.AMOLED_BLACK,
+                        AppThemeMode.FLAMINGO,
+                        AppThemeMode.NEON,
+                        AppThemeMode.MATERIAL_YOU
+                    ).chunked(2).forEach { rowModes ->
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                            rowModes.forEach { mode ->
+                                val selected = themeMode == mode || (themeMode == AppThemeMode.DARK && mode == AppThemeMode.NEXORA_DARK) || (themeMode == AppThemeMode.LIGHT && mode == AppThemeMode.IOS_LIGHT)
+                                FilledTonalButton(
+                                    onClick = { onThemeChange(mode) },
+                                    modifier = Modifier.weight(1f),
+                                    colors = if (selected) ButtonDefaults.filledTonalButtonColors(
+                                        containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.22f),
+                                        contentColor = MaterialTheme.colorScheme.primary
+                                    ) else ButtonDefaults.filledTonalButtonColors()
+                                ) {
+                                    Text(mode.displayName, maxLines = 1, overflow = TextOverflow.Ellipsis, fontSize = 12.sp)
+                                }
+                            }
+                            if (rowModes.size == 1) Spacer(Modifier.weight(1f))
+                        }
+                    }
                 }
             }
 
@@ -665,6 +681,36 @@ fun SettingsScreen(
                 title     = if (updateChecking) "Buscando actualización…" else "Buscar actualización",
                 subtitle  = updateError ?: "Consulta el servidor oficial para detectar versiones nuevas.",
                 onClick   = onCheckUpdates
+            )
+
+            RowDivider()
+
+            SettingsLinkRow(
+                icon      = Icons.Filled.NotificationsActive,
+                iconColor = Color(0xFF34C759),
+                title     = "Novedades y avisos",
+                subtitle  = "Centro interno con versiones, funciones nuevas y mensajes del servidor.",
+                onClick   = onOpenNotificationCenter
+            )
+
+            RowDivider()
+
+            SettingsLinkRow(
+                icon      = Icons.Filled.Insights,
+                iconColor = Color(0xFFFF2D55),
+                title     = "Estadísticas de uso",
+                subtitle  = "Canciones más escuchadas, artistas, álbumes y minutos reproducidos.",
+                onClick   = onOpenStats
+            )
+
+            RowDivider()
+
+            SettingsLinkRow(
+                icon      = Icons.Filled.Widgets,
+                iconColor = Color(0xFFAF52DE),
+                title     = "Widget para inicio",
+                subtitle  = "Mantén presionada la pantalla de inicio > Widgets > Nexora Player.",
+                onClick   = { }
             )
 
             RowDivider()
@@ -1193,7 +1239,7 @@ private fun SettingsLinkRow(
 
 private fun shareNexoraPlayer(context: Context, downloadUrl: String) {
     val safeUrl = downloadUrl.ifBlank { "https://nexoraplayer.vercel.app" }
-    val message = "Compártenos para que más usuarios nos conozcan. Descarga NexoraPlayer desde la página oficial: $safeUrl"
+    val message = NexoraShareText.build(safeUrl)
     val intent = Intent(Intent.ACTION_SEND).apply {
         type = "text/plain"
         putExtra(Intent.EXTRA_SUBJECT, "NexoraPlayer")

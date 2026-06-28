@@ -29,7 +29,26 @@ enum class SortMode(@StringRes val labelRes: Int) {
 enum class AppThemeMode {
     SYSTEM,
     LIGHT,
-    DARK
+    DARK,
+    NEXORA_DARK,
+    IOS_LIGHT,
+    AMOLED_BLACK,
+    FLAMINGO,
+    NEON,
+    MATERIAL_YOU;
+
+    val displayName: String
+        get() = when (this) {
+            SYSTEM -> "Sistema"
+            LIGHT -> "iOS Light"
+            DARK -> "Nexora Dark"
+            NEXORA_DARK -> "Nexora Dark"
+            IOS_LIGHT -> "iOS Light"
+            AMOLED_BLACK -> "AMOLED Black"
+            FLAMINGO -> "Flamingo"
+            NEON -> "Neon"
+            MATERIAL_YOU -> "Material You"
+        }
 }
 
 enum class NexoraRepeatMode {

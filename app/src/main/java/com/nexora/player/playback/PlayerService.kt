@@ -29,6 +29,7 @@ import com.nexora.player.data.model.MediaKind
 import com.nexora.player.data.model.PlaybackSnapshot
 import com.nexora.player.data.preferences.AppPreferences
 import com.nexora.player.data.preferences.PreferencesRepository
+import com.nexora.player.widget.NexoraPlayerWidgetProvider
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -158,6 +159,7 @@ class PlayerService : MediaSessionService() {
         serviceScope.launch {
             PlayerEngine.snapshot.collectLatest { snapshot ->
                 refreshNotification(snapshot)
+                NexoraPlayerWidgetProvider.updateWidgets(this@PlayerService, snapshot)
             }
         }
     }

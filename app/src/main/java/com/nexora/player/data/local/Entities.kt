@@ -83,3 +83,15 @@ data class PlaybackStatsEntity(
     val playCount: Int,
     val lastPlayedAt: Long
 )
+
+@Entity(tableName = "remote_notices")
+data class RemoteNoticeEntity(
+    @PrimaryKey val id: String,
+    val type: String,
+    val title: String,
+    val message: String,
+    val createdAt: Long = System.currentTimeMillis(),
+    val readAt: Long = 0L,
+    val versionCode: Int = 0,
+    val actionUrl: String = ""
+)

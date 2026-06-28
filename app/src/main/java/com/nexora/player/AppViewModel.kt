@@ -14,6 +14,9 @@ import com.nexora.player.data.local.PlaybackHistoryEntity
 import com.nexora.player.data.local.PlaybackStatsEntity
 import com.nexora.player.data.local.PlaylistEntity
 import com.nexora.player.data.local.PlaylistItemEntity
+import com.nexora.player.data.update.UpdateInstallState
+import com.nexora.player.data.update.ApkUpdateInstaller
+import com.nexora.player.data.local.RemoteNoticeEntity
 import com.nexora.player.data.model.AppDestination
 import com.nexora.player.data.model.AppThemeMode
 import com.nexora.player.data.model.MediaEntry
@@ -70,7 +73,10 @@ data class AppUiState(
     val updateChecking: Boolean = false,
     val updateError: String? = null,
     val updateDialogDismissedInSession: Boolean = false,
-    val shareUrl: String = BuildConfig.NEXORA_SERVER_URL
+    val updateInstallState: UpdateInstallState = UpdateInstallState(),
+    val shareUrl: String = BuildConfig.NEXORA_SERVER_URL,
+    val remoteNotices: List<RemoteNoticeEntity> = emptyList(),
+    val playbackStats: List<PlaybackStatsEntity> = emptyList()
 )
 
 private const val AUTO_PLAYLIST_ID = Long.MIN_VALUE + 42L
@@ -169,6 +175,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val preferencesRepository = PreferencesRepository(context)
     private val onlineRepository = OnlineMusicRepository()
     private val updateClient = NexoraUpdateClient()
+    private val updateInstaller = ApkUpdateInstaller(context)
     private val database = NexoraDatabase.get(context)
     private val presentation = MainViewModel()
 
@@ -184,9 +191,18 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         observePlayback()
         observeDatabase()
         observePreferences()
+        observeUpdateInstaller()
         refreshLibrary()
         startLibraryPolling()
         checkForUpdates(showDialogOnAvailable = false)
+    }
+
+    private fun observeUpdateInstaller() {
+        viewModelScope.launch {
+            updateInstaller.state.collectLatest { installState ->
+                _uiState.value = _uiState.value.copy(updateInstallState = installState)
+            }
+        }
     }
 
     private fun observePlayback() {
@@ -234,20 +250,26 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun observeDatabase() {
         viewModelScope.launch {
-            combine(
+            val libraryBundle = combine(
                 database.favoritesDao().observeAll(),
                 database.playlistsDao().observePlaylists(),
                 database.historyDao().observeRecent(),
                 database.onlineSavedTracksDao().observeAll(),
                 database.playbackStatsDao().observeTop(200)
             ) { favorites, playlists, history, onlineSaved, stats ->
-                DatabaseBundle(favorites, playlists, history, onlineSaved, stats)
+                DatabaseBundle(favorites, playlists, history, onlineSaved, stats, emptyList())
+            }
+
+            combine(libraryBundle, database.remoteNoticesDao().observeAll()) { bundle, notices ->
+                bundle.copy(notices = notices)
             }.collect { bundle ->
                 _uiState.value = _uiState.value.copy(
                     favorites = bundle.favorites,
                     playlists = mergeWithAutoPlaylist(bundle.stats, bundle.playlists),
                     history = bundle.history,
-                    onlineSavedTracks = bundle.onlineSaved
+                    onlineSavedTracks = bundle.onlineSaved,
+                    playbackStats = bundle.stats,
+                    remoteNotices = bundle.notices
                 )
             }
         }
@@ -494,6 +516,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             val result = runCatching { updateClient.checkVersion(BuildConfig.VERSION_CODE) }
             result.onSuccess { info ->
                 RemoteUpdateNotifier.notifyServerMessages(context, info.notifications)
+                storeRemoteNotices(info)
                 if (info.available) {
                     RemoteUpdateNotifier.notifyUpdateAvailable(context, info)
                 }
@@ -525,6 +548,61 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         if (postpone && !info.required) {
             viewModelScope.launch { preferencesRepository.setPostponedUpdateVersionCode(info.latestVersion.versionCode) }
         }
+    }
+
+
+    fun downloadAndInstallUpdate(info: RemoteUpdateInfo) {
+        viewModelScope.launch {
+            updateInstaller.downloadAndOpenInstaller(info)
+        }
+    }
+
+    fun clearUpdateInstallMessage() {
+        updateInstaller.clear()
+    }
+
+    private fun storeRemoteNotices(info: RemoteUpdateInfo) {
+        viewModelScope.launch {
+            val notices = buildList {
+                if (info.available) {
+                    add(
+                        RemoteNoticeEntity(
+                            id = "update-${info.latestVersion.versionCode}",
+                            type = if (info.required) "update_required" else "update_available",
+                            title = if (info.required) "Actualización requerida" else "Nueva versión disponible",
+                            message = "Nexora Player ${info.latestVersion.versionName} ya está disponible. ${info.latestVersion.changelog.firstOrNull()?.description.orEmpty()}",
+                            createdAt = System.currentTimeMillis(),
+                            versionCode = info.latestVersion.versionCode,
+                            actionUrl = info.urls.download.ifBlank { updateClient.downloadUrl() }
+                        )
+                    )
+                }
+                info.notifications.filter { it.enabled }.forEach { remote ->
+                    add(
+                        RemoteNoticeEntity(
+                            id = remote.id,
+                            type = "server_message",
+                            title = remote.title,
+                            message = remote.message,
+                            createdAt = System.currentTimeMillis(),
+                            versionCode = info.latestVersion.versionCode,
+                            actionUrl = info.urls.landing.ifBlank { updateClient.shareUrl() }
+                        )
+                    )
+                }
+            }
+            if (notices.isNotEmpty()) {
+                database.remoteNoticesDao().upsertAll(notices)
+            }
+        }
+    }
+
+    fun markNoticeRead(id: String) {
+        viewModelScope.launch { database.remoteNoticesDao().markRead(id) }
+    }
+
+    fun clearRemoteNotices() {
+        viewModelScope.launch { database.remoteNoticesDao().clear() }
     }
 
     fun playQueue(items: List<MediaEntry>, startIndex: Int = 0) {
@@ -891,7 +969,6 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun recordPlaybackIfNeeded(item: MediaEntry) {
-        if (item.kind != MediaKind.AUDIO) return
         val key = item.mediaKey()
         if (lastRecordedPlaybackKey == key) return
         lastRecordedPlaybackKey = key
@@ -1052,5 +1129,6 @@ private data class DatabaseBundle(
     val playlists: List<PlaylistEntity>,
     val history: List<PlaybackHistoryEntity>,
     val onlineSaved: List<OnlineSavedTrackEntity>,
-    val stats: List<PlaybackStatsEntity>
+    val stats: List<PlaybackStatsEntity>,
+    val notices: List<RemoteNoticeEntity>
 )

@@ -13,9 +13,10 @@ import androidx.room.RoomDatabase
         PlaybackHistoryEntity::class,
         OnlineSavedTrackEntity::class,
         LyricsEntity::class,
-        PlaybackStatsEntity::class
+        PlaybackStatsEntity::class,
+        RemoteNoticeEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 abstract class NexoraDatabase : RoomDatabase() {
@@ -25,6 +26,7 @@ abstract class NexoraDatabase : RoomDatabase() {
     abstract fun onlineSavedTracksDao(): OnlineSavedTracksDao
     abstract fun lyricsDao(): LyricsDao
     abstract fun playbackStatsDao(): PlaybackStatsDao
+    abstract fun remoteNoticesDao(): RemoteNoticesDao
 
     companion object {
         @Volatile private var INSTANCE: NexoraDatabase? = null
@@ -100,6 +102,27 @@ abstract class NexoraDatabase : RoomDatabase() {
             }
         }
 
+
+        val MIGRATION_4_5 = object : androidx.room.migration.Migration(4, 5) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `remote_notices` (
+                        `id` TEXT NOT NULL,
+                        `type` TEXT NOT NULL,
+                        `title` TEXT NOT NULL,
+                        `message` TEXT NOT NULL,
+                        `createdAt` INTEGER NOT NULL,
+                        `readAt` INTEGER NOT NULL,
+                        `versionCode` INTEGER NOT NULL,
+                        `actionUrl` TEXT NOT NULL,
+                        PRIMARY KEY(`id`)
+                    )
+                    """.trimIndent()
+                )
+            }
+        }
+
         fun get(context: Context): NexoraDatabase {
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -107,7 +130,7 @@ abstract class NexoraDatabase : RoomDatabase() {
                     NexoraDatabase::class.java,
                     "nexora.db"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                     .build()
                     .also { INSTANCE = it }
             }

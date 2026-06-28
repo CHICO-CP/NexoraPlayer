@@ -20,6 +20,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -34,13 +35,17 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.nexora.player.data.update.RemoteUpdateInfo
+import com.nexora.player.data.update.UpdateInstallState
 import kotlin.math.max
 
 @Composable
 fun ReleaseNotesDialog(
     updateInfo: RemoteUpdateInfo,
     onDownload: () -> Unit,
-    onLater: () -> Unit
+    onLater: () -> Unit,
+    installState: UpdateInstallState = UpdateInstallState(),
+    onOpenInBrowser: () -> Unit = {},
+    onClearInstallMessage: () -> Unit = {}
 ) {
     val latest = updateInfo.latestVersion
     AlertDialog(
@@ -118,6 +123,43 @@ fun ReleaseNotesDialog(
                         )
                     }
                 }
+                if (installState.active) {
+                    Surface(
+                        shape = RoundedCornerShape(18.dp),
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text(
+                                installState.error ?: installState.message ?: "Preparando actualización…",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (installState.error != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
+                            )
+                            if (installState.downloading) {
+                                LinearProgressIndicator(
+                                    progress = installState.progressPercent / 100f,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                Text(
+                                    "${installState.progressPercent}%",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            if (installState.waitingForInstallPermission) {
+                                Text(
+                                    "Después de autorizar instalaciones externas, vuelve a tocar Descargar.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            if (installState.error != null) {
+                                FilledTonalButton(onClick = onOpenInBrowser) { Text("Abrir descarga en navegador") }
+                            }
+                        }
+                    }
+                }
+
                 if (updateInfo.required) {
                     Text(
                         "La opción “Actualizar después” está deshabilitada porque el servidor marcó esta versión como obligatoria.",
@@ -128,10 +170,10 @@ fun ReleaseNotesDialog(
             }
         },
         confirmButton = {
-            Button(onClick = onDownload) {
+            Button(onClick = onDownload, enabled = !installState.downloading) {
                 Icon(Icons.Filled.Download, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.size(8.dp))
-                Text("Descargar")
+                Text(if (installState.downloading) "Descargando…" else "Descargar")
             }
         },
         dismissButton = {

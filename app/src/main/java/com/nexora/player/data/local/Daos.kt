@@ -118,3 +118,21 @@ interface PlaybackStatsDao {
     @Query("DELETE FROM playback_stats")
     suspend fun clear()
 }
+
+@Dao
+interface RemoteNoticesDao {
+    @Query("SELECT * FROM remote_notices ORDER BY createdAt DESC")
+    fun observeAll(): Flow<List<RemoteNoticeEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(entity: RemoteNoticeEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertAll(entities: List<RemoteNoticeEntity>)
+
+    @Query("UPDATE remote_notices SET readAt = :readAt WHERE id = :id")
+    suspend fun markRead(id: String, readAt: Long = System.currentTimeMillis())
+
+    @Query("DELETE FROM remote_notices")
+    suspend fun clear()
+}

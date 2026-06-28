@@ -66,6 +66,8 @@ import com.nexora.player.ui.screens.MusicScreen
 import com.nexora.player.ui.screens.NowPlayingScreen
 import com.nexora.player.ui.screens.PlaylistDetailScreen
 import com.nexora.player.ui.screens.PlaylistsScreen
+import com.nexora.player.ui.screens.StatsScreen
+import com.nexora.player.ui.screens.NotificationCenterScreen
 import com.nexora.player.ui.screens.SearchResultsScreen
 import com.nexora.player.ui.screens.ReleaseNotesDialog
 import com.nexora.player.ui.screens.SettingsScreen
@@ -95,6 +97,8 @@ class MainActivity : AppCompatActivity() {
             var lastAutoOpenedItemId by rememberSaveable { mutableStateOf<Long?>(null) }
             var selectedPlaylistId by rememberSaveable { mutableStateOf<Long?>(null) }
             var showFolderManager by rememberSaveable { mutableStateOf(false) }
+            var showNotificationCenter by rememberSaveable { mutableStateOf(false) }
+            var showStatsScreen by rememberSaveable { mutableStateOf(false) }
             val greeting = rememberGreeting()
             val availableUpdate = state.updateInfo
             val shouldShowUpdateDialog = availableUpdate?.available == true && (
@@ -112,11 +116,12 @@ class MainActivity : AppCompatActivity() {
 
             NexoraTheme(
                 darkTheme = when (state.preferences.themeMode) {
-                    AppThemeMode.SYSTEM -> androidx.compose.foundation.isSystemInDarkTheme()
-                    AppThemeMode.LIGHT -> false
-                    AppThemeMode.DARK -> true
+                    AppThemeMode.SYSTEM, AppThemeMode.MATERIAL_YOU -> androidx.compose.foundation.isSystemInDarkTheme()
+                    AppThemeMode.LIGHT, AppThemeMode.IOS_LIGHT -> false
+                    AppThemeMode.DARK, AppThemeMode.NEXORA_DARK, AppThemeMode.AMOLED_BLACK, AppThemeMode.FLAMINGO, AppThemeMode.NEON -> true
                 },
-                dynamicColor = state.preferences.dynamicColor
+                dynamicColor = state.preferences.dynamicColor,
+                themeMode = state.preferences.themeMode
             ) {
                 val destinations = listOf(
                     AppDestination.MUSIC,
@@ -177,10 +182,16 @@ class MainActivity : AppCompatActivity() {
                         state = state,
                         selectedPlaylistId = selectedPlaylistId,
                         showFolderManager = showFolderManager,
+                        showNotificationCenter = showNotificationCenter,
+                        showStatsScreen = showStatsScreen,
                         onOpenPlaylist = { selectedPlaylistId = it.id },
                         onClosePlaylist = { selectedPlaylistId = null },
                         onOpenFolderManager = { showFolderManager = true },
-                        onCloseFolderManager = { showFolderManager = false }
+                        onCloseFolderManager = { showFolderManager = false },
+                        onOpenNotificationCenter = { showNotificationCenter = true },
+                        onCloseNotificationCenter = { showNotificationCenter = false },
+                        onOpenStats = { showStatsScreen = true },
+                        onCloseStats = { showStatsScreen = false }
                     )
                 }
 
@@ -188,11 +199,14 @@ class MainActivity : AppCompatActivity() {
                     ReleaseNotesDialog(
                         updateInfo = availableUpdate,
                         onDownload = {
-                            openExternalUrl(availableUpdate.urls.download)
+                            viewModel.downloadAndInstallUpdate(availableUpdate)
                         },
                         onLater = {
                             viewModel.dismissUpdateDialog(postpone = true)
-                        }
+                        },
+                        installState = state.updateInstallState,
+                        onOpenInBrowser = { openExternalUrl(availableUpdate.urls.download) },
+                        onClearInstallMessage = viewModel::clearUpdateInstallMessage
                     )
                 }
 
@@ -251,10 +265,16 @@ private fun AppContent(
     state: AppUiState,
     selectedPlaylistId: Long?,
     showFolderManager: Boolean,
+    showNotificationCenter: Boolean,
+    showStatsScreen: Boolean,
     onOpenPlaylist: (PlaylistEntity) -> Unit,
     onClosePlaylist: () -> Unit,
     onOpenFolderManager: () -> Unit,
-    onCloseFolderManager: () -> Unit
+    onCloseFolderManager: () -> Unit,
+    onOpenNotificationCenter: () -> Unit,
+    onCloseNotificationCenter: () -> Unit,
+    onOpenStats: () -> Unit,
+    onCloseStats: () -> Unit
 ) {
     if (showFolderManager) {
         FolderManagerScreen(
@@ -267,6 +287,26 @@ private fun AppContent(
             onHideSmallFolders = { viewModel.hideSmallFolders() },
             onHideSuggestedNoiseFolders = viewModel::hideSuggestedNoiseFolders,
             onRestoreAll = viewModel::clearHiddenFolders
+        )
+        return
+    }
+
+    if (showNotificationCenter) {
+        NotificationCenterScreen(
+            modifier = modifier,
+            notices = state.remoteNotices,
+            onBack = onCloseNotificationCenter,
+            onClearAll = viewModel::clearRemoteNotices,
+            onMarkRead = viewModel::markNoticeRead
+        )
+        return
+    }
+
+    if (showStatsScreen) {
+        StatsScreen(
+            modifier = modifier,
+            stats = state.playbackStats,
+            onBack = onCloseStats
         )
         return
     }
@@ -327,7 +367,9 @@ private fun AppContent(
         state = state,
         viewModel = viewModel,
         onOpenPlaylist = onOpenPlaylist,
-        onOpenFolderManager = onOpenFolderManager
+        onOpenFolderManager = onOpenFolderManager,
+        onOpenNotificationCenter = onOpenNotificationCenter,
+        onOpenStats = onOpenStats
     )
 }
 
@@ -338,7 +380,9 @@ private fun DestinationPagerContent(
     state: AppUiState,
     viewModel: AppViewModel,
     onOpenPlaylist: (PlaylistEntity) -> Unit,
-    onOpenFolderManager: () -> Unit
+    onOpenFolderManager: () -> Unit,
+    onOpenNotificationCenter: () -> Unit,
+    onOpenStats: () -> Unit
 ) {
     val destinations = listOf(
         AppDestination.MUSIC,
@@ -457,6 +501,8 @@ private fun DestinationPagerContent(
                 onRemoveHiddenFolder = viewModel::removeHiddenFolder,
                 onClearHiddenFolders = viewModel::clearHiddenFolders,
                 onOpenFolderManager = onOpenFolderManager,
+                onOpenNotificationCenter = onOpenNotificationCenter,
+                onOpenStats = onOpenStats,
                 onCheckUpdates = { viewModel.checkForUpdates(showDialogOnAvailable = true) }
             )
 
