@@ -92,6 +92,7 @@ class PlayerService : MediaSessionService() {
 
     override fun onDestroy() {
         progressTickerJob?.cancel()
+        SleepTimerController.cancel()
         serviceScope.cancel()
 
         mediaSession?.run {
@@ -135,7 +136,16 @@ class PlayerService : MediaSessionService() {
             preferencesRepository.preferences.collectLatest { prefs ->
                 currentPreferences = prefs
                 PlayerEngine.setShuffleEnabled(prefs.shuffleEnabled)
+                PlayerEngine.setRepeatMode(prefs.repeatMode)
+                PlayerEngine.setPlaybackSpeed(prefs.playbackSpeed)
+                PlayerEngine.setPlaybackVolume(prefs.playbackVolume)
                 PlayerEngine.setCrossfadeEnabled(prefs.crossfadeEnabled, prefs.crossfadeDurationMs)
+                SleepTimerController.schedule(
+                    scope = serviceScope,
+                    prefs = prefs,
+                    playerProvider = { PlayerEngine.get(this@PlayerService) },
+                    onStop = { stopPlaybackAndHideNotification() }
+                )
                 maybeApplySleepTimer(prefs)
             }
         }
@@ -283,7 +293,7 @@ class PlayerService : MediaSessionService() {
                 val latest = PlayerEngine.snapshot.value
                 val latestCurrent = latest.currentItem
                 if (!latest.isPlaying || latestCurrent?.kind != MediaKind.AUDIO) break
-                if (currentPreferences.sleepTimerEnabled && currentPreferences.sleepTimerEndAtMs > 0L && System.currentTimeMillis() >= currentPreferences.sleepTimerEndAtMs) {
+                if (currentPreferences.sleepTimerEnabled && !currentPreferences.sleepTimerStopAtEndOfTrack && currentPreferences.sleepTimerEndAtMs > 0L && System.currentTimeMillis() >= currentPreferences.sleepTimerEndAtMs) {
                     stopPlaybackAndHideNotification()
                     break
                 }
@@ -293,7 +303,7 @@ class PlayerService : MediaSessionService() {
     }
 
     private fun maybeApplySleepTimer(prefs: AppPreferences) {
-        if (prefs.sleepTimerEnabled && prefs.sleepTimerEndAtMs > 0L && System.currentTimeMillis() >= prefs.sleepTimerEndAtMs) {
+        if (prefs.sleepTimerEnabled && !prefs.sleepTimerStopAtEndOfTrack && prefs.sleepTimerEndAtMs > 0L && System.currentTimeMillis() >= prefs.sleepTimerEndAtMs) {
             stopPlaybackAndHideNotification()
         }
     }

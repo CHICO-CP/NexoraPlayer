@@ -68,3 +68,18 @@ data class PlaybackHistoryEntity(
     val uriString: String,
     val playedAt: Long = System.currentTimeMillis()
 )
+
+
+@Entity(tableName = "playback_stats")
+data class PlaybackStatsEntity(
+    @PrimaryKey val mediaKey: String,
+    val mediaId: Long,
+    val mediaKind: String,
+    val title: String,
+    val artist: String,
+    val album: String,
+    val uriString: String,
+    val durationMs: Long,
+    val playCount: Int,
+    val lastPlayedAt: Long
+)

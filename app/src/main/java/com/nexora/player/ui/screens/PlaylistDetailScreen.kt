@@ -1,5 +1,6 @@
 package com.nexora.player.ui.screens
 
+import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,14 +12,22 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DriveFileMove
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.FileUpload
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.LibraryMusic
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Shuffle
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ElevatedCard
@@ -27,11 +36,14 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -55,43 +67,49 @@ fun PlaylistDetailScreen(
     onPlayItem: (List<PlaylistItemEntity>, PlaylistItemEntity) -> Unit,
     onRemoveItem: (PlaylistItemEntity) -> Unit,
     onAddSongs: (List<MediaEntry>) -> Unit,
+    onRenamePlaylist: (String) -> Unit = {},
+    onDuplicatePlaylist: () -> Unit = {},
+    onExportPlaylist: () -> Unit = {},
+    onMoveItem: (Int, Int) -> Unit = { _, _ -> },
+    onPlayShuffle: (List<PlaylistItemEntity>) -> Unit = {},
     isAutoPlaylist: Boolean = false
 ) {
     val existingIds = playlistItems.map { it.mediaId }.toSet()
     val candidates = availableSongs.filterNot { existingIds.contains(it.id) }
-    val selectedCandidateIds = remember { mutableStateOf<Set<Long>>(emptySet()) }
+    var selectedCandidateIds by remember(playlist.id) { mutableStateOf<Set<Long>>(emptySet()) }
+    var renameDialog by remember { mutableStateOf(false) }
+    var renameValue by remember(playlist.name) { mutableStateOf(playlist.name) }
+    val duration = playlistItems.sumOf { it.durationMs }
 
     Column(modifier = modifier.fillMaxSize()) {
         Row(
             modifier = Modifier.padding(12.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            OutlinedButton(onClick = onBack) {
-                Text("Volver")
+            OutlinedButton(onClick = onBack) { Text("Volver") }
+            Spacer(Modifier.weight(1f))
+            if (!isAutoPlaylist) {
+                FilledTonalIconButton(onClick = { renameDialog = true }) {
+                    Icon(Icons.Filled.Edit, contentDescription = "Renombrar")
+                }
+                FilledTonalIconButton(onClick = onDuplicatePlaylist) {
+                    Icon(Icons.Filled.ContentCopy, contentDescription = "Duplicar")
+                }
+                FilledTonalIconButton(onClick = onExportPlaylist) {
+                    Icon(Icons.Filled.FileUpload, contentDescription = "Exportar")
+                }
             }
         }
 
-        ElevatedCard(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp)
-        ) {
+        ElevatedCard(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp)) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(14.dp),
+                modifier = Modifier.fillMaxWidth().padding(14.dp),
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                PlaylistPreviewMosaic(
-                    items = playlistItems,
-                    modifier = Modifier.size(120.dp)
-                )
-
-                Column(
-                    modifier = Modifier.widthIn(max = 220.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
+                PlaylistPreviewMosaic(items = playlistItems, modifier = Modifier.size(116.dp))
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(
                         text = playlist.name,
                         style = MaterialTheme.typography.headlineSmall,
@@ -99,17 +117,39 @@ fun PlaylistDetailScreen(
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = "${playlistItems.size} canciones",
+                        text = "${playlistItems.size} canciones • ${formatDuration(duration)}",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = if (isAutoPlaylist) "Lista automática generada por reproducciones." else "Solo se reproduce lo que está dentro de esta lista.",
+                        text = if (isAutoPlaylist) {
+                            "Playlist automática de solo lectura basada en reproducciones reales."
+                        } else {
+                            "Puedes editar, duplicar, exportar y reordenar esta playlist."
+                        },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(
+                            onClick = { playlistItems.firstOrNull()?.let { onPlayItem(playlistItems, it) } },
+                            enabled = playlistItems.isNotEmpty()
+                        ) {
+                            Icon(Icons.Filled.PlayArrow, contentDescription = null)
+                            Spacer(Modifier.size(6.dp))
+                            Text("Reproducir")
+                        }
+                        OutlinedButton(
+                            onClick = { onPlayShuffle(playlistItems) },
+                            enabled = playlistItems.isNotEmpty()
+                        ) {
+                            Icon(Icons.Filled.Shuffle, contentDescription = null)
+                            Spacer(Modifier.size(6.dp))
+                            Text("Aleatorio")
+                        }
+                    }
                 }
             }
         }
@@ -117,60 +157,61 @@ fun PlaylistDetailScreen(
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Canciones de la playlist",
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                    if (playlistItems.isNotEmpty()) {
-                        TextButton(onClick = { onPlayItem(playlistItems, playlistItems.first()) }) {
-                            Icon(
-                                imageVector = Icons.Filled.PlayArrow,
-                                contentDescription = null
-                            )
-                            Spacer(Modifier.size(6.dp))
-                            Text("Reproducir")
-                        }
-                    }
-                }
+                Text("Canciones", style = MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.height(6.dp))
             }
 
             if (playlistItems.isEmpty()) {
                 item {
                     Text(
-                        text = "Aún no hay canciones en esta playlist.",
+                        text = if (isAutoPlaylist) "Todavía no hay reproducciones suficientes." else "Aún no hay canciones en esta playlist.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             } else {
-                items(items = playlistItems, key = { it.id }) { item ->
-                    PlaylistTrackCard(
+                itemsIndexed(
+                    items = playlistItems,
+                    key = { index, item -> if (item.id != 0L) item.id else "${item.mediaKind}:${item.mediaId}:$index" }
+                ) { index, item ->
+                    PlaylistTrackCompact(
                         item = item,
+                        index = index,
+                        total = playlistItems.size,
+                        isAutoPlaylist = isAutoPlaylist,
                         onPlay = { onPlayItem(playlistItems, item) },
                         onRemove = { onRemoveItem(item) },
-                        showRemove = !isAutoPlaylist
+                        onMoveUp = { onMoveItem(index, index - 1) },
+                        onMoveDown = { onMoveItem(index, index + 1) }
                     )
                 }
             }
 
             if (!isAutoPlaylist) {
+                item { HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp)) }
                 item {
-                    HorizontalDivider(modifier = Modifier.padding(top = 8.dp, bottom = 8.dp))
-                }
-
-                item {
-                    Text(
-                        text = "Añadir canciones",
-                        style = MaterialTheme.typography.titleMedium
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Agregar música", style = MaterialTheme.typography.titleMedium)
+                        Button(
+                            onClick = {
+                                val selected = candidates.filter { selectedCandidateIds.contains(it.id) }
+                                if (selected.isNotEmpty()) onAddSongs(selected)
+                                selectedCandidateIds = emptySet()
+                            },
+                            enabled = selectedCandidateIds.isNotEmpty()
+                        ) {
+                            Icon(Icons.Filled.LibraryMusic, contentDescription = null)
+                            Spacer(Modifier.size(6.dp))
+                            Text("Agregar seleccionadas")
+                        }
+                    }
                 }
 
                 if (candidates.isEmpty()) {
@@ -182,103 +223,84 @@ fun PlaylistDetailScreen(
                         )
                     }
                 } else {
-                    items(items = candidates, key = { it.id }) { song ->
-                        val selected = selectedCandidateIds.value.contains(song.id)
+                    itemsIndexed(candidates, key = { _, song -> song.id }) { _, song ->
+                        val selected = selectedCandidateIds.contains(song.id)
                         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                             Checkbox(
                                 checked = selected,
                                 onCheckedChange = { checked ->
-                                    selectedCandidateIds.value = if (checked) {
-                                        selectedCandidateIds.value + song.id
-                                    } else {
-                                        selectedCandidateIds.value - song.id
-                                    }
+                                    selectedCandidateIds = if (checked) selectedCandidateIds + song.id else selectedCandidateIds - song.id
                                 }
                             )
                             MediaItemRow(
                                 item = song,
                                 modifier = Modifier.weight(1f),
                                 onClick = {
-                                    selectedCandidateIds.value = if (selected) selectedCandidateIds.value - song.id else selectedCandidateIds.value + song.id
+                                    selectedCandidateIds = if (selected) selectedCandidateIds - song.id else selectedCandidateIds + song.id
                                 }
                             )
-                        }
-                    }
-                }
-
-                item {
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(
-                            onClick = {
-                                onAddSongs(candidates.filter { selectedCandidateIds.value.contains(it.id) }.ifEmpty { candidates.take(1) })
-                                selectedCandidateIds.value = emptySet()
-                            },
-                            enabled = candidates.isNotEmpty()
-                        ) {
-                            Text("Agregar música a la playlist")
                         }
                     }
                 }
             }
         }
     }
+
+    if (renameDialog) {
+        AlertDialog(
+            onDismissRequest = { renameDialog = false },
+            title = { Text("Renombrar playlist") },
+            text = {
+                OutlinedTextField(
+                    value = renameValue,
+                    onValueChange = { renameValue = it },
+                    singleLine = true,
+                    label = { Text("Nombre") }
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    if (renameValue.isNotBlank()) onRenamePlaylist(renameValue.trim())
+                    renameDialog = false
+                }) { Text("Guardar") }
+            },
+            dismissButton = { TextButton(onClick = { renameDialog = false }) { Text("Cancelar") } }
+        )
+    }
 }
 
 @Composable
-private fun PlaylistTrackCard(
+private fun PlaylistTrackCompact(
     item: PlaylistItemEntity,
+    index: Int,
+    total: Int,
+    isAutoPlaylist: Boolean,
     onPlay: () -> Unit,
     onRemove: () -> Unit,
-    showRemove: Boolean = true
+    onMoveUp: () -> Unit,
+    onMoveDown: () -> Unit
 ) {
-    ElevatedCard(
-        modifier = Modifier.fillMaxWidth(),
-        onClick = onPlay
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(14.dp),
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            MediaArtwork(
-                item = item.toMediaEntry(),
-                modifier = Modifier.size(72.dp)
-            )
-
-            Column(
-                modifier = Modifier.widthIn(max = 230.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Text(
-                    text = item.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = listOf(item.artist, item.album)
-                        .filter { it.isNotBlank() }
-                        .joinToString(" • "),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = formatDuration(item.durationMs),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            Spacer(modifier = Modifier.weight(1f, fill = true))
-
-            if (showRemove) {
-                FilledTonalIconButton(onClick = onRemove) {
-                    Icon(Icons.Filled.Delete, contentDescription = "Quitar de la playlist")
+        MediaItemRow(
+            item = item.toMediaEntry(),
+            modifier = Modifier.weight(1f),
+            onClick = onPlay
+        )
+        if (!isAutoPlaylist) {
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                FilledTonalIconButton(onClick = onMoveUp, enabled = index > 0, modifier = Modifier.size(36.dp)) {
+                    Icon(Icons.Filled.KeyboardArrowUp, contentDescription = "Subir")
                 }
+                FilledTonalIconButton(onClick = onMoveDown, enabled = index < total - 1, modifier = Modifier.size(36.dp)) {
+                    Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "Bajar")
+                }
+            }
+            FilledTonalIconButton(onClick = onRemove, modifier = Modifier.size(40.dp)) {
+                Icon(Icons.Filled.Delete, contentDescription = "Quitar")
             }
         }
     }
@@ -290,36 +312,17 @@ private fun PlaylistPreviewMosaic(
     modifier: Modifier = Modifier
 ) {
     val preview = items.take(4)
-
-    ElevatedCard(
-        modifier = modifier.clip(RoundedCornerShape(24.dp))
-    ) {
+    ElevatedCard(modifier = modifier.clip(RoundedCornerShape(24.dp))) {
         Column(modifier = Modifier.fillMaxSize()) {
             repeat(2) { row ->
                 Row(modifier = Modifier.weight(1f)) {
                     repeat(2) { col ->
                         val index = row * 2 + col
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxSize()
-                        ) {
+                        Box(modifier = Modifier.weight(1f).fillMaxSize(), contentAlignment = Alignment.Center) {
                             if (index < preview.size) {
-                                MediaArtwork(
-                                    item = preview[index].toMediaEntry(),
-                                    modifier = Modifier.fillMaxSize()
-                                )
+                                MediaArtwork(item = preview[index].toMediaEntry(), modifier = Modifier.fillMaxSize())
                             } else {
-                                Box(
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Filled.MusicNote,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
+                                Icon(Icons.Filled.MusicNote, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                     }
@@ -332,7 +335,7 @@ private fun PlaylistPreviewMosaic(
 private fun PlaylistItemEntity.toMediaEntry() = MediaEntry(
     id = mediaId,
     kind = if (mediaKind == MediaKind.VIDEO.name) MediaKind.VIDEO else MediaKind.AUDIO,
-    uri = android.net.Uri.parse(uriString),
+    uri = Uri.parse(uriString),
     title = title,
     artist = artist,
     album = album,

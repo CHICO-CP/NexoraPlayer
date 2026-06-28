@@ -47,6 +47,7 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nexora.player.data.local.FavoriteMediaEntity
 import com.nexora.player.data.local.PlaylistEntity
+import com.nexora.player.data.local.PlaylistItemEntity
 import com.nexora.player.data.model.MediaEntry
 import com.nexora.player.data.model.AppDestination
 import com.nexora.player.data.model.AppLanguage
@@ -56,11 +57,13 @@ import com.nexora.player.ui.components.BottomPlayerBar
 import com.nexora.player.ui.components.ux.IosBottomTabBar
 import com.nexora.player.ui.components.GreetingBanner
 import com.nexora.player.ui.screens.FavoritesScreen
+import com.nexora.player.ui.screens.FolderManagerScreen
 import com.nexora.player.ui.screens.MusicScreen
 import com.nexora.player.ui.screens.NowPlayingScreen
 import com.nexora.player.ui.screens.PlaylistDetailScreen
 import com.nexora.player.ui.screens.PlaylistsScreen
 import com.nexora.player.ui.screens.SearchResultsScreen
+import com.nexora.player.ui.screens.ReleaseNotesDialog
 import com.nexora.player.ui.screens.SettingsScreen
 import com.nexora.player.ui.screens.VideoScreen
 import com.nexora.player.ui.theme.NexoraTheme
@@ -87,6 +90,8 @@ class MainActivity : AppCompatActivity() {
             var searchExpanded by rememberSaveable { mutableStateOf(false) }
             var lastAutoOpenedItemId by rememberSaveable { mutableStateOf<Long?>(null) }
             var selectedPlaylistId by rememberSaveable { mutableStateOf<Long?>(null) }
+            var showFolderManager by rememberSaveable { mutableStateOf(false) }
+            var showReleaseNotes by rememberSaveable { mutableStateOf(false) }
 
             val greeting = rememberGreeting()
 
@@ -95,6 +100,12 @@ class MainActivity : AppCompatActivity() {
                 if (state.isPlaying && current != null && lastAutoOpenedItemId != current.id) {
                     showNowPlaying = true
                     lastAutoOpenedItemId = current.id
+                }
+            }
+
+            LaunchedEffect(state.preferences.lastSeenVersionCode) {
+                if (state.preferences.lastSeenVersionCode < BuildConfig.VERSION_CODE) {
+                    showReleaseNotes = true
                 }
             }
 
@@ -162,8 +173,21 @@ class MainActivity : AppCompatActivity() {
                         viewModel = viewModel,
                         state = state,
                         selectedPlaylistId = selectedPlaylistId,
+                        showFolderManager = showFolderManager,
                         onOpenPlaylist = { selectedPlaylistId = it.id },
-                        onClosePlaylist = { selectedPlaylistId = null }
+                        onClosePlaylist = { selectedPlaylistId = null },
+                        onOpenFolderManager = { showFolderManager = true },
+                        onCloseFolderManager = { showFolderManager = false }
+                    )
+                }
+
+                if (showReleaseNotes) {
+                    ReleaseNotesDialog(
+                        versionName = BuildConfig.VERSION_NAME,
+                        onDismiss = {
+                            showReleaseNotes = false
+                            viewModel.markCurrentVersionSeen()
+                        }
                     )
                 }
 
@@ -215,9 +239,27 @@ private fun AppContent(
     viewModel: AppViewModel,
     state: AppUiState,
     selectedPlaylistId: Long?,
+    showFolderManager: Boolean,
     onOpenPlaylist: (PlaylistEntity) -> Unit,
-    onClosePlaylist: () -> Unit
+    onClosePlaylist: () -> Unit,
+    onOpenFolderManager: () -> Unit,
+    onCloseFolderManager: () -> Unit
 ) {
+    if (showFolderManager) {
+        FolderManagerScreen(
+            modifier = modifier,
+            folders = state.folderSummaries,
+            hiddenFolders = state.preferences.hiddenFolders,
+            onBack = onCloseFolderManager,
+            onHideFolder = viewModel::addHiddenFolder,
+            onShowFolder = viewModel::removeHiddenFolder,
+            onHideSmallFolders = { viewModel.hideSmallFolders() },
+            onHideSuggestedNoiseFolders = viewModel::hideSuggestedNoiseFolders,
+            onRestoreAll = viewModel::clearHiddenFolders
+        )
+        return
+    }
+
     if (state.search.isNotBlank()) {
         SearchResultsScreen(
             modifier = modifier,
@@ -256,6 +298,11 @@ private fun AppContent(
                 onAddSongs = { songs ->
                     viewModel.addToPlaylist(playlist, songs)
                 },
+                onRenamePlaylist = { name -> viewModel.renamePlaylist(playlist, name) },
+                onDuplicatePlaylist = { viewModel.duplicatePlaylist(playlist, playlistItems) },
+                onExportPlaylist = { viewModel.exportPlaylist(playlist, playlistItems) },
+                onMoveItem = { from, to -> viewModel.movePlaylistItem(playlistItems, from, to) },
+                onPlayShuffle = { items -> viewModel.playQueue(items.map { it.toMediaEntryMain() }.shuffled(), 0) },
                 isAutoPlaylist = playlist.id < 0
             )
             return
@@ -268,7 +315,8 @@ private fun AppContent(
         modifier = modifier,
         state = state,
         viewModel = viewModel,
-        onOpenPlaylist = onOpenPlaylist
+        onOpenPlaylist = onOpenPlaylist,
+        onOpenFolderManager = onOpenFolderManager
     )
 }
 
@@ -278,7 +326,8 @@ private fun DestinationPagerContent(
     modifier: Modifier,
     state: AppUiState,
     viewModel: AppViewModel,
-    onOpenPlaylist: (PlaylistEntity) -> Unit
+    onOpenPlaylist: (PlaylistEntity) -> Unit,
+    onOpenFolderManager: () -> Unit
 ) {
     val destinations = listOf(
         AppDestination.MUSIC,
@@ -362,11 +411,13 @@ private fun DestinationPagerContent(
                 volumeBoostEnabled = state.preferences.volumeBoostEnabled,
                 libraryChangeNotificationsEnabled = state.preferences.libraryChangeNotificationsEnabled,
                 shuffleEnabled = state.preferences.shuffleEnabled,
+                repeatMode = state.preferences.repeatMode,
                 resumePlaybackEnabled = state.preferences.resumePlaybackEnabled,
                 crossfadeEnabled = state.preferences.crossfadeEnabled,
                 crossfadeDurationMs = state.preferences.crossfadeDurationMs,
                 sleepTimerEnabled = state.preferences.sleepTimerEnabled,
                 sleepTimerMinutes = state.preferences.sleepTimerMinutes,
+                sleepTimerStopAtEndOfTrack = state.preferences.sleepTimerStopAtEndOfTrack,
                 hiddenFolders = state.preferences.hiddenFolders.toList(),
                 currentLanguage = rememberAppLanguage(),
                 onThemeChange = viewModel::setThemeMode,
@@ -376,16 +427,19 @@ private fun DestinationPagerContent(
                 onVolumeBoostChange = viewModel::setVolumeBoostEnabled,
                 onLibraryChangeNotificationsChange = viewModel::setLibraryChangeNotificationsEnabled,
                 onShuffleChange = viewModel::setShuffleEnabled,
+                onRepeatModeChange = viewModel::setRepeatMode,
                 onResumePlaybackChange = viewModel::setResumePlaybackEnabled,
                 onCrossfadeChange = viewModel::setCrossfadeEnabled,
                 onCrossfadeDurationChange = viewModel::setCrossfadeDurationMs,
                 onStartSleepTimer = viewModel::startSleepTimer,
+                onStartSleepTimerAtEndOfTrack = viewModel::startSleepTimerAtEndOfTrack,
                 onCancelSleepTimer = viewModel::cancelSleepTimer,
                 onLanguageChange = ::applyLanguage,
                 onRestoreHiddenAudio = viewModel::restoreHiddenAudio,
                 onAddHiddenFolder = viewModel::addHiddenFolder,
                 onRemoveHiddenFolder = viewModel::removeHiddenFolder,
-                onClearHiddenFolders = viewModel::clearHiddenFolders
+                onClearHiddenFolders = viewModel::clearHiddenFolders,
+                onOpenFolderManager = onOpenFolderManager
             )
 
             AppDestination.QUEUE, AppDestination.HISTORY -> MusicScreen(
@@ -406,6 +460,16 @@ private fun DestinationPagerContent(
     }
 }
 private fun FavoriteMediaEntity.toMediaEntry(): MediaEntry = MediaEntry(
+    id = mediaId,
+    kind = if (mediaKind == MediaKind.VIDEO.name) MediaKind.VIDEO else MediaKind.AUDIO,
+    uri = android.net.Uri.parse(uriString),
+    title = title,
+    album = album,
+    artist = artist,
+    durationMs = durationMs
+)
+
+private fun PlaylistItemEntity.toMediaEntryMain(): MediaEntry = MediaEntry(
     id = mediaId,
     kind = if (mediaKind == MediaKind.VIDEO.name) MediaKind.VIDEO else MediaKind.AUDIO,
     uri = android.net.Uri.parse(uriString),

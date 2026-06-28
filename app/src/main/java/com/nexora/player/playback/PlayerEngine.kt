@@ -1,18 +1,20 @@
 package com.nexora.player.playback
 
-import android.animation.ValueAnimator
 import android.content.Context
 import android.content.Intent
 import androidx.core.content.ContextCompat
-import android.view.animation.AccelerateDecelerateInterpolator
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
+import com.nexora.player.data.model.NexoraRepeatMode
 import com.nexora.player.data.model.MediaEntry
 import com.nexora.player.data.model.PlaybackSnapshot
 import com.nexora.player.audio.VolumeBoostSessionManager
 import com.nexora.player.equalizer.EqualizerSessionManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -23,9 +25,15 @@ object PlayerEngine {
     @Volatile
     private var player: ExoPlayer? = null
 
+    private val engineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private val crossfadeController = CrossfadeController(engineScope)
+
     private val queueLock = Any()
     private var queue: List<MediaEntry> = emptyList()
     @Volatile private var shuffleEnabled: Boolean = false
+    @Volatile private var repeatMode: NexoraRepeatMode = NexoraRepeatMode.OFF
+    @Volatile private var playbackSpeed: Float = 1.0f
+    @Volatile private var playbackVolume: Float = 1.0f
     @Volatile private var crossfadeEnabled: Boolean = false
     @Volatile private var crossfadeDurationMs: Int = 1200
 
@@ -35,7 +43,7 @@ object PlayerEngine {
     private val listener = object : Player.Listener {
         override fun onEvents(player: Player, events: Player.Events) {
             if (events.contains(Player.EVENT_MEDIA_ITEM_TRANSITION)) {
-                maybeAnimateCrossfade(player)
+                crossfadeController.onManualTransition(player)
             }
             if (events.contains(Player.EVENT_MEDIA_ITEM_TRANSITION) ||
                 events.contains(Player.EVENT_IS_PLAYING_CHANGED) ||
@@ -50,11 +58,14 @@ object PlayerEngine {
     fun get(context: Context): ExoPlayer {
         return player ?: synchronized(this) {
             player ?: ExoPlayer.Builder(context.applicationContext).build().also { created ->
-                created.repeatMode = Player.REPEAT_MODE_OFF
+                created.repeatMode = repeatMode.toPlayerRepeatMode()
                 created.shuffleModeEnabled = shuffleEnabled
+                created.setPlaybackSpeed(playbackSpeed)
+                created.volume = playbackVolume
                 created.playWhenReady = true
                 created.addListener(listener)
                 player = created
+                crossfadeController.attach(created)
                 updateSnapshot(created)
             }
         }
@@ -82,14 +93,13 @@ object PlayerEngine {
                 .build()
         }
         exoPlayer.shuffleModeEnabled = shuffleEnabled
+        exoPlayer.repeatMode = repeatMode.toPlayerRepeatMode()
+        exoPlayer.setPlaybackSpeed(playbackSpeed)
+        exoPlayer.volume = playbackVolume
         exoPlayer.setMediaItems(mediaItems, index, startPositionMs.coerceAtLeast(0L))
         exoPlayer.prepare()
         exoPlayer.playWhenReady = true
         exoPlayer.play()
-        if (crossfadeEnabled) {
-            exoPlayer.volume = 0f
-            animateVolume(exoPlayer, 1f, crossfadeDurationMs.toLong())
-        }
         updateSnapshot(exoPlayer)
     }
 
@@ -99,17 +109,13 @@ object PlayerEngine {
 
     fun skipNext(context: Context) {
         val player = get(context)
-        if (crossfadeEnabled) player.volume = 0f
         player.seekToNext()
-        if (crossfadeEnabled) animateVolume(player, 1f, crossfadeDurationMs.toLong())
         updateSnapshot(player)
     }
 
     fun skipPrevious(context: Context) {
         val player = get(context)
-        if (crossfadeEnabled) player.volume = 0f
         player.seekToPrevious()
-        if (crossfadeEnabled) animateVolume(player, 1f, crossfadeDurationMs.toLong())
         updateSnapshot(player)
     }
 
@@ -160,9 +166,26 @@ object PlayerEngine {
         player?.shuffleModeEnabled = enabled
     }
 
+    fun setRepeatMode(mode: NexoraRepeatMode) {
+        repeatMode = mode
+        player?.repeatMode = mode.toPlayerRepeatMode()
+    }
+
+    fun setPlaybackSpeed(speed: Float) {
+        playbackSpeed = speed.coerceIn(0.5f, 2.0f)
+        player?.setPlaybackSpeed(playbackSpeed)
+    }
+
+    fun setPlaybackVolume(volume: Float) {
+        playbackVolume = volume.coerceIn(0f, 1f)
+        player?.volume = playbackVolume
+    }
+
     fun setCrossfadeEnabled(enabled: Boolean, durationMs: Int) {
         crossfadeEnabled = enabled
-        crossfadeDurationMs = durationMs.coerceIn(250, 5000)
+        crossfadeDurationMs = durationMs.coerceIn(500, 5000)
+        crossfadeController.configure(enabled, crossfadeDurationMs)
+        player?.let { crossfadeController.attach(it) }
     }
 
     fun release() {
@@ -171,6 +194,7 @@ object PlayerEngine {
             release()
         }
         player = null
+        crossfadeController.detach()
         synchronized(queueLock) { queue = emptyList() }
         EqualizerSessionManager.release()
         VolumeBoostSessionManager.release()
@@ -198,24 +222,6 @@ object PlayerEngine {
         val intent = Intent().setClassName(context.packageName, SERVICE_CLASS)
         ContextCompat.startForegroundService(context, intent)
     }
-    private fun maybeAnimateCrossfade(player: Player) {
-        if (!crossfadeEnabled) return
-        animateVolume(player, 1f, crossfadeDurationMs.toLong())
-    }
-
-    private fun animateVolume(player: Player, target: Float, durationMs: Long) {
-        val exo = player as? ExoPlayer ?: return
-        val start = exo.volume
-        ValueAnimator.ofFloat(start, target).apply {
-            duration = durationMs.coerceAtLeast(1L)
-            interpolator = AccelerateDecelerateInterpolator()
-            addUpdateListener { animator ->
-                exo.volume = (animator.animatedValue as Float).coerceIn(0f, 1f)
-            }
-            start()
-        }
-    }
-
     fun setVolumeBoost(enabled: Boolean, gainMillibels: Int) {
         VolumeBoostSessionManager.update(enabled, gainMillibels)
         player?.let { current ->
@@ -224,4 +230,10 @@ object PlayerEngine {
             }
         }
     }
+}
+
+private fun NexoraRepeatMode.toPlayerRepeatMode(): Int = when (this) {
+    NexoraRepeatMode.OFF -> Player.REPEAT_MODE_OFF
+    NexoraRepeatMode.ONE -> Player.REPEAT_MODE_ONE
+    NexoraRepeatMode.ALL -> Player.REPEAT_MODE_ALL
 }

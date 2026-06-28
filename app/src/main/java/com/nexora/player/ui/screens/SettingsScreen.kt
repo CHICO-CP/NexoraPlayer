@@ -81,6 +81,7 @@ import androidx.compose.ui.window.DialogProperties
 import com.nexora.player.R
 import com.nexora.player.data.model.AppLanguage
 import com.nexora.player.data.model.AppThemeMode
+import com.nexora.player.data.model.NexoraRepeatMode
 
 // ── Data model for selectively restoring hidden audio ────────────────────────
 
@@ -213,11 +214,13 @@ fun SettingsScreen(
     volumeBoostEnabled: Boolean,
     libraryChangeNotificationsEnabled: Boolean,
     shuffleEnabled: Boolean = false,
+    repeatMode: NexoraRepeatMode = NexoraRepeatMode.OFF,
     resumePlaybackEnabled: Boolean = true,
     crossfadeEnabled: Boolean = false,
     crossfadeDurationMs: Int = 1200,
     sleepTimerEnabled: Boolean = false,
     sleepTimerMinutes: Int = 30,
+    sleepTimerStopAtEndOfTrack: Boolean = false,
     hiddenFolders: List<String> = emptyList(),
     currentLanguage: AppLanguage,
     onThemeChange: (AppThemeMode) -> Unit,
@@ -227,16 +230,19 @@ fun SettingsScreen(
     onVolumeBoostChange: (Boolean) -> Unit,
     onLibraryChangeNotificationsChange: (Boolean) -> Unit,
     onShuffleChange: (Boolean) -> Unit = {},
+    onRepeatModeChange: (NexoraRepeatMode) -> Unit = {},
     onResumePlaybackChange: (Boolean) -> Unit = {},
     onCrossfadeChange: (Boolean) -> Unit = {},
     onCrossfadeDurationChange: (Int) -> Unit = {},
     onStartSleepTimer: (Int) -> Unit = {},
+    onStartSleepTimerAtEndOfTrack: () -> Unit = {},
     onCancelSleepTimer: () -> Unit = {},
     onLanguageChange: (AppLanguage) -> Unit,
     onRestoreHiddenAudio: () -> Unit,
     onAddHiddenFolder: (String) -> Unit = {},
     onRemoveHiddenFolder: (String) -> Unit = {},
     onClearHiddenFolders: () -> Unit = {},
+    onOpenFolderManager: () -> Unit = {},
     onRestoreHiddenItem: (Long) -> Unit = {}
 ) {
     val uriHandler      = LocalUriHandler.current
@@ -365,6 +371,27 @@ fun SettingsScreen(
                 onCheckedChange = onShuffleChange
             )
             RowDivider()
+            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("Repetición", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium))
+                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                    SegmentedButton(
+                        selected = repeatMode == NexoraRepeatMode.OFF,
+                        onClick = { onRepeatModeChange(NexoraRepeatMode.OFF) },
+                        shape = SegmentedButtonDefaults.itemShape(0, 3)
+                    ) { Text("Off", fontSize = 13.sp) }
+                    SegmentedButton(
+                        selected = repeatMode == NexoraRepeatMode.ONE,
+                        onClick = { onRepeatModeChange(NexoraRepeatMode.ONE) },
+                        shape = SegmentedButtonDefaults.itemShape(1, 3)
+                    ) { Text("Una", fontSize = 13.sp) }
+                    SegmentedButton(
+                        selected = repeatMode == NexoraRepeatMode.ALL,
+                        onClick = { onRepeatModeChange(NexoraRepeatMode.ALL) },
+                        shape = SegmentedButtonDefaults.itemShape(2, 3)
+                    ) { Text("Todo", fontSize = 13.sp) }
+                }
+            }
+            RowDivider()
             SettingsToggleRow(
                 icon            = Icons.Filled.MusicNote,
                 iconColor       = Color(0xFF0A84FF),
@@ -399,7 +426,7 @@ fun SettingsScreen(
                 icon            = Icons.Filled.Lock,
                 iconColor       = Color(0xFF5856D6),
                 title           = "Sleep timer",
-                subtitle        = if (sleepTimerEnabled) "Activo: ${sleepTimerMinutes} min" else "Apaga la reproducción tras un tiempo definido.",
+                subtitle        = if (sleepTimerEnabled) { if (sleepTimerStopAtEndOfTrack) "Activo: al terminar la canción" else "Activo: ${sleepTimerMinutes} min" } else "Apaga la reproducción tras un tiempo definido.",
                 checked         = sleepTimerEnabled,
                 onCheckedChange = { enabled ->
                     if (enabled) onStartSleepTimer(sleepTimerMinutes) else onCancelSleepTimer()
@@ -408,14 +435,17 @@ fun SettingsScreen(
             if (sleepTimerEnabled) {
                 Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        listOf(15, 30, 45, 60, 90).forEach { value ->
+                        listOf(5, 10, 15, 30, 60).forEach { value ->
                             OutlinedButton(onClick = { onStartSleepTimer(value) }) {
                                 Text("${value} min")
                             }
                         }
                     }
                     Spacer(Modifier.height(8.dp))
-                    TextButton(onClick = onCancelSleepTimer) { Text("Desactivar temporizador") }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FilledTonalButton(onClick = onStartSleepTimerAtEndOfTrack) { Text("Al terminar canción") }
+                        TextButton(onClick = onCancelSleepTimer) { Text("Desactivar") }
+                    }
                 }
             }
             RowDivider()
@@ -430,7 +460,7 @@ fun SettingsScreen(
                 )
                 Spacer(Modifier.height(10.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilledTonalButton(onClick = { showFolderSheet.value = true }) { Text("Gestionar") }
+                    FilledTonalButton(onClick = onOpenFolderManager) { Text("Gestionar") }
                     if (hiddenFolders.isNotEmpty()) {
                         OutlinedButton(onClick = onClearHiddenFolders) { Text("Limpiar") }
                     }

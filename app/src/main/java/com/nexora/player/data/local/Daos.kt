@@ -38,6 +38,9 @@ interface PlaylistsDao {
     @Insert
     suspend fun insertPlaylistItem(entity: PlaylistItemEntity): Long
 
+    @Update
+    suspend fun updatePlaylistItem(entity: PlaylistItemEntity)
+
     @Query("SELECT COALESCE(MAX(orderIndex), -1) FROM playlist_items WHERE playlistId = :playlistId")
     suspend fun nextOrderIndex(playlistId: Long): Int
 
@@ -95,4 +98,23 @@ interface LyricsDao {
 
     @Query("DELETE FROM lyrics WHERE mediaId = :mediaId")
     suspend fun deleteByMediaId(mediaId: Long)
+}
+
+
+@Dao
+interface PlaybackStatsDao {
+    @Query("SELECT * FROM playback_stats ORDER BY playCount DESC, lastPlayedAt DESC LIMIT :limit")
+    fun observeTop(limit: Int): Flow<List<PlaybackStatsEntity>>
+
+    @Query("SELECT * FROM playback_stats WHERE mediaKey = :mediaKey LIMIT 1")
+    suspend fun getByMediaKey(mediaKey: String): PlaybackStatsEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(entity: PlaybackStatsEntity)
+
+    @Query("DELETE FROM playback_stats WHERE mediaId = :mediaId AND mediaKind = :mediaKind")
+    suspend fun deleteByMediaId(mediaId: Long, mediaKind: String)
+
+    @Query("DELETE FROM playback_stats")
+    suspend fun clear()
 }

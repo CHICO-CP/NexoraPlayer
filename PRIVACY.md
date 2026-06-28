@@ -1,61 +1,59 @@
-# Política de Privacidad de Nexora Player
+# Política de privacidad — Nexora Player
 
-**Última actualización:** 26 de mayo de 2026
+Nexora Player es un reproductor multimedia para Android. La app está diseñada para reproducir música y video locales, gestionar playlists, letras, favoritos y ajustes de reproducción.
 
-Nexora Player ("la aplicación") es un reproductor multimedia local para Android.  
-Esta política explica cómo manejamos la información cuando usas la app.
+## Datos locales que usa la app
 
-## 1. Información que NO recopilamos
+La app puede leer archivos multimedia del dispositivo mediante los permisos de Android correspondientes. También guarda localmente:
 
-Nexora Player **no recopila, almacena ni transmite ningún dato personal** a servidores externos.  
-No utilizamos servicios de análisis, publicidad ni rastreo.
+- favoritos;
+- playlists;
+- letras guardadas o editadas;
+- estadísticas de reproducción para la playlist “Más escuchadas”;
+- ajustes de usuario;
+- sesión de reproducción para reanudar donde quedó;
+- carpetas ocultas;
+- canciones ocultas.
 
-## 2. Permisos y uso de datos en el dispositivo
+Estos datos se guardan en el almacenamiento local de la app mediante Room y DataStore.
 
-Para ofrecer la reproducción de medios, la aplicación solicita los siguientes permisos:
+## Uso de internet
 
-- **Almacenamiento / medios**:  
-  `READ_MEDIA_AUDIO`, `READ_MEDIA_VIDEO`, `READ_EXTERNAL_STORAGE` (en Android 9 o inferior).  
-  Se usan **exclusivamente** para leer los archivos de música y video almacenados en tu dispositivo y mostrarlos en la biblioteca.  
-  *Nunca modificamos ni eliminamos tus archivos sin tu acción explícita.*
+Nexora Player puede usar internet para funciones opcionales como:
 
-- **Notificaciones y servicio en segundo plano**:  
-  `POST_NOTIFICATIONS`, `FOREGROUND_SERVICE`.  
-  Permiten mostrar los controles de reproducción en la barra de notificaciones y mantener la reproducción cuando la app está en segundo plano.  
-  *No se envían notificaciones promocionales ni de terceros.*
+- búsqueda online de música;
+- búsqueda de letras;
+- traducción de letras;
+- descarga de modelos o recursos necesarios para traducción;
+- consulta de fuentes online integradas.
 
-- **Internet** (`INTERNET`):  
-  Actualmente no se utiliza. Se incluye de forma preventiva para posibles funciones futuras (como descarga de carátulas). Si se activara, se informaría en una actualización de esta política.
+La app no necesita internet para reproducir archivos locales.
 
-## 3. Datos que se guardan localmente
+## Archivos multimedia
 
-La aplicación almacena cierta información **únicamente en tu dispositivo** para mejorar la experiencia:
+La app no sube automáticamente tus canciones o videos personales a servidores externos. El acceso a archivos locales se usa para mostrar y reproducir contenido dentro de la app.
 
-- Historial de reproducción, favoritos y configuración de la cola.
-- Preferencias de la app (tema, orden, etc.).
-- Metadatos extraídos de los archivos multimedia (título, artista, álbum).
+## Notificaciones
 
-**Todos estos datos permanecen en tu teléfono** y no se comparten con nadie.  
-Puedes eliminarlos desinstalando la aplicación o borrando los datos desde los ajustes de Android.
+La app usa notificaciones para mostrar controles de reproducción multimedia y, si el usuario lo activa, avisos relacionados con cambios en la biblioteca.
 
-## 4. Servicios de terceros
+## Estadísticas de reproducción
 
-Actualmente **no integramos** ningún SDK de terceros que recolecte datos (como Firebase, AdMob, etc.).  
-Si en el futuro se añadiera alguna biblioteca de análisis o publicidad, se actualizará esta política y se pedirá el consentimiento pertinente.
+La playlist “Más escuchadas” se genera con contadores locales por canción. Esta información se usa solo dentro de la app.
 
-## 5. Seguridad
+## Permisos principales
 
-Dado que no se transmite información personal, no existe riesgo de filtración a través de la red.  
-La seguridad de los datos locales depende de las medidas propias del sistema Android (cifrado de almacenamiento, bloqueo de pantalla, etc.).
+Según la versión de Android, la app puede solicitar:
 
-## 6. Cambios en esta política
+- lectura de audio;
+- lectura de video;
+- notificaciones;
+- servicio en primer plano para reproducción multimedia.
 
-Cualquier modificación será publicada en esta misma página.  
-Se notificarán los cambios relevantes mediante un aviso en la aplicación (si es posible) o en el repositorio oficial.
+## Eliminación de datos
 
-## 7. Contacto
+El usuario puede borrar favoritos, playlists, letras editadas, carpetas ocultas y datos de la app desde los ajustes del sistema Android o desde las opciones internas cuando estén disponibles.
 
-Si tienes dudas sobre esta política, puedes contactar al desarrollador:
+## Contacto
 
-- Correo: ghostnexora@gmail.com  
-- GitHub: [Ghost Developer](https://github.com/CHICO-CP)
+Desarrollador: Ghost Developer / Nexora.

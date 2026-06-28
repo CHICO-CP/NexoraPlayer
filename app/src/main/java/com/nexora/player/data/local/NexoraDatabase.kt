@@ -12,9 +12,10 @@ import androidx.room.RoomDatabase
         PlaylistItemEntity::class,
         PlaybackHistoryEntity::class,
         OnlineSavedTrackEntity::class,
-        LyricsEntity::class
+        LyricsEntity::class,
+        PlaybackStatsEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class NexoraDatabase : RoomDatabase() {
@@ -23,6 +24,7 @@ abstract class NexoraDatabase : RoomDatabase() {
     abstract fun historyDao(): HistoryDao
     abstract fun onlineSavedTracksDao(): OnlineSavedTracksDao
     abstract fun lyricsDao(): LyricsDao
+    abstract fun playbackStatsDao(): PlaybackStatsDao
 
     companion object {
         @Volatile private var INSTANCE: NexoraDatabase? = null
@@ -75,6 +77,29 @@ abstract class NexoraDatabase : RoomDatabase() {
             }
         }
 
+
+        val MIGRATION_3_4 = object : androidx.room.migration.Migration(3, 4) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `playback_stats` (
+                        `mediaKey` TEXT NOT NULL,
+                        `mediaId` INTEGER NOT NULL,
+                        `mediaKind` TEXT NOT NULL,
+                        `title` TEXT NOT NULL,
+                        `artist` TEXT NOT NULL,
+                        `album` TEXT NOT NULL,
+                        `uriString` TEXT NOT NULL,
+                        `durationMs` INTEGER NOT NULL,
+                        `playCount` INTEGER NOT NULL,
+                        `lastPlayedAt` INTEGER NOT NULL,
+                        PRIMARY KEY(`mediaKey`)
+                    )
+                    """.trimIndent()
+                )
+            }
+        }
+
         fun get(context: Context): NexoraDatabase {
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -82,7 +107,7 @@ abstract class NexoraDatabase : RoomDatabase() {
                     NexoraDatabase::class.java,
                     "nexora.db"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                     .build()
                     .also { INSTANCE = it }
             }

@@ -51,6 +51,11 @@ import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.QueueMusic
+import androidx.compose.material.icons.filled.Repeat
+import androidx.compose.material.icons.filled.RepeatOne
+import androidx.compose.material.icons.filled.Shuffle
+import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material3.Card
@@ -114,6 +119,7 @@ import com.nexora.player.data.lyrics.LyricsRepository
 import com.nexora.player.ui.screens.LyricsEditorDialog
 import com.nexora.player.data.model.MediaEntry
 import com.nexora.player.data.model.MediaKind
+import com.nexora.player.data.model.NexoraRepeatMode
 import com.nexora.player.playback.PlayerEngine
 import com.nexora.player.ui.components.MediaItemRow
 import com.nexora.player.ui.components.formatDuration
@@ -497,7 +503,48 @@ fun AudioPlayerScreen(
                     }
                 }
 
-                Spacer(Modifier.height(28.dp))
+                Spacer(Modifier.height(10.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = {
+                        val next = !appPreferences.shuffleEnabled
+                        PlayerEngine.setShuffleEnabled(next)
+                        scope.launch { preferencesRepository.setShuffleEnabled(next) }
+                    }) {
+                        Icon(
+                            imageVector = Icons.Filled.Shuffle,
+                            contentDescription = "Aleatorio",
+                            tint = if (appPreferences.shuffleEnabled) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.62f)
+                        )
+                    }
+
+                    IconButton(onClick = {
+                        val next = appPreferences.repeatMode.next()
+                        PlayerEngine.setRepeatMode(next)
+                        scope.launch { preferencesRepository.setRepeatMode(next) }
+                    }) {
+                        Icon(
+                            imageVector = if (appPreferences.repeatMode == NexoraRepeatMode.ONE) Icons.Filled.RepeatOne else Icons.Filled.Repeat,
+                            contentDescription = "Repetición",
+                            tint = if (appPreferences.repeatMode == NexoraRepeatMode.OFF) Color.White.copy(alpha = 0.62f) else MaterialTheme.colorScheme.primary
+                        )
+                    }
+
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Icon(Icons.Filled.Timer, contentDescription = null, tint = Color.White.copy(alpha = 0.62f), modifier = Modifier.size(18.dp))
+                        Text(
+                            text = if (appPreferences.sleepTimerEnabled) "Timer activo" else "Sin timer",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = Color.White.copy(alpha = 0.62f)
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(18.dp))
                 HorizontalDivider(color = Color.White.copy(alpha = 0.12f))
                 Spacer(Modifier.height(20.dp))
 

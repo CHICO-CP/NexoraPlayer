@@ -32,6 +32,18 @@ enum class AppThemeMode {
     DARK
 }
 
+enum class NexoraRepeatMode {
+    OFF,
+    ONE,
+    ALL;
+
+    fun next(): NexoraRepeatMode = when (this) {
+        OFF -> ONE
+        ONE -> ALL
+        ALL -> OFF
+    }
+}
+
 enum class AppLanguage(@StringRes val labelRes: Int, val tag: String?) {
     SYSTEM(R.string.language_system, null),
     SPANISH(R.string.language_spanish, "es"),
