@@ -65,7 +65,7 @@ object PlayerEngine {
                 created.shuffleModeEnabled = shuffleEnabled
                 created.setPlaybackSpeed(playbackSpeed)
                 created.volume = playbackVolume
-                created.playWhenReady = true
+                created.playWhenReady = false
                 created.addListener(listener)
                 player = created
                 crossfadeController.attach(created)
@@ -74,7 +74,13 @@ object PlayerEngine {
         }
     }
 
-    fun playQueue(context: Context, items: List<MediaEntry>, startIndex: Int = 0, startPositionMs: Long = 0L) {
+    fun playQueue(
+        context: Context,
+        items: List<MediaEntry>,
+        startIndex: Int = 0,
+        startPositionMs: Long = 0L,
+        autoPlay: Boolean = true
+    ) {
         if (items.isEmpty()) return
         ensureService(context)
         val exoPlayer = get(context)
@@ -101,8 +107,12 @@ object PlayerEngine {
         exoPlayer.volume = playbackVolume
         exoPlayer.setMediaItems(mediaItems, index, startPositionMs.coerceAtLeast(0L))
         exoPlayer.prepare()
-        exoPlayer.playWhenReady = true
-        exoPlayer.play()
+        exoPlayer.playWhenReady = autoPlay
+        if (autoPlay) {
+            exoPlayer.play()
+        } else {
+            exoPlayer.pause()
+        }
         updateSnapshot(exoPlayer)
     }
 
@@ -164,6 +174,13 @@ object PlayerEngine {
         updateSnapshot(player)
     }
 
+    fun pause(context: Context) {
+        val player = get(context)
+        player.pause()
+        player.playWhenReady = false
+        updateSnapshot(player)
+    }
+
     fun setShuffleEnabled(enabled: Boolean) {
         shuffleEnabled = enabled
         player?.shuffleModeEnabled = enabled
@@ -181,13 +198,14 @@ object PlayerEngine {
 
     fun setPlaybackVolume(volume: Float) {
         playbackVolume = volume.coerceIn(0f, 1f)
+        crossfadeController.setTargetVolume(playbackVolume)
         player?.volume = playbackVolume
     }
 
     fun setCrossfadeEnabled(enabled: Boolean, durationMs: Int) {
         crossfadeEnabled = enabled
         crossfadeDurationMs = durationMs.coerceIn(500, 5000)
-        crossfadeController.configure(enabled, crossfadeDurationMs)
+        crossfadeController.configure(enabled, crossfadeDurationMs, playbackVolume)
         player?.let { crossfadeController.attach(it) }
     }
 

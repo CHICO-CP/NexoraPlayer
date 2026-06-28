@@ -956,10 +956,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         PlayerEngine.setPlaybackSpeed(payload.playbackSpeed)
         PlayerEngine.setPlaybackVolume(payload.playbackVolume)
         PlayerEngine.setCrossfadeEnabled(prefs.crossfadeEnabled, prefs.crossfadeDurationMs)
-        PlayerEngine.playQueue(context, queue, safeIndex, payload.positionMs)
-        if (!payload.isPlaying) {
-            PlayerEngine.togglePlayPause(context)
-        }
+        // Restaurar sesión solo prepara la cola y la posición. No se reproduce
+        // automáticamente al abrir la app; el usuario debe tocar Play.
+        PlayerEngine.playQueue(context, queue, safeIndex, payload.positionMs, autoPlay = false)
+        PlayerEngine.pause(context)
         resumeRestored = true
     }
 

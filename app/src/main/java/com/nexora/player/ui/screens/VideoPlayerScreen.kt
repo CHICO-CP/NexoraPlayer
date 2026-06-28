@@ -189,15 +189,15 @@ fun VideoPlayerScreen(
 
     // ── Orientación / barras del sistema ─────────────────────────────────────
     DisposableEffect(isLandscape) {
+        activity?.window?.let { win ->
+            WindowCompat.getInsetsController(win, view).apply {
+                hide(WindowInsetsCompat.Type.systemBars())
+                systemBarsBehavior =
+                    WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            }
+        }
         if (isLandscape) {
             activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
-            activity?.window?.let { win ->
-                WindowCompat.getInsetsController(win, view).apply {
-                    hide(WindowInsetsCompat.Type.systemBars())
-                    systemBarsBehavior =
-                        WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-                }
-            }
         }
         onDispose {
             activity?.window?.let { win ->
@@ -208,12 +208,16 @@ fun VideoPlayerScreen(
         }
     }
 
-    // Auto-ocultar controles SOLO en landscape
-    LaunchedEffect(landscapeControlsVisible, isLandscape) {
-        if (isLandscape && landscapeControlsVisible) {
+    // Auto-ocultar controles solo mientras el contenido está reproduciéndose.
+    // Si queda pausado, los controles y “A continuación” permanecen visibles.
+    LaunchedEffect(landscapeControlsVisible, snapshot.isPlaying) {
+        if (landscapeControlsVisible && snapshot.isPlaying) {
             delay(5_000L)
             landscapeControlsVisible = false
         }
+    }
+    LaunchedEffect(snapshot.isPlaying) {
+        if (!snapshot.isPlaying) landscapeControlsVisible = true
     }
 
     LaunchedEffect(seekFeedbackMs)    { if (seekFeedbackMs != 0L)   { delay(700);   seekFeedbackMs = 0L } }
@@ -310,6 +314,7 @@ fun VideoPlayerScreen(
     if (isLandscape) {
         LandscapeScreen(
             modifier              = modifier,
+            isLandscape           = true,
             exoPlayer             = exoPlayer,
             currentItem           = currentItem,
             aspectMode            = aspectMode,
@@ -354,36 +359,49 @@ fun VideoPlayerScreen(
             }
         )
     } else {
-        PortraitScreen(
-            modifier           = modifier,
-            exoPlayer          = exoPlayer,
-            currentItem        = currentItem,
-            aspectMode         = aspectMode,
-            controlsLocked     = controlsLocked,
-            queueFromCurrent   = queueFromCurrent,
-            queueStartIndex    = queueStartIndex,
-            isPlaying          = snapshot.isPlaying,
-            positionMs         = exoPlayer.currentPosition,
-            durationMs         = durationMs,
-            brightness         = brightness,
-            volumeFraction     = volumeFraction,
-            seekFeedbackMs     = seekFeedbackMs,
-            onSeekTo           = { exoPlayer.seekTo(it) },
-            onPrevious         = { PlayerEngine.skipPrevious(context) },
-            onTogglePlay       = { PlayerEngine.togglePlayPause(context) },
-            onNext             = { PlayerEngine.skipNext(context) },
-            onEnterFullscreen  = {
+        LandscapeScreen(
+            modifier              = modifier,
+            isLandscape           = false,
+            exoPlayer             = exoPlayer,
+            currentItem           = currentItem,
+            aspectMode            = aspectMode,
+            controlsLocked        = controlsLocked,
+            queue                 = queue,
+            queueFromCurrent      = queueFromCurrent,
+            queueStartIndex       = queueStartIndex,
+            isPlaying             = snapshot.isPlaying,
+            positionMs            = exoPlayer.currentPosition,
+            durationMs            = durationMs,
+            brightness            = brightness,
+            volumeFraction        = volumeFraction,
+            controlsVisible       = landscapeControlsVisible || !snapshot.isPlaying,
+            showQueuePanel        = showQueuePanel,
+            seekFeedbackMs        = seekFeedbackMs,
+            showBrightnessHud     = showBrightnessHud,
+            showVolumeHud         = showVolumeHud,
+            onToggleControls      = { landscapeControlsVisible = !landscapeControlsVisible },
+            onDoubleTapLeft       = { seekBy(-10_000L); landscapeControlsVisible = true },
+            onDoubleTapRight      = { seekBy(10_000L);  landscapeControlsVisible = true },
+            onBrightnessSwipe     = { delta -> setBrightness(brightness + delta) },
+            onVolumeSwipe         = { delta -> setVolume(volumeFraction + delta) },
+            onHorizontalSeek      = { fraction -> seekByFraction(fraction) },
+            onSeekTo              = { exoPlayer.seekTo(it) },
+            onPrevious            = { PlayerEngine.skipPrevious(context); landscapeControlsVisible = true },
+            onTogglePlay          = { PlayerEngine.togglePlayPause(context); landscapeControlsVisible = true },
+            onNext                = { PlayerEngine.skipNext(context); landscapeControlsVisible = true },
+            onExitFullscreen      = {
                 activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
             },
-            onClose            = onClose,
-            onBrightnessChange = ::setBrightness,
-            onVolumeChange     = ::setVolume,
-            onJumpToQueueIndex = { idx -> PlayerEngine.jumpTo(context, idx) },
-            onDoubleTap        = { right -> if (right) seekBy(10_000L) else seekBy(-10_000L) },
-            onHorizontalSeek   = { fraction -> seekByFraction(fraction) },
-            onToggleLock       = { controlsLocked = !controlsLocked },
-            onAspectModeSelected = { aspectModeName = it.name },
-            onLoadSubtitle     = { subtitleLauncher.launch("application/x-subrip") }
+            onToggleQueue         = { showQueuePanel = !showQueuePanel; landscapeControlsVisible = true },
+            onBack                = onClose,
+            onToggleLock          = { controlsLocked = !controlsLocked; landscapeControlsVisible = true },
+            onAspectModeSelected  = { aspectModeName = it.name; landscapeControlsVisible = true },
+            onLoadSubtitle        = { subtitleLauncher.launch("application/x-subrip") },
+            onJumpToQueueIndex    = { idx ->
+                PlayerEngine.jumpTo(context, idx)
+                showQueuePanel = false
+                landscapeControlsVisible = true
+            }
         )
     }
 }
@@ -773,6 +791,7 @@ private fun PortraitScreen(
 @Composable
 private fun LandscapeScreen(
     modifier           : Modifier = Modifier,
+    isLandscape        : Boolean,
     exoPlayer          : androidx.media3.common.Player,
     currentItem        : MediaEntry,
     aspectMode         : VideoAspectMode,
@@ -948,6 +967,7 @@ private fun LandscapeScreen(
         ) {
             LandscapeControls(
                 modifier           = Modifier.fillMaxSize().zIndex(2f),
+                isLandscape        = isLandscape,
                 currentItem        = currentItem,
                 aspectMode         = aspectMode,
                 controlsLocked     = controlsLocked,
@@ -999,6 +1019,7 @@ private fun LandscapeScreen(
 @Composable
 private fun LandscapeControls(
     modifier           : Modifier = Modifier,
+    isLandscape        : Boolean,
     currentItem        : MediaEntry,
     aspectMode         : VideoAspectMode,
     controlsLocked     : Boolean,
@@ -1073,9 +1094,6 @@ private fun LandscapeControls(
                     maxLines = 1
                 )
             }
-            if (queueCount > 1 && !controlsLocked) {
-                NxIconBtn(Icons.AutoMirrored.Filled.PlaylistPlay, "Playlist", onClick = onToggleQueue)
-            }
             NxIconBtn(
                 if (controlsLocked) Icons.Filled.LockOpen else Icons.Filled.Lock,
                 if (controlsLocked) "Desbloquear" else "Bloquear controles",
@@ -1088,7 +1106,11 @@ private fun LandscapeControls(
                     onLoadSubtitle = onLoadSubtitle
                 )
             }
-            NxIconBtn(Icons.Filled.FullscreenExit, "Salir", onClick = onExitFullscreen)
+            NxIconBtn(
+                if (isLandscape) Icons.Filled.FullscreenExit else Icons.Filled.Fullscreen,
+                if (isLandscape) "Salir de horizontal" else "Abrir en horizontal",
+                onClick = onExitFullscreen
+            )
         }
 
         if (controlsLocked) {
