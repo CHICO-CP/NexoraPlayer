@@ -3,6 +3,7 @@ package com.nexora.player.playback
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Looper
 import androidx.core.content.ContextCompat
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
@@ -160,11 +161,15 @@ object PlayerEngine {
     }
 
     fun currentPositionMs(): Long {
-        return player?.currentPosition?.coerceAtLeast(0L) ?: 0L
+        val current = player ?: return 0L
+        if (Looper.myLooper() != current.applicationLooper) return 0L
+        return runCatching { current.currentPosition.coerceAtLeast(0L) }.getOrDefault(0L)
     }
 
     fun currentDurationMs(): Long {
-        return player?.duration?.takeIf { it > 0L } ?: 0L
+        val current = player ?: return 0L
+        if (Looper.myLooper() != current.applicationLooper) return 0L
+        return runCatching { current.duration.takeIf { it > 0L } ?: 0L }.getOrDefault(0L)
     }
 
     fun removeAt(context: Context, index: Int) {

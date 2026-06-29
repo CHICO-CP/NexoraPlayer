@@ -59,7 +59,15 @@ class NexoraPlayerWidgetProvider : AppWidgetProvider() {
                 val isFavorite = current?.takeIf { it.kind == MediaKind.AUDIO }?.let { item ->
                     runCatching { database.favoritesDao().isFavorite(item.id, item.kind.name) }.getOrDefault(false)
                 } ?: false
-                val positionMs = PlayerEngine.currentPositionMs()
+                // ExoPlayer/Media3 solo permite leer estado del Player desde el hilo de aplicación
+                // donde fue creado. El widget trabaja en Dispatchers.IO, así que la posición debe
+                // consultarse en Main antes de calcular la línea sincronizada de la letra.
+                val positionMs = runCatching {
+                    withContext(Dispatchers.Main.immediate) {
+                        PlayerEngine.currentPositionMs()
+                    }
+                }.getOrDefault(0L)
+
                 val lyricLine = current?.takeIf { it.kind == MediaKind.AUDIO }?.let { item ->
                     runCatching {
                         database.lyricsDao().getByMediaId(item.id)?.rawText?.toWidgetLyricLine(
