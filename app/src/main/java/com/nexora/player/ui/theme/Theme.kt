@@ -127,9 +127,8 @@ fun NexoraTheme(
     themeMode: AppThemeMode = AppThemeMode.SYSTEM,
     content: @Composable () -> Unit
 ) {
-    val systemDark = isSystemInDarkTheme()
     val effectiveDark = when (themeMode) {
-        AppThemeMode.SYSTEM, AppThemeMode.MATERIAL_YOU -> systemDark
+        AppThemeMode.SYSTEM, AppThemeMode.MATERIAL_YOU -> darkTheme
         AppThemeMode.LIGHT, AppThemeMode.IOS_LIGHT -> false
         AppThemeMode.DARK, AppThemeMode.NEXORA_DARK, AppThemeMode.AMOLED_BLACK, AppThemeMode.FLAMINGO, AppThemeMode.NEON -> true
     }

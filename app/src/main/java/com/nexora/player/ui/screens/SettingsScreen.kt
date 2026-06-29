@@ -40,7 +40,7 @@ import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material.icons.filled.SystemUpdate
-import androidx.compose.material.icons.filled.VolumeUp
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Palette
@@ -104,6 +104,7 @@ data class HiddenAudioItem(
 // ── Main screen ──────────────────────────────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class)
+@Suppress("UNUSED_PARAMETER")
 @Composable
 fun SettingsScreen(
     modifier: Modifier = Modifier,
@@ -338,7 +339,7 @@ fun SettingsScreen(
             RowDivider()
 
             SettingsToggleRow(
-                icon            = Icons.Filled.VolumeUp,
+                icon            = Icons.AutoMirrored.Filled.VolumeUp,
                 iconColor       = Color(0xFF5856D6),
                 title           = stringResource(R.string.settings_volume_boost),
                 subtitle        = stringResource(R.string.settings_volume_boost_desc),

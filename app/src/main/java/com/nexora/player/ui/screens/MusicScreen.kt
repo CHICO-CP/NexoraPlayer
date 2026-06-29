@@ -41,8 +41,8 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MusicNote
-import androidx.compose.material.icons.filled.PlaylistAdd
-import androidx.compose.material.icons.filled.QueueMusic
+import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
+import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -96,6 +96,7 @@ import kotlinx.coroutines.withContext
 // ── Main screen ───────────────────────────────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class)
+@Suppress("UNUSED_PARAMETER")
 @Composable
 fun MusicScreen(
     modifier: Modifier = Modifier,
@@ -350,7 +351,7 @@ fun MusicScreen(
                     )
                     SheetDivider()
                     SheetRow(
-                        icon     = Icons.Filled.QueueMusic,
+                        icon     = Icons.AutoMirrored.Filled.QueueMusic,
                         title    = stringResource(R.string.music_add_queue),
                         subtitle = stringResource(R.string.music_add_queue_desc),
                         onClick  = { onAddToQueue(item); selectedItem = null }
@@ -373,11 +374,11 @@ fun MusicScreen(
                     SheetSection(stringResource(R.string.music_add_to_playlist_section)) {
                         playlists.forEachIndexed { idx, playlist ->
                             SheetRow(
-                                icon    = Icons.Filled.PlaylistAdd,
+                                icon    = Icons.AutoMirrored.Filled.PlaylistAdd,
                                 title   = playlist.name,
                                 trailingContent = {
                                     Icon(
-                                        Icons.Filled.PlaylistAdd, null,
+                                        Icons.AutoMirrored.Filled.PlaylistAdd, null,
                                         tint     = Color(0xFF007AFF),
                                         modifier = Modifier.size(18.dp)
                                     )

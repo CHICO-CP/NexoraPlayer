@@ -41,7 +41,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.PlaylistPlay
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Checkroom
 import androidx.compose.material.icons.filled.Equalizer
 import androidx.compose.material.icons.filled.ExpandLess
@@ -51,7 +51,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.QueueMusic
+import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.RepeatOne
 import androidx.compose.material.icons.filled.Shuffle
@@ -634,7 +634,7 @@ fun AudioPlayerScreen(
     }
 
     if (showLyricsEditor && current?.kind == MediaKind.AUDIO) {
-        val audioCurrent = current!!
+        val audioCurrent = current
         LyricsEditorDialog(
             currentPositionMs = positionMs,
             initialText       = lyrics?.rawText.orEmpty(),
@@ -678,7 +678,7 @@ private fun PlayerTopBar(
         // Back
         IconButton(onClick = onBack) {
             Icon(
-                imageVector    = Icons.Filled.ArrowBack,
+                imageVector    = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = stringResource(R.string.action_back),
                 tint           = Color.White
             )
@@ -1663,6 +1663,7 @@ private fun LyricsKaraokeRow(
 // ---------------------------------------------------------------------------
 
 @OptIn(ExperimentalMaterial3Api::class)
+@Suppress("UNUSED_PARAMETER")
 @Composable
 private fun PlaylistSheet(
     current: MediaEntry,
@@ -1800,7 +1801,7 @@ private fun DetailsSheet(
                     ListItem(
                         headlineContent  = { Text("Carpeta") },
                         supportingContent = { Text(current.folder.orEmpty().ifBlank { "No disponible" }) },
-                        leadingContent   = { Icon(Icons.Filled.QueueMusic, null) }
+                        leadingContent   = { Icon(Icons.AutoMirrored.Filled.QueueMusic, null) }
                     )
                 }
             }
@@ -1859,6 +1860,7 @@ private fun loadArtworkBitmap(context: Context, item: MediaEntry): Bitmap? {
     }
 }
 
+@Suppress("DEPRECATION")
 private fun loadAlbumArtBitmap(context: Context, albumId: Long?): Bitmap? {
     if (albumId == null || albumId <= 0L) return null
     return runCatching {

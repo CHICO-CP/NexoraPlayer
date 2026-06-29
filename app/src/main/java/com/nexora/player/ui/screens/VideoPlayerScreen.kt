@@ -65,9 +65,9 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Replay10
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
-import androidx.compose.material.icons.filled.VolumeOff
+import androidx.compose.material.icons.automirrored.filled.VolumeOff
 import androidx.compose.material.icons.filled.Subtitles
-import androidx.compose.material.icons.filled.VolumeUp
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -852,7 +852,7 @@ private fun PortraitScreen(
                     onChange = onBrightnessChange
                 )
                 NxSlider(
-                    icon    = if (volumeFraction < 0.01f) Icons.Filled.VolumeOff else Icons.Filled.VolumeUp,
+                    icon    = if (volumeFraction < 0.01f) Icons.AutoMirrored.Filled.VolumeOff else Icons.AutoMirrored.Filled.VolumeUp,
                     label   = stringResource(R.string.video_volume),
                     value   = volumeFraction,
                     range   = 0f..1f,
@@ -1067,7 +1067,7 @@ private fun LandscapeScreen(
                 .zIndex(3f)
         ) {
             GestureHud(
-                icon  = if (volumeFraction < 0.01f) Icons.Filled.VolumeOff else Icons.Filled.VolumeUp,
+                icon  = if (volumeFraction < 0.01f) Icons.AutoMirrored.Filled.VolumeOff else Icons.AutoMirrored.Filled.VolumeUp,
                 value = volumeFraction,
                 label = "${(volumeFraction * 100).roundToInt()}%"
             )
@@ -1146,6 +1146,7 @@ private fun LandscapeScreen(
 // Controles internos de landscape
 // ─────────────────────────────────────────────────────────────────────────────
 
+@Suppress("UNUSED_PARAMETER")
 @Composable
 private fun LandscapeControls(
     modifier           : Modifier = Modifier,

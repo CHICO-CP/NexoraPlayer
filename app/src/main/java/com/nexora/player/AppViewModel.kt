@@ -1081,7 +1081,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun persistPlaybackSessionFromCurrentPlayer() {
         val snapshot = PlayerEngine.snapshot.value
-        val current = snapshot.currentItem ?: return
+        if (snapshot.currentItem == null) return
         if (snapshot.queue.isEmpty()) return
         val player = runCatching { PlayerEngine.get(context) }.getOrNull() ?: return
         val payload = PersistedPlaybackSession(

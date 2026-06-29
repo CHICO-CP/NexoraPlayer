@@ -14,7 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Brightness6
-import androidx.compose.material.icons.filled.VolumeUp
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -82,7 +82,7 @@ fun GestureControlOverlay(
                         hint = GestureHint(
                             title = "Volumen",
                             valueLabel = "${(next * 100).roundToInt()}%",
-                            icon = Icons.Filled.VolumeUp,
+                            icon = Icons.AutoMirrored.Filled.VolumeUp,
                             progress = next
                         )
                     }

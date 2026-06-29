@@ -168,6 +168,7 @@ private fun loadAudioArtworkBitmap(context: Context, item: MediaEntry): Bitmap? 
     }
 }
 
+@Suppress("DEPRECATION")
 private fun loadAlbumArtBitmap(context: Context, albumId: Long?): Bitmap? {
     if (albumId == null || albumId <= 0L) return null
 

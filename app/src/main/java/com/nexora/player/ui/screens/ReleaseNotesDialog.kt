@@ -40,6 +40,7 @@ import com.nexora.player.data.update.RemoteUpdateInfo
 import com.nexora.player.data.update.UpdateInstallState
 import kotlin.math.max
 
+@Suppress("UNUSED_PARAMETER")
 @Composable
 fun ReleaseNotesDialog(
     updateInfo: RemoteUpdateInfo,
@@ -139,7 +140,7 @@ fun ReleaseNotesDialog(
                             )
                             if (installState.downloading) {
                                 LinearProgressIndicator(
-                                    progress = installState.progressPercent / 100f,
+                                    progress = { installState.progressPercent / 100f },
                                     modifier = Modifier.fillMaxWidth()
                                 )
                                 Text(

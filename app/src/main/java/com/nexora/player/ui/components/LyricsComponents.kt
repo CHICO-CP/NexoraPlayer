@@ -19,7 +19,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.QueueMusic
+import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -269,6 +269,7 @@ private fun EmptyLyricsState(
     }
 }
 
+@Suppress("UNUSED_PARAMETER")
 @Composable
 private fun QueuePreview(
     queue: List<MediaEntry>,
@@ -309,7 +310,7 @@ private fun QueuePreview(
             modifier = Modifier.fillMaxWidth()
         ) {
             Icon(
-                imageVector = Icons.Filled.QueueMusic,
+                imageVector = Icons.AutoMirrored.Filled.QueueMusic,
                 contentDescription = null
             )
             

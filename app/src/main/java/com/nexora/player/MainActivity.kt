@@ -648,7 +648,7 @@ private fun NexoraVolumeOverlay(
                     style = MaterialTheme.typography.labelLarge
                 )
                 LinearProgressIndicator(
-                    progress = percent.coerceIn(0, 150) / 150f,
+                    progress = { percent.coerceIn(0, 150) / 150f },
                     modifier = Modifier.fillMaxWidth(),
                     color = if (boosted) Color(0xFFF54047) else Color.White,
                     trackColor = Color.White.copy(alpha = 0.18f)
