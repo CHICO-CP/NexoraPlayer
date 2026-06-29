@@ -25,9 +25,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.nexora.player.R
 import com.nexora.player.data.local.PlaybackStatsEntity
 import com.nexora.player.data.model.MediaKind
 
@@ -37,13 +39,16 @@ fun StatsScreen(
     stats: List<PlaybackStatsEntity>,
     onBack: () -> Unit
 ) {
+    val unknownArtist = stringResource(R.string.unknown_artist)
+    val noAlbum = stringResource(R.string.no_album)
+    val noData = stringResource(R.string.stats_no_data)
     val audioStats = stats.filter { it.mediaKind == MediaKind.AUDIO.name }
     val videoStats = stats.filter { it.mediaKind == MediaKind.VIDEO.name }
     val topSong = audioStats.maxByOrNull { it.playCount }
     val topVideo = videoStats.maxByOrNull { it.playCount }
-    val topArtist = audioStats.groupBy { it.artist.ifBlank { "Desconocido" } }
+    val topArtist = audioStats.groupBy { it.artist.ifBlank { unknownArtist } }
         .maxByOrNull { entry -> entry.value.sumOf { it.playCount } }
-    val topAlbum = audioStats.groupBy { it.album.ifBlank { "Sin álbum" } }
+    val topAlbum = audioStats.groupBy { it.album.ifBlank { noAlbum } }
         .maxByOrNull { entry -> entry.value.sumOf { it.playCount } }
     val minutes = (stats.sumOf { it.durationMs.coerceAtLeast(0L) * it.playCount } / 60000L).coerceAtLeast(0L)
 
@@ -55,27 +60,27 @@ fun StatsScreen(
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver") }
+            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back)) }
             Column {
-                Text("Estadísticas de uso", style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold))
-                Text("Tu resumen local de reproducción", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.stats_title), style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold))
+                Text(stringResource(R.string.stats_subtitle), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
 
         LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                    StatTile("Minutos", "$minutes", "reproducidos", modifier = Modifier.weight(1f))
-                    StatTile("Elementos", "${stats.size}", "registrados", modifier = Modifier.weight(1f))
+                    StatTile(stringResource(R.string.stats_minutes), "$minutes", stringResource(R.string.stats_played), modifier = Modifier.weight(1f))
+                    StatTile(stringResource(R.string.stats_items), "${stats.size}", stringResource(R.string.stats_registered), modifier = Modifier.weight(1f))
                 }
             }
-            item { FeaturedStat("Canción más escuchada", topSong?.title ?: "Aún sin datos", topSong?.artist.orEmpty(), Icons.Filled.MusicNote) }
-            item { FeaturedStat("Artista más escuchado", topArtist?.key ?: "Aún sin datos", "${topArtist?.value?.sumOf { it.playCount } ?: 0} reproducciones", Icons.Filled.Person) }
-            item { FeaturedStat("Álbum favorito", topAlbum?.key ?: "Aún sin datos", "${topAlbum?.value?.sumOf { it.playCount } ?: 0} reproducciones", Icons.Filled.Album) }
-            item { FeaturedStat("Video más visto", topVideo?.title ?: "Aún sin datos", "${topVideo?.playCount ?: 0} reproducciones", Icons.Filled.Movie) }
+            item { FeaturedStat(stringResource(R.string.stats_top_song), topSong?.title ?: noData, topSong?.artist.orEmpty(), Icons.Filled.MusicNote) }
+            item { FeaturedStat(stringResource(R.string.stats_top_artist), topArtist?.key ?: noData, stringResource(R.string.stats_play_count, topArtist?.value?.sumOf { it.playCount } ?: 0), Icons.Filled.Person) }
+            item { FeaturedStat(stringResource(R.string.stats_top_album), topAlbum?.key ?: noData, stringResource(R.string.stats_play_count, topAlbum?.value?.sumOf { it.playCount } ?: 0), Icons.Filled.Album) }
+            item { FeaturedStat(stringResource(R.string.stats_top_video), topVideo?.title ?: noData, stringResource(R.string.stats_play_count, topVideo?.playCount ?: 0), Icons.Filled.Movie) }
             item {
-                Text("Top semanal/mensual local", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), modifier = Modifier.padding(top = 8.dp))
-                Text("Los datos se calculan en el dispositivo a partir de tus reproducciones guardadas.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.stats_weekly_monthly), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), modifier = Modifier.padding(top = 8.dp))
+                Text(stringResource(R.string.stats_data_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             items(stats.take(25), key = { it.mediaKey }) { item ->
                 Surface(shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.surface, modifier = Modifier.fillMaxWidth()) {

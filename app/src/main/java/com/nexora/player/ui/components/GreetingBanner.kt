@@ -146,7 +146,7 @@ fun GreetingBanner(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        mood.caption,
+                        stringResource(mood.captionRes),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.weight(1f)
@@ -172,7 +172,7 @@ private data class GreetingMood(
     val icon: ImageVector,
     val start: Color,
     val end: Color,
-    val caption: String
+    @androidx.annotation.StringRes val captionRes: Int
 ) {
     companion object {
         fun fromHour(hour: Int): GreetingMood = when (hour) {
@@ -180,19 +180,19 @@ private data class GreetingMood(
                 icon = Icons.Filled.WbSunny,
                 start = Color(0xFFFFB020),
                 end = Color(0xFFFFE6A3),
-                caption = "Mañana limpia para escuchar tu biblioteca."
+                captionRes = R.string.greeting_caption_morning
             )
             in 12..18 -> GreetingMood(
                 icon = Icons.Filled.WbSunny,
                 start = Color(0xFFFF6B35),
                 end = Color(0xFFFFB199),
-                caption = "Tarde cálida para seguir reproduciendo."
+                captionRes = R.string.greeting_caption_afternoon
             )
             else -> GreetingMood(
                 icon = Icons.Filled.Brightness4,
                 start = Color(0xFF7C3AED),
                 end = Color(0xFF1D4ED8),
-                caption = "Noche tranquila para música sin ruido."
+                captionRes = R.string.greeting_caption_evening
             )
         }
     }

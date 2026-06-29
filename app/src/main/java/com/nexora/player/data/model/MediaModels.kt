@@ -26,29 +26,16 @@ enum class SortMode(@StringRes val labelRes: Int) {
     RESOLUTION_DESC(R.string.sort_resolution_desc)
 }
 
-enum class AppThemeMode {
-    SYSTEM,
-    LIGHT,
-    DARK,
-    NEXORA_DARK,
-    IOS_LIGHT,
-    AMOLED_BLACK,
-    FLAMINGO,
-    NEON,
-    MATERIAL_YOU;
-
-    val displayName: String
-        get() = when (this) {
-            SYSTEM -> "Sistema"
-            LIGHT -> "iOS Light"
-            DARK -> "Nexora Dark"
-            NEXORA_DARK -> "Nexora Dark"
-            IOS_LIGHT -> "iOS Light"
-            AMOLED_BLACK -> "AMOLED Black"
-            FLAMINGO -> "Flamingo"
-            NEON -> "Neon"
-            MATERIAL_YOU -> "Material You"
-        }
+enum class AppThemeMode(@StringRes val labelRes: Int) {
+    SYSTEM(R.string.theme_system),
+    LIGHT(R.string.theme_light),
+    DARK(R.string.theme_dark),
+    NEXORA_DARK(R.string.theme_nexora_dark),
+    IOS_LIGHT(R.string.theme_ios_light),
+    AMOLED_BLACK(R.string.theme_amoled_black),
+    FLAMINGO(R.string.theme_flamingo),
+    NEON(R.string.theme_neon),
+    MATERIAL_YOU(R.string.theme_material_you)
 }
 
 enum class NexoraRepeatMode {
@@ -63,17 +50,54 @@ enum class NexoraRepeatMode {
     }
 }
 
-enum class AppLanguage(@StringRes val labelRes: Int, val tag: String?) {
-    SYSTEM(R.string.language_system, null),
-    SPANISH(R.string.language_spanish, "es"),
-    ENGLISH(R.string.language_english, "en");
+enum class AppLanguage(
+    @StringRes val labelRes: Int,
+    val tag: String?,
+    @StringRes val subtitleRes: Int,
+    val badge: String
+) {
+    SYSTEM(R.string.language_system, null, R.string.language_subtitle_system, "AUTO"),
+    SPANISH(R.string.language_spanish, "es", R.string.language_subtitle_spanish, "ES"),
+    ENGLISH(R.string.language_english, "en", R.string.language_subtitle_english, "EN"),
+    FRENCH(R.string.language_french, "fr", R.string.language_subtitle_french, "FR"),
+    PORTUGUESE(R.string.language_portuguese, "pt", R.string.language_subtitle_portuguese, "PT"),
+    GERMAN(R.string.language_german, "de", R.string.language_subtitle_german, "DE"),
+    ITALIAN(R.string.language_italian, "it", R.string.language_subtitle_italian, "IT"),
+    JAPANESE(R.string.language_japanese, "ja", R.string.language_subtitle_japanese, "JA"),
+    KOREAN(R.string.language_korean, "ko", R.string.language_subtitle_korean, "KO"),
+    CHINESE(R.string.language_chinese, "zh", R.string.language_subtitle_chinese, "ZH"),
+    RUSSIAN(R.string.language_russian, "ru", R.string.language_subtitle_russian, "RU"),
+    ARABIC(R.string.language_arabic, "ar", R.string.language_subtitle_arabic, "AR"),
+    HINDI(R.string.language_hindi, "hi", R.string.language_subtitle_hindi, "HI"),
+    INDONESIAN(R.string.language_indonesian, "id", R.string.language_subtitle_indonesian, "ID"),
+    TURKISH(R.string.language_turkish, "tr", R.string.language_subtitle_turkish, "TR");
 
     companion object {
-        fun fromTag(tag: String?): AppLanguage = when (tag?.lowercase()) {
-            null, "" -> SYSTEM
-            "es" -> SPANISH
-            "en" -> ENGLISH
-            else -> SYSTEM
+        fun fromTag(tag: String?): AppLanguage {
+            val normalized = tag
+                ?.split(',')
+                ?.firstOrNull()
+                ?.trim()
+                ?.lowercase()
+                .orEmpty()
+            return when {
+                normalized.isBlank() -> SYSTEM
+                normalized.startsWith("es") -> SPANISH
+                normalized.startsWith("en") -> ENGLISH
+                normalized.startsWith("fr") -> FRENCH
+                normalized.startsWith("pt") -> PORTUGUESE
+                normalized.startsWith("de") -> GERMAN
+                normalized.startsWith("it") -> ITALIAN
+                normalized.startsWith("ja") -> JAPANESE
+                normalized.startsWith("ko") -> KOREAN
+                normalized.startsWith("zh") -> CHINESE
+                normalized.startsWith("ru") -> RUSSIAN
+                normalized.startsWith("ar") -> ARABIC
+                normalized.startsWith("hi") -> HINDI
+                normalized.startsWith("id") || normalized.startsWith("in") -> INDONESIAN
+                normalized.startsWith("tr") -> TURKISH
+                else -> SYSTEM
+            }
         }
     }
 }

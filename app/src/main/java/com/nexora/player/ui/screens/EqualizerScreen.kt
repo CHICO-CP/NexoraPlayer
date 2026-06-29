@@ -46,9 +46,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.nexora.player.R
 import com.nexora.player.equalizer.EqualizerPreferencesRepository
 import com.nexora.player.equalizer.EqualizerSessionManager
 import com.nexora.player.equalizer.EqualizerSettings
@@ -121,12 +123,12 @@ fun EqualizerSheet(
                     ) {
                         Icon(imageVector = Icons.Filled.Equalizer, contentDescription = null)
                         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Text("Ecualizador Nexora", fontWeight = FontWeight.SemiBold)
+                            Text(stringResource(R.string.eq_title), fontWeight = FontWeight.SemiBold)
                             Text(
                                 text = if (hardwareInfo.supported) {
-                                    "${hardwareInfo.bandCount} bandas activas"
+                                    stringResource(R.string.eq_active_bands, hardwareInfo.bandCount)
                                 } else {
-                                    "No disponible en este dispositivo"
+                                    stringResource(R.string.eq_not_available)
                                 }
                             )
                         }
@@ -154,16 +156,16 @@ fun EqualizerSheet(
                             .padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text("Estado actual", fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(R.string.eq_current_state), fontWeight = FontWeight.SemiBold)
                         Text(
                             text = if (enabled) {
-                                "Activo · ${templateLabel(selectedTemplateId, customName)}"
+                                stringResource(R.string.eq_active_template, templateLabel(selectedTemplateId, customName))
                             } else {
-                                "Desactivado, pero guardado para seguir usándolo después"
+                                stringResource(R.string.eq_disabled_saved)
                             }
                         )
                         Text(
-                            text = "La configuración queda aplicada aunque cierres esta pantalla.",
+                            text = stringResource(R.string.eq_applied_hint),
                             color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -172,16 +174,16 @@ fun EqualizerSheet(
 
             item {
                 Text(
-                    text = "Plantillas",
+                    text = stringResource(R.string.eq_templates),
                     fontWeight = FontWeight.SemiBold
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     items(NexoraEqualizerTemplates.all) { template ->
                         EqualizerPresetCard(
-                            templateName = template.name,
+                            templateName = stringResource(template.nameRes),
                             templateIcon = template.icon,
-                            templateDescription = template.description,
+                            templateDescription = stringResource(template.descriptionRes),
                             selected = selectedTemplateId == template.id,
                             onClick = {
                                 selectedTemplateId = template.id
@@ -211,13 +213,13 @@ fun EqualizerSheet(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("Barras", fontWeight = FontWeight.SemiBold)
+                            Text(stringResource(R.string.eq_bars), fontWeight = FontWeight.SemiBold)
                             AssistChip(
                                 onClick = {
                                     val template = NexoraEqualizerTemplates.resolve(selectedTemplateId)
                                     bandCurve = resolveCurveForBands(template, hardwareInfo.bandCount)
                                 },
-                                label = { Text("Restaurar plantilla") },
+                                label = { Text(stringResource(R.string.eq_restore_template)) },
                                 leadingIcon = {
                                     Icon(imageVector = Icons.Filled.Restore, contentDescription = null)
                                 }
@@ -231,7 +233,7 @@ fun EqualizerSheet(
                                     val sliderValue = bandCurve.getOrNull(index) ?: 0.5f
 
                                     VerticalBandControl(
-                                        label = formatBandLabel(centerHz),
+                                        label = formatBandLabel(centerHz, stringResource(R.string.eq_band)),
                                         value = sliderValue,
                                         dbLabel = formatBandDb(
                                             sliderValue,
@@ -256,7 +258,7 @@ fun EqualizerSheet(
                             }
                         } else {
                             Text(
-                                text = "Este dispositivo no expone un ecualizador compatible.",
+                                text = stringResource(R.string.eq_unsupported_device),
                                 color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
@@ -277,11 +279,11 @@ fun EqualizerSheet(
                             .padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Text("Personalización", fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(R.string.eq_customization), fontWeight = FontWeight.SemiBold)
                         OutlinedTextField(
                             value = customName,
                             onValueChange = { customName = it },
-                            label = { Text("Nombre del perfil") },
+                            label = { Text(stringResource(R.string.eq_profile_name)) },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true
                         )
@@ -292,7 +294,7 @@ fun EqualizerSheet(
                                     val template = NexoraEqualizerTemplates.resolve(selectedTemplateId)
                                     bandCurve = resolveCurveForBands(template, hardwareInfo.bandCount)
                                 },
-                                label = { Text("Recargar") },
+                                label = { Text(stringResource(R.string.eq_reload)) },
                                 leadingIcon = { Icon(imageVector = Icons.Filled.Tune, contentDescription = null) }
                             )
                             AssistChip(
@@ -303,7 +305,7 @@ fun EqualizerSheet(
                                     }
                                     selectedTemplateId = NEXORA_CUSTOM_TEMPLATE_ID
                                 },
-                                label = { Text("Guardar") },
+                                label = { Text(stringResource(R.string.action_save)) },
                                 leadingIcon = { Icon(imageVector = Icons.Filled.Save, contentDescription = null) }
                             )
                         }
@@ -327,10 +329,10 @@ fun EqualizerSheet(
                             }
                         }
                     ) {
-                        Text("Restablecer todo")
+                        Text(stringResource(R.string.eq_reset_all))
                     }
                     TextButton(onClick = onDismiss) {
-                        Text("Cerrar")
+                        Text(stringResource(R.string.action_close))
                     }
                 }
                 Spacer(modifier = Modifier.height(20.dp))
@@ -429,15 +431,16 @@ private fun resolveInitialCurve(
     }
 }
 
+@Composable
 private fun templateLabel(templateId: String, customName: String): String =
     if (templateId == NEXORA_CUSTOM_TEMPLATE_ID) {
-        customName.trim().ifBlank { "Personalizado" }
+        customName.trim().ifBlank { stringResource(R.string.eq_customization) }
     } else {
-        NexoraEqualizerTemplates.resolve(templateId).name
+        stringResource(NexoraEqualizerTemplates.resolve(templateId).nameRes)
     }
 
-private fun formatBandLabel(centerHz: Float): String {
-    if (centerHz <= 0f) return "Banda"
+private fun formatBandLabel(centerHz: Float, fallback: String): String {
+    if (centerHz <= 0f) return fallback
     return when {
         centerHz >= 1000f -> "${(centerHz / 1000f).roundToInt()} kHz"
         else -> "${centerHz.roundToInt()} Hz"

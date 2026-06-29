@@ -1,6 +1,8 @@
 package com.nexora.player.data.update
 
+import android.content.Context
 import com.nexora.player.BuildConfig
+import com.nexora.player.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -11,6 +13,7 @@ import java.net.URL
 import java.net.URLEncoder
 
 class NexoraUpdateClient(
+    private val context: Context,
     private val baseUrl: String = BuildConfig.NEXORA_SERVER_URL.trimEnd('/')
 ) {
     suspend fun checkVersion(currentVersionCode: Int): RemoteUpdateInfo = withContext(Dispatchers.IO) {
@@ -69,7 +72,7 @@ class NexoraUpdateClient(
                 input.readBytes().toString(Charsets.UTF_8)
             }
             if (code !in 200..299) {
-                throw IllegalStateException("Servidor de actualizaciones respondió $code: $text")
+                throw IllegalStateException(context.getString(R.string.update_server_error, code, text))
             }
             return JSONObject(text)
         } finally {

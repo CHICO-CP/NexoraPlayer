@@ -16,6 +16,8 @@ import android.widget.RemoteViews
 import com.nexora.player.MainActivity
 import com.nexora.player.R
 import com.nexora.player.data.local.NexoraDatabase
+import com.nexora.player.data.lyrics.LrcParser
+import com.nexora.player.data.lyrics.LyricsSource
 import com.nexora.player.data.model.MediaEntry
 import com.nexora.player.data.model.MediaKind
 import com.nexora.player.data.model.PlaybackSnapshot
@@ -57,8 +59,14 @@ class NexoraPlayerWidgetProvider : AppWidgetProvider() {
                 val isFavorite = current?.takeIf { it.kind == MediaKind.AUDIO }?.let { item ->
                     runCatching { database.favoritesDao().isFavorite(item.id, item.kind.name) }.getOrDefault(false)
                 } ?: false
+                val positionMs = PlayerEngine.currentPositionMs()
                 val lyricLine = current?.takeIf { it.kind == MediaKind.AUDIO }?.let { item ->
-                    runCatching { database.lyricsDao().getByMediaId(item.id)?.rawText?.toWidgetLyricLine() }.getOrNull()
+                    runCatching {
+                        database.lyricsDao().getByMediaId(item.id)?.rawText?.toWidgetLyricLine(
+                            positionMs = positionMs,
+                            item = item
+                        )
+                    }.getOrNull()
                 }.orEmpty()
                 val artwork = current?.let { loadArtworkBitmap(appContext, it) }
 
@@ -92,7 +100,9 @@ class NexoraPlayerWidgetProvider : AppWidgetProvider() {
             val current = snapshot.currentItem
             val views = RemoteViews(context.packageName, R.layout.widget_player)
             val minHeight = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 110)
-            val compact = minHeight < 110
+            val minWidth = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 180)
+            val compact = minHeight < 105 || minWidth < 170
+            val expanded = minHeight >= 145 && minWidth >= 220
 
             views.setTextViewText(R.id.widget_title, current?.title ?: context.getString(R.string.app_name))
             views.setTextViewText(
@@ -101,12 +111,12 @@ class NexoraPlayerWidgetProvider : AppWidgetProvider() {
                     listOf(item.artist, item.album)
                         .filter { it.isNotBlank() }
                         .joinToString(" • ")
-                        .ifBlank { "Reproduciendo en Nexora" }
-                } ?: "Toca para abrir la app"
+                        .ifBlank { context.getString(R.string.widget_playing_nexora) }
+                } ?: context.getString(R.string.widget_tap_open)
             )
             views.setTextViewText(
                 R.id.widget_lyric,
-                lyricLine.ifBlank { if (current?.kind == MediaKind.AUDIO) "Letra no guardada" else "Widget de reproducción" }
+                lyricLine.ifBlank { if (current?.kind == MediaKind.AUDIO) context.getString(R.string.widget_no_lyrics) else context.getString(R.string.widget_playback) }
             )
 
             if (artwork != null) {
@@ -124,7 +134,7 @@ class NexoraPlayerWidgetProvider : AppWidgetProvider() {
                 if (isFavorite) R.drawable.ic_notification_favorite_filled else R.drawable.ic_notification_favorite_outline
             )
             views.setViewVisibility(R.id.widget_artwork, if (compact) View.GONE else View.VISIBLE)
-            views.setViewVisibility(R.id.widget_lyric, if (compact) View.GONE else View.VISIBLE)
+            views.setViewVisibility(R.id.widget_lyric, if (expanded) View.VISIBLE else View.GONE)
 
             views.setOnClickPendingIntent(R.id.widget_root, activityIntent(context))
             views.setOnClickPendingIntent(R.id.widget_previous, serviceIntent(context, PlayerService.ACTION_PREVIOUS, 1))
@@ -173,16 +183,37 @@ class NexoraPlayerWidgetProvider : AppWidgetProvider() {
             PendingIntent.FLAG_IMMUTABLE
         } else 0
 
-        private fun String.toWidgetLyricLine(): String {
+        private fun String.toWidgetLyricLine(positionMs: Long, item: MediaEntry): String {
+            val parsed = runCatching {
+                LrcParser.parse(
+                    rawText = this,
+                    mediaId = item.id,
+                    title = item.title,
+                    artist = item.artist,
+                    album = item.album,
+                    source = LyricsSource.DATABASE
+                )
+            }.getOrNull()
+
+            val syncedLine = parsed
+                ?.takeIf { it.isSynced && it.lines.isNotEmpty() }
+                ?.let { lyrics -> lyrics.lines.getOrNull(lyrics.currentLineIndex(positionMs))?.text }
+                ?.cleanWidgetLyric()
+                ?.takeIf { it.isNotBlank() }
+
+            if (!syncedLine.isNullOrBlank()) return syncedLine.take(110)
+
             return lineSequence()
-                .map { line ->
-                    line.replace(Regex("\\[[^]]+\\]"), "")
-                        .replace(Regex("<[^>]+>"), "")
-                        .trim()
-                }
+                .map { it.cleanWidgetLyric() }
                 .firstOrNull { it.isNotBlank() && !it.startsWith("#") }
                 ?.take(110)
                 .orEmpty()
+        }
+
+        private fun String.cleanWidgetLyric(): String {
+            return replace(Regex("\\[[^]]+\\]"), "")
+                .replace(Regex("<[^>]+>"), "")
+                .trim()
         }
 
         private fun loadArtworkBitmap(context: Context, item: MediaEntry): Bitmap? {

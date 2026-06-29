@@ -32,8 +32,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.nexora.player.R
 import com.nexora.player.data.update.RemoteUpdateInfo
 import com.nexora.player.data.update.UpdateInstallState
 import kotlin.math.max
@@ -71,7 +73,7 @@ fun ReleaseNotesDialog(
         title = {
             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    if (updateInfo.required) "Actualización requerida" else "Nueva versión disponible",
+                    if (updateInfo.required) stringResource(R.string.release_required_title) else stringResource(R.string.release_available_title),
                     fontWeight = FontWeight.Bold
                 )
                 Surface(
@@ -92,9 +94,9 @@ fun ReleaseNotesDialog(
                 val size = latest.apkSizeBytes?.let { formatApkSize(it) }
                 Text(
                     if (updateInfo.required) {
-                        "Esta versión debe instalarse para continuar usando Nexora Player con estabilidad."
+                        stringResource(R.string.release_required_body)
                     } else {
-                        "Hay una versión más reciente lista desde el servidor oficial."
+                        stringResource(R.string.release_available_body)
                     },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -107,19 +109,19 @@ fun ReleaseNotesDialog(
                     ) {
                         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             if (size != null) Text("APK: $size", style = MaterialTheme.typography.bodySmall)
-                            if (latest.releaseDate.isNotBlank()) Text("Publicación: ${latest.releaseDate}", style = MaterialTheme.typography.bodySmall)
+                            if (latest.releaseDate.isNotBlank()) Text(stringResource(R.string.release_date, latest.releaseDate), style = MaterialTheme.typography.bodySmall)
                         }
                     }
                 }
                 val notes = latest.changelog.take(5)
                 if (notes.isEmpty()) {
-                    ReleaseNoteRow(Icons.Filled.AutoAwesome, "Mejoras recientes", "Correcciones, funciones nuevas y optimizaciones publicadas desde el servidor.")
+                    ReleaseNoteRow(Icons.Filled.AutoAwesome, stringResource(R.string.release_recent_title), stringResource(R.string.release_recent_body))
                 } else {
                     notes.forEach { note ->
                         ReleaseNoteRow(
                             icon = Icons.Filled.AutoAwesome,
                             title = note.title,
-                            body = note.description.ifBlank { "Mejora incluida en esta versión." }
+                            body = note.description.ifBlank { stringResource(R.string.release_note_fallback) }
                         )
                     }
                 }
@@ -131,7 +133,7 @@ fun ReleaseNotesDialog(
                     ) {
                         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text(
-                                installState.error ?: installState.message ?: "Preparando actualización…",
+                                installState.error ?: installState.message ?: stringResource(R.string.release_preparing),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = if (installState.error != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
                             )
@@ -148,13 +150,13 @@ fun ReleaseNotesDialog(
                             }
                             if (installState.waitingForInstallPermission) {
                                 Text(
-                                    "Después de autorizar instalaciones externas, vuelve a tocar Descargar.",
+                                    stringResource(R.string.release_install_permission_hint),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                             if (installState.error != null) {
-                                FilledTonalButton(onClick = onOpenInBrowser) { Text("Abrir descarga en navegador") }
+                                FilledTonalButton(onClick = onOpenInBrowser) { Text(stringResource(R.string.release_open_browser)) }
                             }
                         }
                     }
@@ -162,7 +164,7 @@ fun ReleaseNotesDialog(
 
                 if (updateInfo.required) {
                     Text(
-                        "La opción “Actualizar después” está deshabilitada porque el servidor marcó esta versión como obligatoria.",
+                        stringResource(R.string.release_required_no_later),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error
                     )
@@ -173,12 +175,12 @@ fun ReleaseNotesDialog(
             Button(onClick = onDownload, enabled = !installState.downloading) {
                 Icon(Icons.Filled.Download, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.size(8.dp))
-                Text(if (installState.downloading) "Descargando…" else "Descargar")
+                Text(if (installState.downloading) stringResource(R.string.release_downloading) else stringResource(R.string.release_download))
             }
         },
         dismissButton = {
             if (!updateInfo.required) {
-                TextButton(onClick = onLater) { Text("Actualizar después") }
+                TextButton(onClick = onLater) { Text(stringResource(R.string.release_later)) }
             }
         }
     )

@@ -35,9 +35,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.nexora.player.R
 import com.nexora.player.data.model.FolderSummary
 import com.nexora.player.ui.components.formatBytes
 
@@ -73,11 +75,11 @@ fun FolderManagerScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
                 }
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Gestión de carpetas", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                    Text("${folders.size} carpetas detectadas", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.folder_manager_title), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.folders_detected, folders.size), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }
@@ -87,13 +89,13 @@ fun FolderManagerScreen(
                 Button(onClick = onHideSuggestedNoiseFolders) {
                     Icon(Icons.Filled.CleaningServices, null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.size(6.dp))
-                    Text("Ignorar tonos")
+                    Text(stringResource(R.string.folder_ignore_tones))
                 }
-                OutlinedButton(onClick = onHideSmallFolders) { Text("Ocultar pequeñas") }
+                OutlinedButton(onClick = onHideSmallFolders) { Text(stringResource(R.string.folder_hide_small)) }
                 OutlinedButton(onClick = onRestoreAll) {
                     Icon(Icons.Filled.Restore, null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.size(6.dp))
-                    Text("Restaurar")
+                    Text(stringResource(R.string.restore))
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -104,10 +106,10 @@ fun FolderManagerScreen(
                         label = {
                             Text(
                                 when (value) {
-                                    FolderManagerSort.PATH -> "Ruta"
-                                    FolderManagerSort.NAME -> "Nombre"
-                                    FolderManagerSort.SONGS -> "Canciones"
-                                    FolderManagerSort.SIZE -> "Tamaño"
+                                    FolderManagerSort.PATH -> stringResource(R.string.folder_sort_path)
+                                    FolderManagerSort.NAME -> stringResource(R.string.folder_sort_name)
+                                    FolderManagerSort.SONGS -> stringResource(R.string.folder_sort_songs)
+                                    FolderManagerSort.SIZE -> stringResource(R.string.folder_sort_size)
                                 }
                             )
                         }
@@ -151,7 +153,7 @@ private fun FolderRow(
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(folder.name, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(folder.path, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text("${folder.songCount} canciones • ${formatBytes(folder.totalSizeBytes)}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.folder_summary, folder.songCount, formatBytes(folder.totalSizeBytes)), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Switch(checked = !hidden, onCheckedChange = onCheckedChange)
         }

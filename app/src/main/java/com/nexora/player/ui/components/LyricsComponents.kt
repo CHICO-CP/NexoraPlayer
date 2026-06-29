@@ -299,7 +299,7 @@ private fun QueuePreview(
         }
 
         Text(
-            text = if (upNext.isEmpty()) uiStringResource(R.string.queue_empty_short) else "${upNext.size} canciones en la cola",
+            text = if (upNext.isEmpty()) uiStringResource(R.string.queue_empty_short) else uiStringResource(R.string.queue_count_in_queue, upNext.size),
             style = MaterialTheme.typography.bodyMedium,
             color = Color.White.copy(alpha = 0.72f)
         )
@@ -314,7 +314,7 @@ private fun QueuePreview(
             )
             
             Spacer(modifier = Modifier.width(8.dp))
-            Text("Mostrar lista de reproducción")
+            Text(uiStringResource(R.string.queue_show_playlist))
         }
 
     }

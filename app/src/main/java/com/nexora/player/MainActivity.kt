@@ -7,6 +7,8 @@ import android.net.Uri
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.view.KeyEvent
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
@@ -21,6 +23,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.PlaylistPlay
 import androidx.compose.material.icons.filled.Favorite
@@ -30,8 +33,11 @@ import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
@@ -40,7 +46,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.pager.HorizontalPager
@@ -68,6 +76,7 @@ import com.nexora.player.ui.screens.PlaylistDetailScreen
 import com.nexora.player.ui.screens.PlaylistsScreen
 import com.nexora.player.ui.screens.StatsScreen
 import com.nexora.player.ui.screens.ThemeSelectionScreen
+import com.nexora.player.ui.screens.LanguageSelectionScreen
 import com.nexora.player.ui.screens.NotificationCenterScreen
 import com.nexora.player.ui.screens.SearchResultsScreen
 import com.nexora.player.ui.screens.ReleaseNotesDialog
@@ -95,12 +104,12 @@ class MainActivity : AppCompatActivity() {
 
             var showNowPlaying by rememberSaveable { mutableStateOf(false) }
             var searchExpanded by rememberSaveable { mutableStateOf(false) }
-            var lastAutoOpenedItemId by rememberSaveable { mutableStateOf<Long?>(null) }
             var selectedPlaylistId by rememberSaveable { mutableStateOf<Long?>(null) }
             var showFolderManager by rememberSaveable { mutableStateOf(false) }
             var showNotificationCenter by rememberSaveable { mutableStateOf(false) }
             var showStatsScreen by rememberSaveable { mutableStateOf(false) }
             var showThemeScreen by rememberSaveable { mutableStateOf(false) }
+            var showLanguageScreen by rememberSaveable { mutableStateOf(false) }
             val greeting = rememberGreeting()
             val availableUpdate = state.updateInfo
             val shouldShowUpdateDialog = availableUpdate?.available == true && (
@@ -108,13 +117,6 @@ class MainActivity : AppCompatActivity() {
                     (!state.updateDialogDismissedInSession && state.preferences.postponedUpdateVersionCode < availableUpdate.latestVersion.versionCode)
             )
 
-            LaunchedEffect(state.currentItem?.id, state.isPlaying) {
-                val current = state.currentItem
-                if (state.isPlaying && current != null && lastAutoOpenedItemId != current.id) {
-                    showNowPlaying = true
-                    lastAutoOpenedItemId = current.id
-                }
-            }
 
             NexoraTheme(
                 darkTheme = when (state.preferences.themeMode) {
@@ -187,6 +189,7 @@ class MainActivity : AppCompatActivity() {
                         showNotificationCenter = showNotificationCenter,
                         showStatsScreen = showStatsScreen,
                         showThemeScreen = showThemeScreen,
+                        showLanguageScreen = showLanguageScreen,
                         onOpenPlaylist = { selectedPlaylistId = it.id },
                         onClosePlaylist = { selectedPlaylistId = null },
                         onOpenFolderManager = { showFolderManager = true },
@@ -196,7 +199,9 @@ class MainActivity : AppCompatActivity() {
                         onOpenStats = { showStatsScreen = true },
                         onCloseStats = { showStatsScreen = false },
                         onOpenThemeScreen = { showThemeScreen = true },
-                        onCloseThemeScreen = { showThemeScreen = false }
+                        onCloseThemeScreen = { showThemeScreen = false },
+                        onOpenLanguageScreen = { showLanguageScreen = true },
+                        onCloseLanguageScreen = { showLanguageScreen = false }
                     )
                 }
 
@@ -230,8 +235,28 @@ class MainActivity : AppCompatActivity() {
                         }
                     }
                 }
+
+                NexoraVolumeOverlay(
+                    visible = state.nexoraVolumeOverlayVisible,
+                    percent = state.nexoraVolumePercent,
+                    boosted = state.nexoraVolumeBoosted
+                )
             }
         }
+    }
+
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        when (event.keyCode) {
+            KeyEvent.KEYCODE_VOLUME_UP -> {
+                if (event.action == KeyEvent.ACTION_DOWN) viewModel.adjustNexoraVolume(+1)
+                return true
+            }
+            KeyEvent.KEYCODE_VOLUME_DOWN -> {
+                if (event.action == KeyEvent.ACTION_DOWN) viewModel.adjustNexoraVolume(-1)
+                return true
+            }
+        }
+        return super.dispatchKeyEvent(event)
     }
 
     private fun openExternalUrl(url: String) {
@@ -273,6 +298,7 @@ private fun AppContent(
     showNotificationCenter: Boolean,
     showStatsScreen: Boolean,
     showThemeScreen: Boolean,
+    showLanguageScreen: Boolean,
     onOpenPlaylist: (PlaylistEntity) -> Unit,
     onClosePlaylist: () -> Unit,
     onOpenFolderManager: () -> Unit,
@@ -282,9 +308,12 @@ private fun AppContent(
     onOpenStats: () -> Unit,
     onCloseStats: () -> Unit,
     onOpenThemeScreen: () -> Unit,
-    onCloseThemeScreen: () -> Unit
+    onCloseThemeScreen: () -> Unit,
+    onOpenLanguageScreen: () -> Unit,
+    onCloseLanguageScreen: () -> Unit
 ) {
     if (showFolderManager) {
+        BackHandler(onBack = onCloseFolderManager)
         FolderManagerScreen(
             modifier = modifier,
             folders = state.folderSummaries,
@@ -300,6 +329,7 @@ private fun AppContent(
     }
 
     if (showNotificationCenter) {
+        BackHandler(onBack = onCloseNotificationCenter)
         NotificationCenterScreen(
             modifier = modifier,
             notices = state.remoteNotices,
@@ -311,6 +341,7 @@ private fun AppContent(
     }
 
     if (showStatsScreen) {
+        BackHandler(onBack = onCloseStats)
         StatsScreen(
             modifier = modifier,
             stats = state.playbackStats,
@@ -320,6 +351,7 @@ private fun AppContent(
     }
 
     if (showThemeScreen) {
+        BackHandler(onBack = onCloseThemeScreen)
         ThemeSelectionScreen(
             modifier = modifier,
             selectedTheme = state.preferences.themeMode,
@@ -331,7 +363,22 @@ private fun AppContent(
         return
     }
 
+    if (showLanguageScreen) {
+        BackHandler(onBack = onCloseLanguageScreen)
+        LanguageSelectionScreen(
+            modifier = modifier,
+            selectedLanguage = rememberAppLanguage(),
+            onBack = onCloseLanguageScreen,
+            onLanguageSelected = { language ->
+                applyLanguage(language)
+                onCloseLanguageScreen()
+            }
+        )
+        return
+    }
+
     if (state.search.isNotBlank()) {
+        BackHandler { viewModel.setSearch("") }
         SearchResultsScreen(
             modifier = modifier,
             query = state.search,
@@ -358,6 +405,7 @@ private fun AppContent(
             val playlistItems by viewModel.playlistItems(playlist.id)
                 .collectAsStateWithLifecycle(initialValue = emptyList())
 
+            BackHandler(onBack = onClosePlaylist)
             PlaylistDetailScreen(
                 modifier = modifier,
                 playlist = playlist,
@@ -390,7 +438,8 @@ private fun AppContent(
         onOpenFolderManager = onOpenFolderManager,
         onOpenNotificationCenter = onOpenNotificationCenter,
         onOpenStats = onOpenStats,
-        onOpenThemeScreen = onOpenThemeScreen
+        onOpenThemeScreen = onOpenThemeScreen,
+        onOpenLanguageScreen = onOpenLanguageScreen
     )
 }
 
@@ -404,7 +453,8 @@ private fun DestinationPagerContent(
     onOpenFolderManager: () -> Unit,
     onOpenNotificationCenter: () -> Unit,
     onOpenStats: () -> Unit,
-    onOpenThemeScreen: () -> Unit
+    onOpenThemeScreen: () -> Unit,
+    onOpenLanguageScreen: () -> Unit
 ) {
     val destinations = listOf(
         AppDestination.MUSIC,
@@ -526,6 +576,7 @@ private fun DestinationPagerContent(
                 onOpenNotificationCenter = onOpenNotificationCenter,
                 onOpenStats = onOpenStats,
                 onOpenThemeSelection = onOpenThemeScreen,
+                onOpenLanguageSelection = onOpenLanguageScreen,
                 onCheckUpdates = { viewModel.checkForUpdates(showDialogOnAvailable = true) }
             )
 
@@ -565,6 +616,52 @@ private fun PlaylistItemEntity.toMediaEntryMain(): MediaEntry = MediaEntry(
     artist = artist,
     durationMs = durationMs
 )
+
+@Composable
+private fun NexoraVolumeOverlay(
+    visible: Boolean,
+    percent: Int,
+    boosted: Boolean
+) {
+    if (!visible) return
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(top = 84.dp),
+        contentAlignment = Alignment.TopCenter
+    ) {
+        Surface(
+            shape = RoundedCornerShape(28.dp),
+            color = Color(0xEE090B14),
+            tonalElevation = 8.dp,
+            shadowElevation = 12.dp
+        ) {
+            Column(
+                modifier = Modifier
+                    .padding(horizontal = 18.dp, vertical = 14.dp)
+                    .fillMaxWidth(0.72f),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = if (boosted) "Volumen Nexora · $percent%" else "Volumen · $percent%",
+                    color = Color.White,
+                    style = MaterialTheme.typography.labelLarge
+                )
+                LinearProgressIndicator(
+                    progress = percent.coerceIn(0, 150) / 150f,
+                    modifier = Modifier.fillMaxWidth(),
+                    color = if (boosted) Color(0xFFF54047) else Color.White,
+                    trackColor = Color.White.copy(alpha = 0.18f)
+                )
+                Text(
+                    text = if (boosted) "Amplificado hasta 150%" else "Volumen del sistema interceptado por Nexora",
+                    color = Color.White.copy(alpha = 0.62f),
+                    style = MaterialTheme.typography.labelSmall
+                )
+            }
+        }
+    }
+}
 
 @Composable
 private fun rememberGreeting(): String {

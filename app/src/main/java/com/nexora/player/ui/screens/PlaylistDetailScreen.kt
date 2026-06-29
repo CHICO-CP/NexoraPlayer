@@ -47,8 +47,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.nexora.player.R
 import com.nexora.player.data.local.PlaylistEntity
 import com.nexora.player.data.local.PlaylistItemEntity
 import com.nexora.player.data.model.MediaEntry
@@ -87,17 +89,17 @@ fun PlaylistDetailScreen(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            OutlinedButton(onClick = onBack) { Text("Volver") }
+            OutlinedButton(onClick = onBack) { Text(stringResource(R.string.action_back)) }
             Spacer(Modifier.weight(1f))
             if (!isAutoPlaylist) {
                 FilledTonalIconButton(onClick = { renameDialog = true }) {
-                    Icon(Icons.Filled.Edit, contentDescription = "Renombrar")
+                    Icon(Icons.Filled.Edit, contentDescription = stringResource(R.string.action_rename))
                 }
                 FilledTonalIconButton(onClick = onDuplicatePlaylist) {
-                    Icon(Icons.Filled.ContentCopy, contentDescription = "Duplicar")
+                    Icon(Icons.Filled.ContentCopy, contentDescription = stringResource(R.string.action_duplicate))
                 }
                 FilledTonalIconButton(onClick = onExportPlaylist) {
-                    Icon(Icons.Filled.FileUpload, contentDescription = "Exportar")
+                    Icon(Icons.Filled.FileUpload, contentDescription = stringResource(R.string.action_export))
                 }
             }
         }
@@ -117,15 +119,15 @@ fun PlaylistDetailScreen(
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = "${playlistItems.size} canciones • ${formatDuration(duration)}",
+                        text = stringResource(R.string.playlist_count, playlistItems.size, formatDuration(duration)),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
                         text = if (isAutoPlaylist) {
-                            "Playlist automática de solo lectura basada en reproducciones reales."
+                            stringResource(R.string.playlist_auto_desc)
                         } else {
-                            "Puedes editar, duplicar, exportar y reordenar esta playlist."
+                            stringResource(R.string.playlist_regular_desc)
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -139,7 +141,7 @@ fun PlaylistDetailScreen(
                         ) {
                             Icon(Icons.Filled.PlayArrow, contentDescription = null)
                             Spacer(Modifier.size(6.dp))
-                            Text("Reproducir")
+                            Text(stringResource(R.string.action_play))
                         }
                         OutlinedButton(
                             onClick = { onPlayShuffle(playlistItems) },
@@ -147,7 +149,7 @@ fun PlaylistDetailScreen(
                         ) {
                             Icon(Icons.Filled.Shuffle, contentDescription = null)
                             Spacer(Modifier.size(6.dp))
-                            Text("Aleatorio")
+                            Text(stringResource(R.string.action_shuffle))
                         }
                     }
                 }
@@ -160,14 +162,14 @@ fun PlaylistDetailScreen(
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             item {
-                Text("Canciones", style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.songs_title), style = MaterialTheme.typography.titleMedium)
                 Spacer(Modifier.height(6.dp))
             }
 
             if (playlistItems.isEmpty()) {
                 item {
                     Text(
-                        text = if (isAutoPlaylist) "Todavía no hay reproducciones suficientes." else "Aún no hay canciones en esta playlist.",
+                        text = if (isAutoPlaylist) stringResource(R.string.playlist_empty_auto) else stringResource(R.string.playlist_empty_regular),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -198,7 +200,7 @@ fun PlaylistDetailScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Agregar música", style = MaterialTheme.typography.titleMedium)
+                        Text(stringResource(R.string.playlist_add_music), style = MaterialTheme.typography.titleMedium)
                         Button(
                             onClick = {
                                 val selected = candidates.filter { selectedCandidateIds.contains(it.id) }
@@ -209,7 +211,7 @@ fun PlaylistDetailScreen(
                         ) {
                             Icon(Icons.Filled.LibraryMusic, contentDescription = null)
                             Spacer(Modifier.size(6.dp))
-                            Text("Agregar seleccionadas")
+                            Text(stringResource(R.string.playlist_add_selected))
                         }
                     }
                 }
@@ -217,7 +219,7 @@ fun PlaylistDetailScreen(
                 if (candidates.isEmpty()) {
                     item {
                         Text(
-                            text = "No hay más canciones disponibles para agregar.",
+                            text = stringResource(R.string.playlist_no_more_songs),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -249,22 +251,22 @@ fun PlaylistDetailScreen(
     if (renameDialog) {
         AlertDialog(
             onDismissRequest = { renameDialog = false },
-            title = { Text("Renombrar playlist") },
+            title = { Text(stringResource(R.string.playlist_rename_title)) },
             text = {
                 OutlinedTextField(
                     value = renameValue,
                     onValueChange = { renameValue = it },
                     singleLine = true,
-                    label = { Text("Nombre") }
+                    label = { Text(stringResource(R.string.playlists_name_hint)) }
                 )
             },
             confirmButton = {
                 TextButton(onClick = {
                     if (renameValue.isNotBlank()) onRenamePlaylist(renameValue.trim())
                     renameDialog = false
-                }) { Text("Guardar") }
+                }) { Text(stringResource(R.string.action_save)) }
             },
-            dismissButton = { TextButton(onClick = { renameDialog = false }) { Text("Cancelar") } }
+            dismissButton = { TextButton(onClick = { renameDialog = false }) { Text(stringResource(R.string.action_cancel)) } }
         )
     }
 }
@@ -293,14 +295,14 @@ private fun PlaylistTrackCompact(
         if (!isAutoPlaylist) {
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 FilledTonalIconButton(onClick = onMoveUp, enabled = index > 0, modifier = Modifier.size(36.dp)) {
-                    Icon(Icons.Filled.KeyboardArrowUp, contentDescription = "Subir")
+                    Icon(Icons.Filled.KeyboardArrowUp, contentDescription = stringResource(R.string.action_move_up))
                 }
                 FilledTonalIconButton(onClick = onMoveDown, enabled = index < total - 1, modifier = Modifier.size(36.dp)) {
-                    Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "Bajar")
+                    Icon(Icons.Filled.KeyboardArrowDown, contentDescription = stringResource(R.string.action_move_down))
                 }
             }
             FilledTonalIconButton(onClick = onRemove, modifier = Modifier.size(40.dp)) {
-                Icon(Icons.Filled.Delete, contentDescription = "Quitar")
+                Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.action_remove))
             }
         }
     }

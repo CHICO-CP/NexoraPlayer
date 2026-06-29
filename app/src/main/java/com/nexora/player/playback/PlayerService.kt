@@ -204,7 +204,7 @@ class PlayerService : MediaSessionService() {
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification_playback)
             .setContentTitle(getString(R.string.app_name))
-            .setContentText("Preparando reproducción")
+            .setContentText(getString(R.string.player_preparing))
             .setContentIntent(contentIntent())
             .setOnlyAlertOnce(true)
             .setOngoing(true)
@@ -340,6 +340,7 @@ class PlayerService : MediaSessionService() {
                     break
                 }
                 refreshNotification(latest)
+                NexoraPlayerWidgetProvider.updateWidgets(this@PlayerService, latest)
             }
         }
     }
@@ -398,10 +399,10 @@ class PlayerService : MediaSessionService() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "Reproducción Nexora",
+                getString(R.string.playback_channel_title),
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "Controles de reproducción de música"
+                description = getString(R.string.playback_channel_desc)
                 setShowBadge(false)
                 lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
             }

@@ -58,14 +58,14 @@ fun FavoritesScreen(
                     )
                     Column {
                         Text(
-                            text = "Favoritos",
+                            text = stringResource(R.string.favorites_title),
                             style = MaterialTheme.typography.headlineSmall
                         )
                         Text(
                             text = if (audioFavorites.isEmpty()) {
                                 stringResource(R.string.no_visible_music)
                             } else {
-                                "Solo se reproducen las canciones guardadas aquí"
+                                stringResource(R.string.favorites_desc)
                             },
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -78,7 +78,7 @@ fun FavoritesScreen(
                 if (audioFavorites.isNotEmpty()) {
                     val totalDuration = audioFavorites.sumOf { it.durationMs }
                     Text(
-                        text = "${audioFavorites.size} canciones • ${formatDuration(totalDuration)}",
+                        text = stringResource(R.string.favorites_count, audioFavorites.size, formatDuration(totalDuration)),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -92,7 +92,7 @@ fun FavoritesScreen(
                             contentDescription = null
                         )
                         Spacer(Modifier.width(8.dp))
-                        Text("Reproducir favoritos")
+                        Text(stringResource(R.string.favorites_play))
                     }
                 }
             }
@@ -106,14 +106,14 @@ fun FavoritesScreen(
                 verticalArrangement = Arrangement.Center
             ) {
                 Text(
-                    text = "Aún no hay favoritos",
+                    text = stringResource(R.string.favorites_empty_title),
                     style = MaterialTheme.typography.titleMedium,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    text = "Marca canciones con el botón de favorito para verlas aquí y reproducir solo esa lista.",
+                    text = stringResource(R.string.favorites_empty_body),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,

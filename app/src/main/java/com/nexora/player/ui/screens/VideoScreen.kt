@@ -43,7 +43,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.nexora.player.R
 import com.nexora.player.data.model.MediaEntry
 import com.nexora.player.data.model.SortMode
 import com.nexora.player.ui.components.MediaArtwork
@@ -93,7 +95,7 @@ fun VideoScreen(
             putExtra(Intent.EXTRA_TEXT, item.title)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
-        runCatching { context.startActivity(Intent.createChooser(intent, "Compartir video")) }
+        runCatching { context.startActivity(Intent.createChooser(intent, context.getString(R.string.share_video))) }
     }
 
     Column(modifier = modifier.fillMaxSize()) {
@@ -104,7 +106,7 @@ fun VideoScreen(
             FilterChip(
                 selected = false,
                 onClick = onRefresh,
-                label = { Text("Actualizar") }
+                label = { Text(stringResource(R.string.action_refresh)) }
             )
 
             SortSelector(
@@ -178,7 +180,7 @@ private fun VideoGridCard(
                     IconButton(onClick = { menuExpanded = true }) {
                         Icon(
                             Icons.Filled.MoreVert,
-                            contentDescription = "Opciones",
+                            contentDescription = stringResource(R.string.video_options_content),
                             tint = Color.White
                         )
                     }
@@ -187,7 +189,7 @@ private fun VideoGridCard(
                         onDismissRequest = { menuExpanded = false }
                     ) {
                         DropdownMenuItem(
-                            text = { Text("Compartir") },
+                            text = { Text(stringResource(R.string.music_share)) },
                             leadingIcon = { Icon(Icons.Filled.Share, null) },
                             onClick = {
                                 menuExpanded = false
@@ -195,7 +197,7 @@ private fun VideoGridCard(
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text("Editar archivo") },
+                            text = { Text(stringResource(R.string.video_edit_file)) },
                             leadingIcon = { Icon(Icons.Filled.Edit, null) },
                             onClick = {
                                 menuExpanded = false
@@ -203,7 +205,7 @@ private fun VideoGridCard(
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text("Ocultar video") },
+                            text = { Text(stringResource(R.string.video_hide)) },
                             leadingIcon = { Icon(Icons.Filled.VisibilityOff, null) },
                             onClick = {
                                 menuExpanded = false
@@ -211,7 +213,7 @@ private fun VideoGridCard(
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text("Borrar archivo") },
+                            text = { Text(stringResource(R.string.video_delete_file)) },
                             leadingIcon = { Icon(Icons.Filled.Delete, null) },
                             onClick = {
                                 menuExpanded = false

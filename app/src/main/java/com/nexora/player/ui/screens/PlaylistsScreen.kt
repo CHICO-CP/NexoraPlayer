@@ -44,10 +44,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.nexora.player.R
 import com.nexora.player.data.local.PlaylistEntity
 import com.nexora.player.data.local.PlaylistItemEntity
 import com.nexora.player.ui.components.MediaArtwork
@@ -101,12 +103,12 @@ fun PlaylistsScreen(
     if (showDialog) {
         AlertDialog(
             onDismissRequest = { showDialog = false },
-            title = { Text("Crear playlist") },
+            title = { Text(stringResource(R.string.playlists_create_dialog_title)) },
             text = {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Nombre") },
+                    label = { Text(stringResource(R.string.playlists_name_hint)) },
                     singleLine = true
                 )
             },
@@ -115,10 +117,10 @@ fun PlaylistsScreen(
                     if (name.isNotBlank()) onCreatePlaylist(name.trim())
                     name = ""
                     showDialog = false
-                }) { Text("Crear") }
+                }) { Text(stringResource(R.string.playlists_create)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDialog = false }) { Text("Cancelar") }
+                TextButton(onClick = { showDialog = false }) { Text(stringResource(R.string.playlists_cancel)) }
             }
         )
     }
@@ -151,13 +153,13 @@ private fun PlaylistHeader(
                 Icon(Icons.AutoMirrored.Filled.PlaylistPlay, null, tint = Color.White)
             }
             Column(modifier = Modifier.weight(1f)) {
-                Text("Playlists", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
-                Text("$playlistCount listas · tus mezclas y colecciones", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.nav_playlists), style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
+                Text(stringResource(R.string.playlist_created_count, playlistCount), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Button(onClick = onCreate, shape = RoundedCornerShape(16.dp)) {
                 Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(4.dp))
-                Text("Nueva")
+                Text(stringResource(R.string.playlists_new))
             }
         }
     }
@@ -212,13 +214,13 @@ private fun PlaylistCard(
                     }
                 }
                 Text(
-                    if (isAuto) "Se ordena por reproducciones reales" else DateFormat.getDateInstance().format(Date(playlist.createdAt)),
+                    if (isAuto) stringResource(R.string.playlist_auto_replays_desc) else DateFormat.getDateInstance().format(Date(playlist.createdAt)),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
                     buildString {
-                        append(if (songCount == 1) "1 canción" else "$songCount canciones")
+                        append(if (songCount == 1) stringResource(R.string.playlist_one_song) else stringResource(R.string.playlist_many_songs, songCount))
                         if (duration > 0L) append(" · ${formatDuration(duration)}")
                     },
                     style = MaterialTheme.typography.labelMedium,
@@ -228,7 +230,7 @@ private fun PlaylistCard(
 
             if (!isAuto) {
                 IconButton(onClick = onDelete) {
-                    Icon(Icons.Filled.Delete, contentDescription = "Eliminar playlist", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.playlist_delete_desc), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }

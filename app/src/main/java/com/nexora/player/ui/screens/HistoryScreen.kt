@@ -26,9 +26,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.nexora.player.R
 import com.nexora.player.data.local.PlaybackHistoryEntity
 import com.nexora.player.ui.components.MediaArtwork
 import com.nexora.player.ui.components.formatDuration
@@ -51,9 +53,9 @@ fun HistoryScreen(
         ) {
             Icon(Icons.Filled.History, contentDescription = null)
             Column {
-                Text("Historial", style = MaterialTheme.typography.headlineSmall)
+                Text(stringResource(R.string.history_title), style = MaterialTheme.typography.headlineSmall)
                 Text(
-                    if (history.isEmpty()) "No hay reproducciones recientes" else "Tus canciones más reproducidas y recientes",
+                    if (history.isEmpty()) stringResource(R.string.history_empty) else stringResource(R.string.history_desc),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 2,

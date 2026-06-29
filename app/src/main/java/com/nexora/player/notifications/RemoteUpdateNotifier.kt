@@ -15,7 +15,6 @@ import com.nexora.player.data.update.RemoteUpdateInfo
 
 object RemoteUpdateNotifier {
     private const val CHANNEL_ID = "nexora_remote_updates"
-    private const val CHANNEL_NAME = "Actualizaciones y avisos"
     private const val PREFS_NAME = "nexora_remote_notices"
     private const val KEY_SEEN_IDS = "seen_notice_ids"
     private const val KEY_LAST_UPDATE_NOTICE = "last_update_notice_version"
@@ -25,10 +24,10 @@ object RemoteUpdateNotifier {
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val channel = NotificationChannel(
             CHANNEL_ID,
-            CHANNEL_NAME,
+            context.getString(R.string.notification_remote_channel_title),
             NotificationManager.IMPORTANCE_DEFAULT
         ).apply {
-            description = "Avisos enviados desde el servidor de Nexora Player"
+            description = context.getString(R.string.notification_remote_channel_desc)
         }
         manager.createNotificationChannel(channel)
     }
@@ -41,13 +40,13 @@ object RemoteUpdateNotifier {
 
         ensureChannel(context)
         val text = if (update.required) {
-            "Actualización obligatoria ${update.latestVersion.versionName} disponible."
+            context.getString(R.string.notification_update_required, update.latestVersion.versionName)
         } else {
-            "Nueva versión ${update.latestVersion.versionName} disponible para descargar."
+            context.getString(R.string.notification_update_available, update.latestVersion.versionName)
         }
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.mipmap.ic_launcher)
-            .setContentTitle("Actualización de Nexora Player")
+            .setContentTitle(context.getString(R.string.notification_update_title))
             .setContentText(text)
             .setStyle(NotificationCompat.BigTextStyle().bigText(text))
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)

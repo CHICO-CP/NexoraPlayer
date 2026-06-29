@@ -2,6 +2,7 @@ package com.nexora.player
 
 import android.app.Application
 import android.content.Intent
+import android.media.AudioManager
 import org.json.JSONArray
 import org.json.JSONObject
 import androidx.lifecycle.AndroidViewModel
@@ -48,6 +49,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.math.roundToInt
 
 data class AppUiState(
     val audio: List<MediaEntry> = emptyList(),
@@ -76,7 +78,10 @@ data class AppUiState(
     val updateInstallState: UpdateInstallState = UpdateInstallState(),
     val shareUrl: String = BuildConfig.NEXORA_SERVER_URL,
     val remoteNotices: List<RemoteNoticeEntity> = emptyList(),
-    val playbackStats: List<PlaybackStatsEntity> = emptyList()
+    val playbackStats: List<PlaybackStatsEntity> = emptyList(),
+    val nexoraVolumePercent: Int = 0,
+    val nexoraVolumeBoosted: Boolean = false,
+    val nexoraVolumeOverlayVisible: Boolean = false
 )
 
 private const val AUTO_PLAYLIST_ID = Long.MIN_VALUE + 42L
@@ -174,7 +179,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val mediaRepository = MediaStoreRepository(context)
     private val preferencesRepository = PreferencesRepository(context)
     private val onlineRepository = OnlineMusicRepository()
-    private val updateClient = NexoraUpdateClient()
+    private val updateClient = NexoraUpdateClient(application)
     private val updateInstaller = ApkUpdateInstaller(context)
     private val database = NexoraDatabase.get(context)
     private val presentation = MainViewModel()
@@ -186,6 +191,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private var libraryRefreshJob: Job? = null
     private var resumeRestored = false
     private var lastRecordedPlaybackKey: String? = null
+    private var volumeOverlayJob: Job? = null
 
     init {
         observePlayback()
@@ -338,6 +344,50 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         val safeGain = gainMb.coerceIn(0, 1800)
         viewModelScope.launch { preferencesRepository.setVolumeBoostGainMb(safeGain) }
         PlayerEngine.setVolumeBoost(_uiState.value.preferences.volumeBoostEnabled, safeGain)
+    }
+
+    fun adjustNexoraVolume(deltaSteps: Int) {
+        val audioManager = context.getSystemService(AudioManager::class.java) ?: return
+        val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC).coerceAtLeast(1)
+        val currentSystem = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC).coerceIn(0, maxVolume)
+        val stepPercent = 5
+        val prefs = _uiState.value.preferences
+
+        if (prefs.volumeBoostEnabled) {
+            val currentBoostPercent = (prefs.volumeBoostGainMb.coerceIn(0, 1800) / 1800f * 50f).toInt()
+            val currentPercent = ((currentSystem.toFloat() / maxVolume.toFloat()) * 100f).toInt() + currentBoostPercent
+            val targetPercent = (currentPercent + deltaSteps * stepPercent).coerceIn(0, 150)
+            val nextSystemPercent = targetPercent.coerceAtMost(100)
+            val nextSystemVolume = ((nextSystemPercent / 100f) * maxVolume).roundToInt().coerceIn(0, maxVolume)
+            val nextGain = if (targetPercent > 100) {
+                (((targetPercent - 100) / 50f) * 1800f).roundToInt().coerceIn(0, 1800)
+            } else 0
+
+            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, nextSystemVolume, 0)
+            PlayerEngine.setVolumeBoost(true, nextGain)
+            viewModelScope.launch { preferencesRepository.setVolumeBoostGainMb(nextGain) }
+            showNexoraVolumeOverlay(targetPercent, boosted = targetPercent > 100)
+        } else {
+            val currentPercent = ((currentSystem.toFloat() / maxVolume.toFloat()) * 100f).roundToInt()
+            val targetPercent = (currentPercent + deltaSteps * stepPercent).coerceIn(0, 100)
+            val nextSystemVolume = ((targetPercent / 100f) * maxVolume).roundToInt().coerceIn(0, maxVolume)
+            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, nextSystemVolume, 0)
+            PlayerEngine.setVolumeBoost(false, 0)
+            showNexoraVolumeOverlay(targetPercent, boosted = false)
+        }
+    }
+
+    private fun showNexoraVolumeOverlay(percent: Int, boosted: Boolean) {
+        volumeOverlayJob?.cancel()
+        _uiState.value = _uiState.value.copy(
+            nexoraVolumePercent = percent.coerceIn(0, 150),
+            nexoraVolumeBoosted = boosted,
+            nexoraVolumeOverlayVisible = true
+        )
+        volumeOverlayJob = viewModelScope.launch {
+            delay(1300L)
+            _uiState.value = _uiState.value.copy(nexoraVolumeOverlayVisible = false)
+        }
     }
 
     fun setLibraryChangeNotificationsEnabled(enabled: Boolean) {
@@ -535,7 +585,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             }.onFailure { throwable ->
                 _uiState.value = _uiState.value.copy(
                     updateChecking = false,
-                    updateError = throwable.message ?: "No se pudo consultar el servidor de actualizaciones",
+                    updateError = throwable.message ?: getApplication<Application>().getString(R.string.update_error_server_query),
                     shareUrl = updateClient.shareUrl()
                 )
             }
@@ -569,8 +619,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                         RemoteNoticeEntity(
                             id = "update-${info.latestVersion.versionCode}",
                             type = if (info.required) "update_required" else "update_available",
-                            title = if (info.required) "Actualización requerida" else "Nueva versión disponible",
-                            message = "Nexora Player ${info.latestVersion.versionName} ya está disponible. ${info.latestVersion.changelog.firstOrNull()?.description.orEmpty()}",
+                            title = if (info.required) getApplication<Application>().getString(R.string.update_required_title) else getApplication<Application>().getString(R.string.update_available_title),
+                            message = getApplication<Application>().getString(R.string.update_notice_message, info.latestVersion.versionName, info.latestVersion.changelog.firstOrNull()?.description.orEmpty()),
                             createdAt = System.currentTimeMillis(),
                             versionCode = info.latestVersion.versionCode,
                             actionUrl = info.urls.download.ifBlank { updateClient.downloadUrl() }
@@ -793,7 +843,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         if (playlist.id == AUTO_PLAYLIST_ID) return
         viewModelScope.launch {
             val newId = database.playlistsDao().insertPlaylist(
-                PlaylistEntity(name = "${playlist.name} copia")
+                PlaylistEntity(name = getApplication<Application>().getString(R.string.playlist_copy_suffix, playlist.name))
             )
             items.forEachIndexed { index, item ->
                 database.playlistsDao().insertPlaylistItem(item.copy(id = 0L, playlistId = newId, orderIndex = index, addedAt = System.currentTimeMillis()))
@@ -959,7 +1009,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     ): List<PlaylistEntity> {
         val auto = PlaylistEntity(
             id = AUTO_PLAYLIST_ID,
-            name = "Más escuchadas",
+            name = getApplication<Application>().getString(R.string.playlist_most_played),
             createdAt = 0L,
             updatedAt = stats.maxOfOrNull { it.lastPlayedAt } ?: 0L
         )

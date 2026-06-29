@@ -16,11 +16,13 @@
 
         <ImageView
             android:id="@+id/widget_artwork"
-            android:layout_width="64dp"
-            android:layout_height="64dp"
-            android:layout_marginEnd="10dp"
-            android:background="@drawable/bg_notification_logo"
+            android:layout_width="68dp"
+            android:layout_height="68dp"
+            android:layout_marginEnd="12dp"
+            android:background="@drawable/widget_artwork_bg"
+            android:clipToOutline="true"
             android:contentDescription="Portada"
+            android:padding="1dp"
             android:scaleType="centerCrop"
             android:src="@drawable/ic_media_placeholder" />
 
@@ -56,28 +58,29 @@
                 android:id="@+id/widget_lyric"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="5dp"
+                android:layout_marginTop="8dp"
                 android:ellipsize="end"
                 android:maxLines="2"
-                android:text="Letra no guardada"
-                android:textColor="#9FFFFFFF"
-                android:textSize="11sp" />
+                android:text="Letra original no guardada"
+                android:textColor="#F2FFFFFF"
+                android:textSize="13sp"
+                android:textStyle="bold" />
         </LinearLayout>
     </LinearLayout>
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="44dp"
+        android:layout_height="46dp"
         android:gravity="center"
         android:orientation="horizontal"
-        android:paddingTop="6dp">
+        android:paddingTop="8dp">
 
         <ImageButton
             android:id="@+id/widget_previous"
             android:layout_width="0dp"
-            android:layout_height="40dp"
+            android:layout_height="38dp"
             android:layout_weight="1"
-            android:background="@drawable/bg_notification_button"
+            android:background="@drawable/widget_control_bg"
             android:contentDescription="Anterior"
             android:padding="9dp"
             android:scaleType="center"
@@ -86,10 +89,10 @@
         <ImageButton
             android:id="@+id/widget_play_pause"
             android:layout_width="0dp"
-            android:layout_height="40dp"
-            android:layout_marginStart="6dp"
+            android:layout_height="42dp"
+            android:layout_marginStart="7dp"
             android:layout_weight="1"
-            android:background="@drawable/bg_notification_button_active"
+            android:background="@drawable/widget_control_primary_bg"
             android:contentDescription="Reproducir o pausar"
             android:padding="8dp"
             android:scaleType="center"
@@ -98,10 +101,10 @@
         <ImageButton
             android:id="@+id/widget_next"
             android:layout_width="0dp"
-            android:layout_height="40dp"
-            android:layout_marginStart="6dp"
+            android:layout_height="38dp"
+            android:layout_marginStart="7dp"
             android:layout_weight="1"
-            android:background="@drawable/bg_notification_button"
+            android:background="@drawable/widget_control_bg"
             android:contentDescription="Siguiente"
             android:padding="9dp"
             android:scaleType="center"
@@ -110,10 +113,10 @@
         <ImageButton
             android:id="@+id/widget_favorite"
             android:layout_width="0dp"
-            android:layout_height="40dp"
-            android:layout_marginStart="6dp"
+            android:layout_height="38dp"
+            android:layout_marginStart="7dp"
             android:layout_weight="1"
-            android:background="@drawable/bg_notification_button"
+            android:background="@drawable/widget_control_bg"
             android:contentDescription="Favorito"
             android:padding="9dp"
             android:scaleType="center"

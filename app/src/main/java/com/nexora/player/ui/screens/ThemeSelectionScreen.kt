@@ -32,8 +32,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.nexora.player.R
 import com.nexora.player.data.model.AppThemeMode
 
 private data class ThemeOption(
@@ -53,13 +55,13 @@ fun ThemeSelectionScreen(
     onDynamicColorChange: (Boolean) -> Unit
 ) {
     val options = listOf(
-        ThemeOption(AppThemeMode.SYSTEM, "Sistema", "Usa el tema configurado en Android.", listOf(Color(0xFFF54047), Color(0xFF111827), Color(0xFFF7F6FB))),
-        ThemeOption(AppThemeMode.NEXORA_DARK, "Nexora Dark", "Oscuro elegante con acento rojo Nexora.", listOf(Color(0xFF090B14), Color(0xFFF54047), Color(0xFFE64366))),
-        ThemeOption(AppThemeMode.IOS_LIGHT, "iOS Light", "Claro, limpio y minimalista.", listOf(Color(0xFFFFFFFF), Color(0xFFF7F6FB), Color(0xFFF54047))),
-        ThemeOption(AppThemeMode.AMOLED_BLACK, "AMOLED Black", "Negro puro para pantallas OLED.", listOf(Color.Black, Color(0xFFFF375F), Color(0xFF64D2FF))),
-        ThemeOption(AppThemeMode.FLAMINGO, "Flamingo", "Cálido, moderno y visual.", listOf(Color(0xFF100713), Color(0xFFFF4D6D), Color(0xFFFF9F1C))),
-        ThemeOption(AppThemeMode.NEON, "Neon", "Contraste fuerte con acentos brillantes.", listOf(Color(0xFF050712), Color(0xFF00F5D4), Color(0xFFB517FF))),
-        ThemeOption(AppThemeMode.MATERIAL_YOU, "Material You", "Colores dinámicos del sistema.", listOf(Color(0xFF6750A4), Color(0xFF625B71), Color(0xFFEADDFF)))
+        ThemeOption(AppThemeMode.SYSTEM, stringResource(AppThemeMode.SYSTEM.labelRes), stringResource(R.string.theme_desc_system), listOf(Color(0xFFF54047), Color(0xFF111827), Color(0xFFF7F6FB))),
+        ThemeOption(AppThemeMode.NEXORA_DARK, stringResource(AppThemeMode.NEXORA_DARK.labelRes), stringResource(R.string.theme_desc_nexora_dark), listOf(Color(0xFF090B14), Color(0xFFF54047), Color(0xFFE64366))),
+        ThemeOption(AppThemeMode.IOS_LIGHT, stringResource(AppThemeMode.IOS_LIGHT.labelRes), stringResource(R.string.theme_desc_ios_light), listOf(Color(0xFFFFFFFF), Color(0xFFF7F6FB), Color(0xFFF54047))),
+        ThemeOption(AppThemeMode.AMOLED_BLACK, stringResource(AppThemeMode.AMOLED_BLACK.labelRes), stringResource(R.string.theme_desc_amoled_black), listOf(Color.Black, Color(0xFFFF375F), Color(0xFF64D2FF))),
+        ThemeOption(AppThemeMode.FLAMINGO, stringResource(AppThemeMode.FLAMINGO.labelRes), stringResource(R.string.theme_desc_flamingo), listOf(Color(0xFF100713), Color(0xFFFF4D6D), Color(0xFFFF9F1C))),
+        ThemeOption(AppThemeMode.NEON, stringResource(AppThemeMode.NEON.labelRes), stringResource(R.string.theme_desc_neon), listOf(Color(0xFF050712), Color(0xFF00F5D4), Color(0xFFB517FF))),
+        ThemeOption(AppThemeMode.MATERIAL_YOU, stringResource(AppThemeMode.MATERIAL_YOU.labelRes), stringResource(R.string.theme_desc_material_you), listOf(Color(0xFF6750A4), Color(0xFF625B71), Color(0xFFEADDFF)))
     )
 
     Column(
@@ -75,11 +77,11 @@ fun ThemeSelectionScreen(
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
             }
             Column(modifier = Modifier.weight(1f)) {
-                Text("Temas visuales", style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold))
-                Text("Elige el estilo principal de Nexora Player", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.theme_screen_title), style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold))
+                Text(stringResource(R.string.theme_screen_subtitle), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
 
@@ -101,9 +103,9 @@ fun ThemeSelectionScreen(
                     ) {
                         Icon(Icons.Filled.Palette, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("Material You automático", fontWeight = FontWeight.SemiBold)
+                            Text(stringResource(R.string.theme_dynamic_automatic), fontWeight = FontWeight.SemiBold)
                             Text(
-                                if (dynamicColor) "Los colores dinámicos están activados." else "Activa colores del sistema cuando estén disponibles.",
+                                if (dynamicColor) stringResource(R.string.theme_dynamic_on) else stringResource(R.string.theme_dynamic_off),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -181,7 +183,7 @@ private fun ThemeOptionCard(
                         .background(MaterialTheme.colorScheme.primary),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Filled.Check, contentDescription = "Seleccionado", tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(20.dp))
+                    Icon(Icons.Filled.Check, contentDescription = stringResource(R.string.language_selected), tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(20.dp))
                 }
             }
         }

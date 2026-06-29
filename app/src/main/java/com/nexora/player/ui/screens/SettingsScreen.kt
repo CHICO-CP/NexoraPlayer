@@ -101,113 +101,6 @@ data class HiddenAudioItem(
     val album: String  = ""
 )
 
-// ── Legal texts ──────────────────────────────────────────────────────────────
-
-private val TERMS_TEXT = """
-TÉRMINOS Y CONDICIONES DE NEXORAPLAYER
-Última actualización: 2025
-
-1. ACEPTACIÓN
-Al descargar, instalar o usar NexoraPlayer aceptas estos términos en su totalidad. Si no estás de acuerdo con alguna parte, por favor desinstala la aplicación.
-
-2. USO PERMITIDO
-NexoraPlayer está diseñado exclusivamente para reproducir archivos multimedia almacenados localmente en tu dispositivo. Queda estrictamente prohibido:
-• Reproducir, distribuir o almacenar contenido que infrinja derechos de autor.
-• Usar la aplicación con fines ilegales o que contravengan las leyes de tu país.
-• Intentar modificar, descompilar o revertir el código de la aplicación.
-
-3. CONTENIDO DEL USUARIO
-Todo el contenido multimedia que reproduces es de tu exclusiva responsabilidad. NexoraPlayer no almacena, distribuye, monetiza ni accede de forma remota a ninguno de tus archivos. Tu biblioteca permanece completamente en tu dispositivo.
-
-4. FUNCIÓN DE LETRAS EN LÍNEA
-La búsqueda de letras accede a servicios de terceros. Esta funcionalidad es completamente opcional. No garantizamos la exactitud, disponibilidad permanente ni la legalidad del contenido obtenido de dichos servicios externos. El uso de letras descargadas debe respetar los derechos de autor correspondientes.
-
-5. ACTUALIZACIONES Y CAMBIOS
-El desarrollador puede actualizar, modificar o descontinuar NexoraPlayer en cualquier momento sin previo aviso. Las actualizaciones pueden modificar funcionalidades existentes o agregar nuevas condiciones de uso.
-
-6. LIMITACIÓN DE RESPONSABILIDAD
-NexoraPlayer se proporciona "tal cual", sin garantías de ningún tipo, expresas o implícitas. El desarrollador no se hace responsable por:
-• Pérdida o daño de archivos del dispositivo.
-• Fallos de reproducción o compatibilidad con formatos específicos.
-• El contenido proveniente de servicios de terceros.
-• Cualquier daño directo, indirecto o consecuente derivado del uso de la app.
-
-7. PROPIEDAD INTELECTUAL
-El código fuente, diseño, interfaz y nombre de NexoraPlayer son propiedad de Ghost Developer. Queda prohibida su reproducción o distribución sin autorización escrita y expresa del desarrollador.
-
-8. LEGISLACIÓN APLICABLE
-Estos términos se rigen por las leyes aplicables en el país de residencia del usuario. Cualquier disputa será resuelta en los tribunales competentes correspondientes.
-
-9. CONTACTO
-Para cualquier consulta sobre estos términos:
-Telegram: t.me/Gh0stDeveloper
-GitHub: github.com/Gh0stDeveloper
-
-© 2025 NexoraPlayer · Ghost Developer
-Todos los derechos reservados.
-""".trimIndent()
-
-private val PRIVACY_TEXT = """
-POLÍTICA DE PRIVACIDAD DE NEXORAPLAYER
-Última actualización: 2025
-
-En NexoraPlayer tu privacidad es una prioridad. Esta política explica de forma clara y transparente qué información se utiliza, cómo y por qué.
-
-──────────────────────────────────────
-¿QUÉ DATOS RECOPILAMOS?
-──────────────────────────────────────
-NexoraPlayer NO recopila:
-• Nombre, correo electrónico, teléfono ni ningún dato personal identificable.
-• Historial de reproducción ni listas de canciones.
-• Datos de ubicación geográfica.
-• Información de contactos ni otras apps instaladas.
-• Identificadores publicitarios ni analíticas de comportamiento.
-
-──────────────────────────────────────
-ACCESO A ARCHIVOS DEL DISPOSITIVO
-──────────────────────────────────────
-La aplicación solicita permiso de lectura de almacenamiento únicamente para listar y reproducir los archivos de audio y video que tú eliges. Estos archivos:
-• Nunca se transmiten a servidores externos.
-• No se comparten con terceros.
-• Permanecen completamente bajo tu control.
-
-──────────────────────────────────────
-LETRAS EN LÍNEA (OPCIONAL)
-──────────────────────────────────────
-Cuando activas manualmente la búsqueda de letras, se envían el título de la canción y el nombre del artista a servicios de terceros para obtener el resultado. Esto significa:
-• No enviamos información a nuestros propios servidores.
-• No vinculamos estas búsquedas a tu identidad.
-• No almacenamos un historial de tus búsquedas de letras.
-Esta función es completamente opcional y puedes desactivarla en cualquier momento desde los ajustes.
-
-──────────────────────────────────────
-ECUALIZADOR Y AUDIO
-──────────────────────────────────────
-El ecualizador y todos los procesados de audio operan de forma completamente local en tu dispositivo. Ningún fragmento de audio se transmite a servidores externos.
-
-──────────────────────────────────────
-PERMISOS REQUERIDOS
-──────────────────────────────────────
-• Leer almacenamiento externo: para acceder a tus archivos de música y video.
-• Internet (opcional): únicamente para la búsqueda de letras cuando la activas.
-• Notificaciones: para mostrar los controles de reproducción en la barra de notificaciones.
-• Primer plano (Foreground Service): para mantener la reproducción activa al minimizar la app.
-
-──────────────────────────────────────
-CAMBIOS A ESTA POLÍTICA
-──────────────────────────────────────
-Cualquier cambio significativo a esta política será notificado a través de actualizaciones de la aplicación. Continuando el uso de NexoraPlayer tras una actualización, aceptas la política vigente.
-
-──────────────────────────────────────
-CONTACTO
-──────────────────────────────────────
-Para consultas sobre privacidad o para ejercer tus derechos:
-Telegram: t.me/Gh0stDeveloper
-GitHub: github.com/Gh0stDeveloper
-
-© 2025 NexoraPlayer · Ghost Developer
-""".trimIndent()
-
 // ── Main screen ──────────────────────────────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -258,6 +151,7 @@ fun SettingsScreen(
     onOpenNotificationCenter: () -> Unit = {},
     onOpenStats: () -> Unit = {},
     onOpenThemeSelection: () -> Unit = {},
+    onOpenLanguageSelection: () -> Unit = {},
     onCheckUpdates: () -> Unit = {},
     onRestoreHiddenItem: (Long) -> Unit = {}
 ) {
@@ -286,43 +180,15 @@ fun SettingsScreen(
         // ════════════════════════════════════════════════════════════════════
         // PERSONALIZACIÓN
         // ════════════════════════════════════════════════════════════════════
-        SectionHeader("PERSONALIZACIÓN")
+        SectionHeader(stringResource(R.string.section_personalization))
         SettingsGroup {
-            // Language
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 14.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Row(
-                    verticalAlignment     = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    SettingsIcon(Icons.Filled.Language, Color(0xFF007AFF))
-                    Text(
-                        stringResource(R.string.settings_language),
-                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium)
-                    )
-                }
-                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                    SegmentedButton(
-                        selected = currentLanguage == AppLanguage.SYSTEM,
-                        onClick  = { onLanguageChange(AppLanguage.SYSTEM) },
-                        shape    = SegmentedButtonDefaults.itemShape(0, 3)
-                    ) { Text(stringResource(AppLanguage.SYSTEM.labelRes), fontSize = 13.sp) }
-                    SegmentedButton(
-                        selected = currentLanguage == AppLanguage.SPANISH,
-                        onClick  = { onLanguageChange(AppLanguage.SPANISH) },
-                        shape    = SegmentedButtonDefaults.itemShape(1, 3)
-                    ) { Text(stringResource(AppLanguage.SPANISH.labelRes), fontSize = 13.sp) }
-                    SegmentedButton(
-                        selected = currentLanguage == AppLanguage.ENGLISH,
-                        onClick  = { onLanguageChange(AppLanguage.ENGLISH) },
-                        shape    = SegmentedButtonDefaults.itemShape(2, 3)
-                    ) { Text(stringResource(AppLanguage.ENGLISH.labelRes), fontSize = 13.sp) }
-                }
-            }
+            SettingsLinkRow(
+                icon      = Icons.Filled.Language,
+                iconColor = Color(0xFF007AFF),
+                title     = stringResource(R.string.settings_language),
+                subtitle  = stringResource(R.string.settings_language_current, stringResource(currentLanguage.labelRes)),
+                onClick   = onOpenLanguageSelection
+            )
 
             RowDivider()
 
@@ -330,7 +196,7 @@ fun SettingsScreen(
                 icon      = Icons.Filled.Brightness4,
                 iconColor = Color(0xFF5856D6),
                 title     = stringResource(R.string.settings_theme),
-                subtitle  = "Tema actual: ${themeMode.displayName}. Toca para abrir la galería de temas.",
+                subtitle  = stringResource(R.string.settings_theme_current, stringResource(themeMode.labelRes)),
                 onClick   = onOpenThemeSelection
             )
 
@@ -339,43 +205,43 @@ fun SettingsScreen(
         // ════════════════════════════════════════════════════════════════════
         // REPRODUCCIÓN Y CARPETAS
         // ════════════════════════════════════════════════════════════════════
-        SectionHeader("REPRODUCCIÓN Y CARPETAS")
+        SectionHeader(stringResource(R.string.section_playback_folders))
         SettingsGroup {
             SettingsToggleRow(
                 icon            = Icons.Filled.NotificationsActive,
                 iconColor       = Color(0xFF34C759),
-                title           = "Shuffle por defecto",
-                subtitle        = "Activa la reproducción aleatoria al iniciar listas y álbumes.",
+                title           = stringResource(R.string.settings_shuffle_default),
+                subtitle        = stringResource(R.string.settings_shuffle_default_desc),
                 checked         = shuffleEnabled,
                 onCheckedChange = onShuffleChange
             )
             RowDivider()
             Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("Repetición", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium))
+                Text(stringResource(R.string.settings_repeat), style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium))
                 SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                     SegmentedButton(
                         selected = repeatMode == NexoraRepeatMode.OFF,
                         onClick = { onRepeatModeChange(NexoraRepeatMode.OFF) },
                         shape = SegmentedButtonDefaults.itemShape(0, 3)
-                    ) { Text("Off", fontSize = 13.sp) }
+                    ) { Text(stringResource(R.string.repeat_off), fontSize = 13.sp) }
                     SegmentedButton(
                         selected = repeatMode == NexoraRepeatMode.ONE,
                         onClick = { onRepeatModeChange(NexoraRepeatMode.ONE) },
                         shape = SegmentedButtonDefaults.itemShape(1, 3)
-                    ) { Text("Una", fontSize = 13.sp) }
+                    ) { Text(stringResource(R.string.repeat_one), fontSize = 13.sp) }
                     SegmentedButton(
                         selected = repeatMode == NexoraRepeatMode.ALL,
                         onClick = { onRepeatModeChange(NexoraRepeatMode.ALL) },
                         shape = SegmentedButtonDefaults.itemShape(2, 3)
-                    ) { Text("Todo", fontSize = 13.sp) }
+                    ) { Text(stringResource(R.string.repeat_all), fontSize = 13.sp) }
                 }
             }
             RowDivider()
             SettingsToggleRow(
                 icon            = Icons.Filled.MusicNote,
                 iconColor       = Color(0xFF0A84FF),
-                title           = "Reanudar reproducción",
-                subtitle        = "Recupera la lista, la canción y la posición al volver a abrir la app.",
+                title           = stringResource(R.string.settings_resume_playback),
+                subtitle        = stringResource(R.string.settings_resume_playback_desc),
                 checked         = resumePlaybackEnabled,
                 onCheckedChange = onResumePlaybackChange
             )
@@ -383,14 +249,14 @@ fun SettingsScreen(
             SettingsToggleRow(
                 icon            = Icons.Filled.Translate,
                 iconColor       = Color(0xFFFF9500),
-                title           = "Crossfade",
-                subtitle        = "Aplica una transición suave entre canciones.",
+                title           = stringResource(R.string.settings_crossfade),
+                subtitle        = stringResource(R.string.settings_crossfade_desc),
                 checked         = crossfadeEnabled,
                 onCheckedChange = onCrossfadeChange
             )
             if (crossfadeEnabled) {
                 Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp)) {
-                    Text("Duración: ${crossfadeDurationMs} ms", style = MaterialTheme.typography.bodyMedium)
+                    Text(stringResource(R.string.settings_duration_ms, crossfadeDurationMs), style = MaterialTheme.typography.bodyMedium)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         listOf(600, 900, 1200, 1800).forEach { value ->
                             FilledTonalButton(onClick = { onCrossfadeDurationChange(value) }) {
@@ -404,8 +270,16 @@ fun SettingsScreen(
             SettingsToggleRow(
                 icon            = Icons.Filled.Lock,
                 iconColor       = Color(0xFF5856D6),
-                title           = "Sleep timer",
-                subtitle        = if (sleepTimerEnabled) { if (sleepTimerStopAtEndOfTrack) "Activo: al terminar la canción" else "Activo: ${sleepTimerMinutes} min" } else "Apaga la reproducción tras un tiempo definido.",
+                title           = stringResource(R.string.settings_sleep_timer),
+                subtitle        = if (sleepTimerEnabled) {
+                    if (sleepTimerStopAtEndOfTrack) {
+                        stringResource(R.string.settings_sleep_active_end_track)
+                    } else {
+                        stringResource(R.string.settings_sleep_active_minutes, sleepTimerMinutes)
+                    }
+                } else {
+                    stringResource(R.string.settings_sleep_desc)
+                },
                 checked         = sleepTimerEnabled,
                 onCheckedChange = { enabled ->
                     if (enabled) onStartSleepTimer(sleepTimerMinutes) else onCancelSleepTimer()
@@ -422,16 +296,16 @@ fun SettingsScreen(
                     }
                     Spacer(Modifier.height(8.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        FilledTonalButton(onClick = onStartSleepTimerAtEndOfTrack) { Text("Al terminar canción") }
-                        TextButton(onClick = onCancelSleepTimer) { Text("Desactivar") }
+                        FilledTonalButton(onClick = onStartSleepTimerAtEndOfTrack) { Text(stringResource(R.string.settings_sleep_end_song)) }
+                        TextButton(onClick = onCancelSleepTimer) { Text(stringResource(R.string.settings_disable)) }
                     }
                 }
             }
             RowDivider()
             Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp)) {
-                Text("Carpetas ocultas", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium))
+                Text(stringResource(R.string.settings_hidden_folders), style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium))
                 Text(
-                    if (hiddenFolders.isEmpty()) "No hay carpetas ocultas" else hiddenFolders.joinToString(" • "),
+                    if (hiddenFolders.isEmpty()) stringResource(R.string.settings_no_hidden_folders) else hiddenFolders.joinToString(" • "),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 2,
@@ -439,9 +313,9 @@ fun SettingsScreen(
                 )
                 Spacer(Modifier.height(10.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilledTonalButton(onClick = onOpenFolderManager) { Text("Gestionar") }
+                    FilledTonalButton(onClick = onOpenFolderManager) { Text(stringResource(R.string.settings_manage)) }
                     if (hiddenFolders.isNotEmpty()) {
-                        OutlinedButton(onClick = onClearHiddenFolders) { Text("Limpiar") }
+                        OutlinedButton(onClick = onClearHiddenFolders) { Text(stringResource(R.string.settings_clean)) }
                     }
                 }
             }
@@ -450,13 +324,13 @@ fun SettingsScreen(
         // ════════════════════════════════════════════════════════════════════
         // LETRAS Y AUDIO
         // ════════════════════════════════════════════════════════════════════
-        SectionHeader("LETRAS Y AUDIO")
+        SectionHeader(stringResource(R.string.section_lyrics_audio))
         SettingsGroup {
             SettingsToggleRow(
                 icon            = Icons.Filled.Translate,
                 iconColor       = Color(0xFF34C759),
-                title           = "Traducir letras automáticamente",
-                subtitle        = "Si la letra coincide con el idioma de la app o del sistema, no se traduce.",
+                title           = stringResource(R.string.settings_translate_lyrics_auto),
+                subtitle        = stringResource(R.string.settings_translate_lyrics_auto_desc),
                 checked         = lyricsTranslationEnabled,
                 onCheckedChange = onLyricsTranslationChange
             )
@@ -466,8 +340,8 @@ fun SettingsScreen(
             SettingsToggleRow(
                 icon            = Icons.Filled.VolumeUp,
                 iconColor       = Color(0xFF5856D6),
-                title           = "Volumen ampliado",
-                subtitle        = "Sube el nivel por encima del sistema. Puede distorsionar el audio o dañar altavoces y oído.",
+                title           = stringResource(R.string.settings_volume_boost),
+                subtitle        = stringResource(R.string.settings_volume_boost_desc),
                 checked         = volumeBoostEnabled,
                 onCheckedChange = onVolumeBoostChange
             )
@@ -477,8 +351,8 @@ fun SettingsScreen(
             SettingsToggleRow(
                 icon            = Icons.Filled.NotificationsActive,
                 iconColor       = Color(0xFF007AFF),
-                title           = "Avisar cuando haya nuevos archivos",
-                subtitle        = "Muestra una notificación cuando cambie la música o los videos disponibles.",
+                title           = stringResource(R.string.settings_library_notifications),
+                subtitle        = stringResource(R.string.settings_library_notifications_desc),
                 checked         = libraryChangeNotificationsEnabled,
                 onCheckedChange = onLibraryChangeNotificationsChange
             )
@@ -487,16 +361,16 @@ fun SettingsScreen(
         // ════════════════════════════════════════════════════════════════════
         // BIBLIOTECA
         // ════════════════════════════════════════════════════════════════════
-        SectionHeader("BIBLIOTECA")
+        SectionHeader(stringResource(R.string.section_library))
         SettingsGroup {
             SettingsToggleRow(
                 icon            = Icons.Filled.Search,
                 iconColor       = Color(0xFF30B0C7),
-                title           = "Búsqueda en línea",
+                title           = stringResource(R.string.settings_online_search),
                 subtitle        = if (onlineMusicSearchEnabled)
-                                      "Online activado. Se usarán datos de internet."
+                                      stringResource(R.string.settings_online_enabled)
                                   else
-                                      "Desactivado. Solo datos locales.",
+                                      stringResource(R.string.settings_online_disabled),
                 checked         = onlineMusicSearchEnabled,
                 onCheckedChange = onOnlineMusicSearchChange
             )
@@ -522,9 +396,9 @@ fun SettingsScreen(
                     )
                     Text(
                         if (hiddenAudioCount == 0)
-                            "No hay canciones ocultas"
+                            stringResource(R.string.settings_no_hidden_songs)
                         else
-                            "$hiddenAudioCount canción${if (hiddenAudioCount != 1) "es" else ""} oculta${if (hiddenAudioCount != 1) "s" else ""}",
+                            stringResource(R.string.settings_hidden_songs_count, hiddenAudioCount),
                         style = MaterialTheme.typography.bodySmall,
                         color = if (hiddenAudioCount > 0)
                                     Color(0xFFFF3B30).copy(alpha = 0.80f)
@@ -545,7 +419,7 @@ fun SettingsScreen(
         // ════════════════════════════════════════════════════════════════════
         // SOBRE LA APP
         // ════════════════════════════════════════════════════════════════════
-        SectionHeader("SOBRE LA APP")
+        SectionHeader(stringResource(R.string.section_about_app))
         SettingsGroup {
             // App identity block — compact, no empty space
             Column(
@@ -589,7 +463,7 @@ fun SettingsScreen(
             SettingsInfoRow(
                 icon      = Icons.Filled.Person,
                 iconColor = Color(0xFF34C759),
-                title     = "Desarrollador",
+                title     = stringResource(R.string.settings_developer),
                 value     = "Ghost Developer"
             )
 
@@ -620,8 +494,8 @@ fun SettingsScreen(
             SettingsLinkRow(
                 icon      = Icons.Filled.Share,
                 iconColor = Color(0xFFFF9500),
-                title     = "Compártenos",
-                subtitle  = "Comparte el enlace oficial de descarga desde nexoraplayer.vercel.app.",
+                title     = stringResource(R.string.settings_share_title),
+                subtitle  = stringResource(R.string.settings_share_desc),
                 onClick   = { shareNexoraPlayer(context, shareUrl) }
             )
 
@@ -630,8 +504,8 @@ fun SettingsScreen(
             SettingsLinkRow(
                 icon      = Icons.Filled.SystemUpdate,
                 iconColor = Color(0xFF0A84FF),
-                title     = if (updateChecking) "Buscando actualización…" else "Buscar actualización",
-                subtitle  = updateError ?: "Consulta el servidor oficial para detectar versiones nuevas.",
+                title     = if (updateChecking) stringResource(R.string.settings_update_checking) else stringResource(R.string.settings_update_check),
+                subtitle  = updateError ?: stringResource(R.string.settings_update_desc),
                 onClick   = onCheckUpdates
             )
 
@@ -640,8 +514,8 @@ fun SettingsScreen(
             SettingsLinkRow(
                 icon      = Icons.Filled.NotificationsActive,
                 iconColor = Color(0xFF34C759),
-                title     = "Novedades y avisos",
-                subtitle  = "Centro interno con versiones, funciones nuevas y mensajes del servidor.",
+                title     = stringResource(R.string.settings_news_title),
+                subtitle  = stringResource(R.string.settings_news_desc),
                 onClick   = onOpenNotificationCenter
             )
 
@@ -650,8 +524,8 @@ fun SettingsScreen(
             SettingsLinkRow(
                 icon      = Icons.Filled.Insights,
                 iconColor = Color(0xFFFF2D55),
-                title     = "Estadísticas de uso",
-                subtitle  = "Canciones más escuchadas, artistas, álbumes y minutos reproducidos.",
+                title     = stringResource(R.string.settings_stats_title),
+                subtitle  = stringResource(R.string.settings_stats_desc),
                 onClick   = onOpenStats
             )
 
@@ -660,8 +534,8 @@ fun SettingsScreen(
             SettingsLinkRow(
                 icon      = Icons.Filled.Widgets,
                 iconColor = Color(0xFFAF52DE),
-                title     = "Widget para inicio",
-                subtitle  = "Mantén presionada la pantalla de inicio > Widgets > Nexora Player.",
+                title     = stringResource(R.string.settings_widget_title),
+                subtitle  = stringResource(R.string.settings_widget_desc),
                 onClick   = { }
             )
 
@@ -669,7 +543,7 @@ fun SettingsScreen(
 
             // Copyright footer inside the card
             Text(
-                text      = "© 2025 NexoraPlayer · Todos los derechos reservados",
+                text      = stringResource(R.string.settings_copyright),
                 style     = MaterialTheme.typography.labelSmall,
                 color     = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
                 textAlign = TextAlign.Center,
@@ -682,21 +556,21 @@ fun SettingsScreen(
         // ════════════════════════════════════════════════════════════════════
         // LEGAL
         // ════════════════════════════════════════════════════════════════════
-        SectionHeader("LEGAL")
+        SectionHeader(stringResource(R.string.section_legal))
         SettingsGroup {
             SettingsLinkRow(
                 icon      = Icons.Filled.Gavel,
                 iconColor = Color(0xFF5856D6),
-                title     = "Términos y condiciones",
-                subtitle  = "Ver los términos de uso de la app",
+                title     = stringResource(R.string.legal_terms_title),
+                subtitle  = stringResource(R.string.legal_terms_desc),
                 onClick   = { showTerms.value = true }
             )
             RowDivider()
             SettingsLinkRow(
                 icon      = Icons.Filled.Lock,
                 iconColor = Color(0xFF34C759),
-                title     = "Política de privacidad",
-                subtitle  = "Cómo manejamos tu información",
+                title     = stringResource(R.string.legal_privacy_title),
+                subtitle  = stringResource(R.string.legal_privacy_desc),
                 onClick   = { showPrivacy.value = true }
             )
         }
@@ -704,7 +578,7 @@ fun SettingsScreen(
         // ════════════════════════════════════════════════════════════════════
         // ESTADO
         // ════════════════════════════════════════════════════════════════════
-        SectionHeader("ESTADO")
+        SectionHeader(stringResource(R.string.section_status))
         SettingsGroup {
             Column(
                 modifier = Modifier
@@ -752,11 +626,11 @@ fun SettingsScreen(
         Dialog(onDismissRequest = { showFolderSheet.value = false }) {
             Surface(shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surface) {
                 Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("Gestionar carpetas ocultas", style = MaterialTheme.typography.titleMedium)
+                    Text(stringResource(R.string.hidden_folders_manage_title), style = MaterialTheme.typography.titleMedium)
                     OutlinedTextField(
                         value = folderInput.value,
                         onValueChange = { folderInput.value = it },
-                        label = { Text("Ruta de carpeta") },
+                        label = { Text(stringResource(R.string.hidden_folder_path)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -766,15 +640,15 @@ fun SettingsScreen(
                                 onAddHiddenFolder(folderInput.value)
                                 folderInput.value = ""
                             }
-                        }) { Text("Ocultar") }
-                        OutlinedButton(onClick = { showFolderSheet.value = false }) { Text("Cerrar") }
+                        }) { Text(stringResource(R.string.hidden_folder_hide)) }
+                        OutlinedButton(onClick = { showFolderSheet.value = false }) { Text(stringResource(R.string.close)) }
                     }
                     if (hiddenFolders.isNotEmpty()) {
                         LazyColumn(modifier = Modifier.heightIn(max = 240.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             items(hiddenFolders, key = { it }) { folder ->
                                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                                     Text(folder, modifier = Modifier.weight(1f), maxLines = 2, overflow = TextOverflow.Ellipsis)
-                                    TextButton(onClick = { onRemoveHiddenFolder(folder) }) { Text("Quitar") }
+                                    TextButton(onClick = { onRemoveHiddenFolder(folder) }) { Text(stringResource(R.string.hidden_folder_remove)) }
                                 }
                             }
                         }
@@ -787,8 +661,8 @@ fun SettingsScreen(
     // ── Terms & Conditions full-screen dialog ────────────────────────────────
     if (showTerms.value) {
         LegalViewerDialog(
-            title     = "Términos y condiciones",
-            content   = TERMS_TEXT,
+            title     = stringResource(R.string.legal_terms_title),
+            content   = stringResource(R.string.legal_terms_text),
             onDismiss = { showTerms.value = false }
         )
     }
@@ -796,8 +670,8 @@ fun SettingsScreen(
     // ── Privacy Policy full-screen dialog ───────────────────────────────────
     if (showPrivacy.value) {
         LegalViewerDialog(
-            title     = "Política de privacidad",
-            content   = PRIVACY_TEXT,
+            title     = stringResource(R.string.legal_privacy_title),
+            content   = stringResource(R.string.legal_privacy_text),
             onDismiss = { showPrivacy.value = false }
         )
     }
@@ -834,18 +708,18 @@ private fun HiddenAudioSheet(
             ) {
                 Column {
                     Text(
-                        "Canciones ocultas",
+                        stringResource(R.string.hidden_audio_title),
                         style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                     )
                     Text(
-                        "$totalCount canción${if (totalCount != 1) "es" else ""} oculta${if (totalCount != 1) "s" else ""}",
+                        stringResource(R.string.settings_hidden_songs_count, totalCount),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 if (totalCount > 1) {
                     TextButton(onClick = onRestoreAll) {
-                        Text("Restaurar todas",
+                        Text(stringResource(R.string.hidden_audio_restore_all),
                             color = Color(0xFFFF3B30),
                             style = MaterialTheme.typography.labelLarge)
                     }
@@ -874,7 +748,7 @@ private fun HiddenAudioSheet(
                             tint     = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            "$totalCount canción${if (totalCount != 1) "es" else ""} ocult${if (totalCount != 1) "as" else "a"}",
+                            stringResource(R.string.settings_hidden_songs_count, totalCount),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -887,14 +761,14 @@ private fun HiddenAudioSheet(
                         ) {
                             Icon(Icons.Filled.RestoreFromTrash, null, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(6.dp))
-                            Text("Restaurar todas")
+                            Text(stringResource(R.string.hidden_audio_restore_all))
                         }
                     }
                 }
             } else {
                 // Detailed list — each song individually restorable
                 Text(
-                    "Toca una canción para volver a mostrarla en tu biblioteca.",
+                    stringResource(R.string.hidden_audio_restore_hint),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = 8.dp)
@@ -949,7 +823,7 @@ private fun HiddenSongRow(
             }
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    item.title.ifBlank { "Canción desconocida" },
+                    item.title.ifBlank { stringResource(R.string.hidden_audio_unknown_song) },
                     style    = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -975,7 +849,7 @@ private fun HiddenSongRow(
                 Icon(Icons.Filled.RestoreFromTrash, null,
                     modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(4.dp))
-                Text("Mostrar", fontSize = 12.sp)
+                Text(stringResource(R.string.hidden_audio_show), fontSize = 12.sp)
             }
         }
     }
@@ -1012,7 +886,7 @@ private fun LegalViewerDialog(
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         IconButton(onClick = onDismiss) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver")
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back))
                         }
                         Text(
                             title,
@@ -1191,11 +1065,11 @@ private fun SettingsLinkRow(
 
 private fun shareNexoraPlayer(context: Context, downloadUrl: String) {
     val safeUrl = downloadUrl.ifBlank { "https://nexoraplayer.vercel.app" }
-    val message = NexoraShareText.build(safeUrl)
+    val message = NexoraShareText.build(context, safeUrl)
     val intent = Intent(Intent.ACTION_SEND).apply {
         type = "text/plain"
         putExtra(Intent.EXTRA_SUBJECT, "NexoraPlayer")
         putExtra(Intent.EXTRA_TEXT, message)
     }
-    context.startActivity(Intent.createChooser(intent, "Compartir NexoraPlayer"))
+    context.startActivity(Intent.createChooser(intent, context.getString(R.string.action_share_nexora)))
 }

@@ -159,6 +159,14 @@ object PlayerEngine {
         updateSnapshot(player)
     }
 
+    fun currentPositionMs(): Long {
+        return player?.currentPosition?.coerceAtLeast(0L) ?: 0L
+    }
+
+    fun currentDurationMs(): Long {
+        return player?.duration?.takeIf { it > 0L } ?: 0L
+    }
+
     fun removeAt(context: Context, index: Int) {
         val player = get(context)
         if (index in 0 until player.mediaItemCount) {

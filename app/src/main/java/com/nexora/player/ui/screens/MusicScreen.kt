@@ -308,7 +308,7 @@ fun MusicScreen(
                     QuickPill(
                         icon     = if (favorites.contains(item.id)) Icons.Filled.Favorite
                                    else Icons.Filled.FavoriteBorder,
-                        label    = if (favorites.contains(item.id)) "Favorito" else "Me gusta",
+                        label    = if (favorites.contains(item.id)) stringResource(R.string.music_favorite) else stringResource(R.string.music_like),
                         tint     = if (favorites.contains(item.id)) Color(0xFFFF3B30)
                                    else MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.weight(1f),
@@ -316,7 +316,7 @@ fun MusicScreen(
                     )
                     QuickPill(
                         icon     = Icons.Filled.Share,
-                        label    = "Compartir",
+                        label    = stringResource(R.string.music_share),
                         tint     = Color(0xFF007AFF),
                         modifier = Modifier.weight(1f),
                         onClick  = {
@@ -326,14 +326,14 @@ fun MusicScreen(
                                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                             }
                             context.startActivity(
-                                Intent.createChooser(intent, "Compartir ${item.title}")
+                                Intent.createChooser(intent, stringResource(R.string.music_share_chooser, item.title))
                             )
                             selectedItem = null
                         }
                     )
                     QuickPill(
                         icon     = Icons.Filled.VisibilityOff,
-                        label    = "Ocultar",
+                        label    = stringResource(R.string.music_hide),
                         tint     = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.weight(1f),
                         onClick  = { onHideFromLibrary(item); selectedItem = null }
@@ -341,28 +341,28 @@ fun MusicScreen(
                 }
 
                 // Section: Reproducción
-                SheetSection("REPRODUCCIÓN") {
+                SheetSection(stringResource(R.string.music_playback_section)) {
                     SheetRow(
                         icon     = Icons.Filled.SkipNext,
-                        title    = "Reproducir siguiente",
-                        subtitle = "Se añadirá después de la canción actual",
+                        title    = stringResource(R.string.music_play_next),
+                        subtitle = stringResource(R.string.music_play_next_desc),
                         onClick  = { onPlayNext(item); selectedItem = null }
                     )
                     SheetDivider()
                     SheetRow(
                         icon     = Icons.Filled.QueueMusic,
-                        title    = "Agregar a la cola",
-                        subtitle = "Se pondrá al final de la lista",
+                        title    = stringResource(R.string.music_add_queue),
+                        subtitle = stringResource(R.string.music_add_queue_desc),
                         onClick  = { onAddToQueue(item); selectedItem = null }
                     )
                 }
 
                 // Section: Editar — opens full edit dialog
-                SheetSection("EDITAR") {
+                SheetSection(stringResource(R.string.music_edit_section)) {
                     SheetRow(
                         icon        = Icons.Filled.Edit,
-                        title       = "Editar canción",
-                        subtitle    = "Cambia nombre, artista, álbum y portada",
+                        title       = stringResource(R.string.music_edit_song),
+                        subtitle    = stringResource(R.string.music_edit_song_desc),
                         showChevron = true,
                         onClick     = { showEditDialog = true }
                     )
@@ -370,7 +370,7 @@ fun MusicScreen(
 
                 // Section: Playlists
                 if (playlists.isNotEmpty()) {
-                    SheetSection("AGREGAR A PLAYLIST") {
+                    SheetSection(stringResource(R.string.music_add_to_playlist_section)) {
                         playlists.forEachIndexed { idx, playlist ->
                             SheetRow(
                                 icon    = Icons.Filled.PlaylistAdd,
@@ -393,29 +393,29 @@ fun MusicScreen(
                 }
 
                 // Section: Información inline
-                SheetSection("INFORMACIÓN") {
+                SheetSection(stringResource(R.string.music_info_section)) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp, vertical = 14.dp),
                         verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        InfoLine("Título",   item.title.ifBlank { "Desconocido" })
-                        InfoLine("Artista",  item.artist.ifBlank { "Desconocido" })
-                        InfoLine("Álbum",    item.album.ifBlank { "Sin álbum" })
-                        InfoLine("Duración", formatDuration(item.durationMs))
+                        InfoLine(stringResource(R.string.label_title),   item.title.ifBlank { stringResource(R.string.unknown_artist) })
+                        InfoLine(stringResource(R.string.label_artist),  item.artist.ifBlank { stringResource(R.string.unknown_artist) })
+                        InfoLine(stringResource(R.string.label_album),    item.album.ifBlank { stringResource(R.string.no_album) })
+                        InfoLine(stringResource(R.string.label_duration), formatDuration(item.durationMs))
                         item.folder?.takeIf { it.isNotBlank() }?.let {
-                            InfoLine("Carpeta", it)
+                            InfoLine(stringResource(R.string.music_folder), it)
                         }
                     }
                 }
 
                 // Section: Archivo (destructive zone)
-                SheetSection("ARCHIVO") {
+                SheetSection(stringResource(R.string.music_file_section)) {
                     SheetRow(
                         icon          = Icons.Filled.Delete,
-                        title         = "Eliminar del dispositivo",
-                        subtitle      = "Esta acción no se puede deshacer",
+                        title         = stringResource(R.string.music_delete_device),
+                        subtitle      = stringResource(R.string.music_delete_desc),
                         isDestructive = true,
                         onClick       = { deleteCandidate = item }
                     )
@@ -460,7 +460,7 @@ fun MusicScreen(
             },
             title = {
                 Text(
-                    "Eliminar canción",
+                    stringResource(R.string.music_delete_song),
                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                 )
             },
@@ -500,7 +500,7 @@ fun MusicScreen(
                         }
                     }
                     Text(
-                        "El archivo se borrará permanentemente del dispositivo y se eliminarán todos sus datos de la app.",
+                        stringResource(R.string.music_delete_warning),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -533,7 +533,7 @@ fun MusicScreen(
                         containerColor = MaterialTheme.colorScheme.error
                     ),
                     shape  = RoundedCornerShape(12.dp)
-                ) { Text("Eliminar") }
+                ) { Text(stringResource(R.string.music_delete)) }
             },
             dismissButton = {
                 TextButton(onClick = { deleteCandidate = null }) {

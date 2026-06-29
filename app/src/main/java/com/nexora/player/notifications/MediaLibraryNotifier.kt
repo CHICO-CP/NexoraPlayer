@@ -14,7 +14,6 @@ import com.nexora.player.data.model.MediaKind
 
 object MediaLibraryNotifier {
     private const val CHANNEL_ID = "nexora_library_changes"
-    private const val CHANNEL_NAME = "Nuevos archivos"
     private const val PREFS_NAME = "nexora_media_monitor"
     private const val KEY_AUDIO_MARKER = "audio_marker"
     private const val KEY_VIDEO_MARKER = "video_marker"
@@ -25,10 +24,10 @@ object MediaLibraryNotifier {
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val channel = NotificationChannel(
             CHANNEL_ID,
-            CHANNEL_NAME,
+            context.getString(R.string.notification_library_channel_title),
             NotificationManager.IMPORTANCE_DEFAULT
         ).apply {
-            description = "Avisos cuando se detectan nuevos audios o videos"
+            description = context.getString(R.string.notification_library_channel_desc)
         }
         manager.createNotificationChannel(channel)
     }
@@ -62,13 +61,13 @@ object MediaLibraryNotifier {
 
         val title = when {
             newAudio > 0 && newVideo > 0 -> context.getString(R.string.app_name)
-            newAudio > 0 -> "Nueva música detectada"
-            else -> "Nuevo video detectado"
+            newAudio > 0 -> context.getString(R.string.notification_new_music_detected)
+            else -> context.getString(R.string.notification_new_video_detected)
         }
         val text = when {
-            newAudio > 0 && newVideo > 0 -> "$newAudio audios y $newVideo videos ya están listos en la app."
-            newAudio > 0 -> "$newAudio audios ya están listos en la app."
-            else -> "$newVideo videos ya están listos en la app."
+            newAudio > 0 && newVideo > 0 -> context.getString(R.string.notification_new_audio_video, newAudio, newVideo)
+            newAudio > 0 -> context.getString(R.string.notification_new_audio, newAudio)
+            else -> context.getString(R.string.notification_new_video, newVideo)
         }
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)

@@ -1,0 +1,651 @@
+<resources>
+    <string name="app_name">Nexora Player</string>
+    <string name="app_tagline">Compact interface, local library, immersive playback.</string>
+    <string name="greeting_morning">Good morning</string>
+    <string name="greeting_afternoon">Good afternoon</string>
+    <string name="greeting_evening">Good evening</string>
+    <string name="search_placeholder">Search music, audio, or videos</string>
+    <string name="search_open">Open search</string>
+    <string name="search_clear">Clear search</string>
+    <string name="search_close">Close search</string>
+    <string name="nav_music">Music</string>
+    <string name="nav_videos">Videos</string>
+    <string name="nav_queue">Queue</string>
+    <string name="nav_playlists">Playlists</string>
+    <string name="nav_favorites">Favorites</string>
+    <string name="nav_history">History</string>
+    <string name="nav_settings">Settings</string>
+    <string name="sort_date_added_desc">Date: newest</string>
+    <string name="sort_date_added_asc">Date: oldest</string>
+    <string name="sort_title_asc">Title A-Z</string>
+    <string name="sort_title_desc">Title Z-A</string>
+    <string name="sort_duration_asc">Duration: short</string>
+    <string name="sort_duration_desc">Duration: long</string>
+    <string name="sort_artist_asc">Artist</string>
+    <string name="sort_album_asc">Album</string>
+    <string name="sort_path_asc">Path: A-Z</string>
+    <string name="sort_path_desc">Path: Z-A</string>
+    <string name="sort_size_asc">Size: small</string>
+    <string name="sort_size_desc">Size: large</string>
+    <string name="sort_resolution_asc">Resolution: low</string>
+    <string name="sort_resolution_desc">Resolution: high</string>
+    <string name="music_library_title">Music library</string>
+    <string name="music_library_description">Compact view with covers, quick actions, and professional ordering.</string>
+    <string name="refresh">Refresh</string>
+    <string name="no_visible_music">There is no visible music in this section.</string>
+    <string name="hidden_tracks_restore_hint">If you hid songs, you can restore them from Settings.</string>
+    <string name="choose_action_for_item">Choose an action for this item.</string>
+    <string name="no_playlists_yet">No playlists have been created yet.</string>
+    <string name="add_to_playlist">Add to playlist</string>
+    <string name="hide_from_library">Hide from library</string>
+    <string name="close">Close</string>
+    <string name="videos_title">Videos</string>
+    <string name="queue_title">Playback queue</string>
+    <string name="clear_queue">Clear</string>
+    <string name="queue_empty">There are no items in the queue yet.</string>
+    <string name="queue_playing">Playing</string>
+    <string name="queue_go_to">Go to</string>
+    <string name="queue_remove">Remove</string>
+    <string name="results_title">Search results</string>
+    <string name="results_empty">No matches for &quot;%1$s&quot;</string>
+    <string name="results_count">%1$d matches found</string>
+    <string name="results_audio_chip">Audio / Audios (%1$d)</string>
+    <string name="results_video_chip">Videos (%1$d)</string>
+    <string name="playlists_new">New playlist</string>
+    <string name="playlists_created_on">Created: %1$s</string>
+    <string name="playlists_delete">Delete</string>
+    <string name="playlists_create_dialog_title">Create playlist</string>
+    <string name="playlists_name_hint">Name</string>
+    <string name="playlists_create">Create</string>
+    <string name="playlists_cancel">Cancel</string>
+    <string name="notification_channel_playback_title">Nexora Playback</string>
+    <string name="notification_channel_playback_desc">Multimedia playback controls</string>
+    <string name="notification_subtitle_playing">Playing</string>
+    <string name="settings_title">Настройки</string>
+    <string name="settings_theme">Theme</string>
+    <string name="settings_system">System</string>
+    <string name="settings_light">Light</string>
+    <string name="settings_dark">Dark</string>
+    <string name="settings_dynamic_color">Dynamic color</string>
+    <string name="settings_dynamic_color_desc">Matches the device color scheme.</string>
+    <string name="settings_language">App language</string>
+    <string name="language_system">Система</string>
+    <string name="language_spanish">Испанский</string>
+    <string name="language_english">Английский</string>
+    <string name="settings_library_privacy">Library and privacy</string>
+    <string name="settings_hidden_audio_count">Hidden songs: %1$d</string>
+    <string name="settings_hidden_audio_desc">Hidden tracks do not appear in the main library or search.</string>
+    <string name="settings_restore_hidden">Restore hidden songs</string>
+    <string name="settings_developer">Developer</string>
+    <string name="settings_developer_identity">Ghost Developer · CHICO-CP</string>
+    <string name="settings_github">GitHub</string>
+    <string name="settings_profile">Telegram</string>
+    <string name="settings_about_show">Show detailed description</string>
+    <string name="settings_about_hide">Hide description</string>
+    <string name="settings_about_title">What the app does</string>
+    <string name="settings_about_line1">Nexora Player organizes the local audio and video library, plays content with Media3 / ExoPlayer, and supports fast search, playlists, favorites, history, and persistent settings.</string>
+    <string name="settings_about_line2">The interface focuses on section-based navigation, compact views, full-screen video playback, and a now-playing style audio screen.</string>
+    <string name="settings_about_line3">It also includes album art or thumbnails when available, brightness and volume gestures in video, and options to hide tracks you do not want to see in the main library.</string>
+    <string name="settings_status_title">Technical status</string>
+    <string name="settings_status_line1">Local persistence: Room + DataStore</string>
+    <string name="settings_status_line2">Playback engine: Media3 / ExoPlayer</string>
+    <string name="settings_status_line3">Ready for playlists, favorites, history, and a more advanced UI.</string>
+    <string name="settings_free_notice">All rights reserved. Nexora Player is free and not for sale.</string>
+    <string name="audio_no_playback">No content is playing</string>
+    <string name="audio_now_playing">Now playing</string>
+    <string name="audio_now_playing_desc">The view opens with artwork, progress, and centered controls for a cleaner and more professional reading experience.</string>
+    <string name="video_no_playback">No video is playing</string>
+    <string name="video_gestures_title">Quick gestures</string>
+    <string name="video_gestures_desc">Swipe left for brightness and right for volume. The viewer stays truly full screen.</string>
+    <string name="video_local_label">Local video</string>
+    <string name="player_previous">Previous</string>
+    <string name="player_next">Next</string>
+    <string name="player_play">Play</string>
+    <string name="player_pause">Pause</string>
+    <string name="action_previous">Previous</string>
+    <string name="action_play">Play</string>
+    <string name="action_pause">Pause</string>
+    <string name="action_next">Next</string>
+    <string name="action_stop">Close</string>
+    <string name="sort_selector_open">Change order</string>
+    <string name="sort_selector_close">Close order menu</string>
+    <string name="media_more_actions">More actions</string>
+    <string name="media_favorite_add">Add to favorites</string>
+    <string name="media_favorite_remove">Remove from favorites</string>
+    <string name="media_artwork_audio">Audio artwork</string>
+    <string name="media_artwork_video">Video thumbnail</string>
+    <string name="lyrics_title">Lyrics</string>
+    <string name="lyrics_tab_lyrics">Lyrics</string>
+    <string name="lyrics_tab_queue">Queue</string>
+    <string name="lyrics_loading">Loading lyrics…</string>
+    <string name="lyrics_empty_title">No lyrics yet</string>
+    <string name="lyrics_empty_body">You can search automatically, paste them manually, or save them locally for offline use.</string>
+    <string name="lyrics_search_online">Search lyrics</string>
+    <string name="lyrics_edit_manual">Edit manually</string>
+    <string name="lyrics_editor_title">Lyrics editor</string>
+    <string name="lyrics_editor_subtitle">Paste any lyrics, select a line, and mark the current time to sync it.</string>
+    <string name="lyrics_editor_input_label">Free text or LRC lyrics</string>
+    <string name="lyrics_editor_export_lrc">Also save as .lrc when possible</string>
+    <string name="lyrics_mark_time">Mark current time</string>
+    <string name="queue_next">Up next</string>
+    <string name="queue_empty_short">There are no more items in the queue.</string>
+    <string name="save">Save</string>
+    <string name="widget_description">Nexora Player widget with artwork, lyrics and controls</string>
+    <string name="language_french">Французский</string>
+    <string name="language_portuguese">Португальский</string>
+    <string name="language_german">Немецкий</string>
+    <string name="language_italian">Итальянский</string>
+    <string name="language_japanese">Японский</string>
+    <string name="language_korean">Корейский</string>
+    <string name="language_chinese">Китайский</string>
+    <string name="language_russian">Русский</string>
+    <string name="language_arabic">Арабский</string>
+    <string name="language_hindi">Хинди</string>
+    <string name="language_indonesian">Индонезийский</string>
+    <string name="language_turkish">Турецкий</string>
+    <string name="language_screen_title">Язык</string>
+    <string name="language_screen_subtitle">Выберите язык Nexora Player</string>
+    <string name="language_subtitle_system">Uses the main language configured in Android.</string>
+    <string name="language_subtitle_spanish">Complete interface in Spanish.</string>
+    <string name="language_subtitle_english">English interface for Nexora Player.</string>
+    <string name="language_subtitle_french">French interface for Nexora Player.</string>
+    <string name="language_subtitle_portuguese">Portuguese interface for Nexora Player.</string>
+    <string name="language_subtitle_german">German interface for Nexora Player.</string>
+    <string name="language_subtitle_italian">Italian interface for Nexora Player.</string>
+    <string name="language_subtitle_japanese">Japanese interface for Nexora Player.</string>
+    <string name="language_subtitle_korean">Korean interface for Nexora Player.</string>
+    <string name="language_subtitle_chinese">Chinese interface for Nexora Player.</string>
+    <string name="language_subtitle_russian">Russian interface for Nexora Player.</string>
+    <string name="language_subtitle_arabic">Arabic interface for Nexora Player.</string>
+    <string name="language_subtitle_hindi">Hindi interface for Nexora Player.</string>
+    <string name="language_subtitle_indonesian">Indonesian interface for Nexora Player.</string>
+    <string name="language_subtitle_turkish">Turkish interface for Nexora Player.</string>
+    <string name="language_selected">Selected</string>
+    <string name="theme_system">System</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+    <string name="theme_nexora_dark">Nexora Dark</string>
+    <string name="theme_ios_light">iOS Light</string>
+    <string name="theme_amoled_black">AMOLED Black</string>
+    <string name="theme_flamingo">Flamingo</string>
+    <string name="theme_neon">Neon</string>
+    <string name="theme_material_you">Material You</string>
+    <string name="theme_desc_system">Uses the theme configured in Android.</string>
+    <string name="theme_desc_ios_light">Clean, bright, iOS-style interface.</string>
+    <string name="theme_desc_nexora_dark">Deep, elegant dark mode.</string>
+    <string name="theme_desc_amoled_black">Pure black for OLED screens.</string>
+    <string name="theme_desc_flamingo">Warm, modern and visual.</string>
+    <string name="theme_desc_neon">Vivid contrast for night sessions.</string>
+    <string name="theme_desc_material_you">Dynamic system colors.</string>
+    <string name="theme_screen_title">Themes</string>
+    <string name="theme_screen_subtitle">Choose Nexora Player’s visual style.</string>
+    <string name="theme_dynamic_automatic">Automatic Material You</string>
+    <string name="theme_dynamic_on">Dynamic colors are enabled.</string>
+    <string name="theme_dynamic_off">Enable system colors when available.</string>
+    <string name="section_personalization">PERSONALIZATION</string>
+    <string name="section_playback_folders">PLAYBACK AND FOLDERS</string>
+    <string name="section_lyrics_audio">LYRICS AND AUDIO</string>
+    <string name="section_library">LIBRARY</string>
+    <string name="section_about_app">ABOUT THE APP</string>
+    <string name="section_legal">LEGAL</string>
+    <string name="section_status">STATUS</string>
+    <string name="settings_language_current">Current language: %1$s. Tap to open language selection.</string>
+    <string name="settings_theme_current">Current theme: %1$s. Tap to open the theme gallery.</string>
+    <string name="settings_shuffle_default">Default shuffle</string>
+    <string name="settings_shuffle_default_desc">Enables shuffle when starting lists and albums.</string>
+    <string name="settings_repeat">Repeat</string>
+    <string name="repeat_off">Off</string>
+    <string name="repeat_one">One</string>
+    <string name="repeat_all">All</string>
+    <string name="settings_resume_playback">Resume playback</string>
+    <string name="settings_resume_playback_desc">Restores the list, song and position when reopening the app.</string>
+    <string name="settings_crossfade_desc">Applies a smooth transition between songs.</string>
+    <string name="settings_duration_ms">Duration: %1$d ms</string>
+    <string name="settings_sleep_timer">Sleep timer</string>
+    <string name="settings_sleep_active_end_track">Active: at the end of the song</string>
+    <string name="settings_sleep_active_minutes">Active: %1$d min</string>
+    <string name="settings_sleep_desc">Turns playback off after a defined time.</string>
+    <string name="settings_sleep_end_song">At song end</string>
+    <string name="settings_disable">Disable</string>
+    <string name="settings_hidden_folders">Hidden folders</string>
+    <string name="settings_no_hidden_folders">No hidden folders</string>
+    <string name="settings_manage">Manage</string>
+    <string name="settings_clean">Clear</string>
+    <string name="settings_translate_lyrics_auto">Translate lyrics automatically</string>
+    <string name="settings_translate_lyrics_auto_desc">If the lyrics match the app or system language, they are not translated.</string>
+    <string name="settings_volume_boost">Expanded volume</string>
+    <string name="settings_volume_boost_desc">Raises the level above the system. It may distort audio or damage speakers and hearing.</string>
+    <string name="settings_library_notifications">Notify when new files appear</string>
+    <string name="settings_library_notifications_desc">Shows a notification when available music or videos change.</string>
+    <string name="settings_online_search">Online search</string>
+    <string name="settings_online_enabled">Online enabled. Internet data will be used.</string>
+    <string name="settings_online_disabled">Disabled. Local data only.</string>
+    <string name="settings_no_hidden_songs">No hidden songs</string>
+    <string name="settings_hidden_songs_count">%1$d hidden songs</string>
+    <string name="settings_share_title">Share us</string>
+    <string name="settings_share_desc">Share the official download link from nexoraplayer.vercel.app.</string>
+    <string name="settings_update_checking">Checking for update…</string>
+    <string name="settings_update_check">Check for update</string>
+    <string name="settings_update_desc">Checks the official server for new versions.</string>
+    <string name="settings_news_title">News and notices</string>
+    <string name="settings_news_desc">Internal center with versions, new features and server messages.</string>
+    <string name="settings_stats_title">Usage statistics</string>
+    <string name="settings_stats_desc">Most played songs, artists, albums and playback minutes.</string>
+    <string name="settings_widget_title">Home widget</string>
+    <string name="settings_widget_desc">Long-press the home screen &gt; Widgets &gt; Nexora Player.</string>
+    <string name="settings_copyright">© 2025 NexoraPlayer · All rights reserved</string>
+    <string name="legal_terms_title">Terms and conditions</string>
+    <string name="legal_terms_desc">View the app terms of use</string>
+    <string name="legal_privacy_title">Privacy policy</string>
+    <string name="legal_privacy_desc">How we handle your information</string>
+    <string name="hidden_folders_manage_title">Manage hidden folders</string>
+    <string name="hidden_folder_path">Folder path</string>
+    <string name="hidden_folder_hide">Hide</string>
+    <string name="hidden_folder_remove">Remove</string>
+    <string name="hidden_audio_title">Hidden songs</string>
+    <string name="hidden_audio_restore_all">Restore all</string>
+    <string name="hidden_audio_restore_hint">Tap a song to show it in your library again.</string>
+    <string name="hidden_audio_unknown_song">Unknown song</string>
+    <string name="hidden_audio_show">Show</string>
+    <string name="action_back">Back</string>
+    <string name="action_share_nexora">Share NexoraPlayer</string>
+    <string name="legal_terms_text" formatted="false">TERMS AND CONDITIONS OF NEXORAPLAYER
+Last updated: 2025
+
+1. ACCEPTANCE
+By downloading, installing or using NexoraPlayer, you fully accept these terms. If you do not agree with any part, please uninstall the application.
+
+2. PERMITTED USE
+NexoraPlayer is designed only to play multimedia files stored locally on your device. It is strictly prohibited to:
+• Play, distribute or store content that infringes copyright.
+• Use the application for illegal purposes or in violation of your country’s laws.
+• Try to modify, decompile or reverse engineer the application code.
+
+3. USER CONTENT
+All multimedia content you play is your sole responsibility. NexoraPlayer does not store, distribute, monetize or remotely access any of your files. Your library remains completely on your device.
+
+4. ONLINE LYRICS FEATURE
+Lyrics search accesses third-party services. This feature is fully optional. We do not guarantee the accuracy, permanent availability or legality of content obtained from external services. Downloaded lyrics must be used respecting the applicable copyright.
+
+5. UPDATES AND CHANGES
+The developer may update, modify or discontinue NexoraPlayer at any time without prior notice. Updates may change existing features or add new terms of use.
+
+6. LIMITATION OF LIABILITY
+NexoraPlayer is provided “as is”, without warranties of any kind, express or implied. The developer is not responsible for:
+• Loss or damage to device files.
+• Playback failures or compatibility with specific formats.
+• Content from third-party services.
+• Any direct, indirect or consequential damage arising from use of the app.
+
+7. INTELLECTUAL PROPERTY
+The source code, design, interface and name of NexoraPlayer are property of Ghost Developer. Reproduction or distribution without the developer’s express written authorization is prohibited.
+
+8. APPLICABLE LAW
+These terms are governed by the applicable laws in the user’s country of residence. Any dispute will be resolved by the competent courts.
+
+9. CONTACT
+For questions about these terms:
+Telegram: t.me/Gh0stDeveloper
+GitHub: github.com/Gh0stDeveloper
+
+© 2025 NexoraPlayer · Ghost Developer
+All rights reserved.</string>
+    <string name="legal_privacy_text" formatted="false">NEXORAPLAYER PRIVACY POLICY
+Last updated: 2025
+
+At NexoraPlayer your privacy is a priority. This policy clearly explains what information is used, how and why.
+
+──────────────────────────────────────
+WHAT DATA DO WE COLLECT?
+──────────────────────────────────────
+NexoraPlayer does NOT collect:
+• Name, email, phone number or any personally identifiable data.
+• Playback history or song lists.
+• Geographic location data.
+• Contact information or other installed apps.
+• Advertising identifiers or behavior analytics.
+
+──────────────────────────────────────
+ACCESS TO DEVICE FILES
+──────────────────────────────────────
+The application requests storage read permission only to list and play the audio and video files you choose. These files:
+• Are never transmitted to external servers.
+• Are not shared with third parties.
+• Remain fully under your control.
+
+──────────────────────────────────────
+ONLINE LYRICS (OPTIONAL)
+──────────────────────────────────────
+When you manually enable lyrics search, the song title and artist name are sent to third-party services to retrieve results. This means:
+• We do not send information to our own servers.
+• We do not link these searches to your identity.
+• We do not store a history of your lyric searches.
+This feature is completely optional and can be disabled at any time from settings.
+
+──────────────────────────────────────
+EQUALIZER AND AUDIO
+──────────────────────────────────────
+The equalizer and all audio processing operate entirely locally on your device. No audio fragment is transmitted to external servers.
+
+──────────────────────────────────────
+REQUIRED PERMISSIONS
+──────────────────────────────────────
+• Read external storage: to access your music and video files.
+• Internet (optional): only for lyrics search when enabled.
+• Notifications: to show playback controls in the notification bar.
+• Foreground service: to keep playback active when the app is minimized.
+
+──────────────────────────────────────
+CHANGES TO THIS POLICY
+──────────────────────────────────────
+Any significant change to this policy will be notified through app updates. By continuing to use NexoraPlayer after an update, you accept the current policy.
+
+──────────────────────────────────────
+CONTACT
+──────────────────────────────────────
+For privacy questions or to exercise your rights:
+Telegram: t.me/Gh0stDeveloper
+GitHub: github.com/Gh0stDeveloper
+
+© 2025 NexoraPlayer · Ghost Developer</string>
+    <string name="update_error_server_query">Could not check the update server</string>
+    <string name="update_required_title">Required update</string>
+    <string name="update_available_title">New version available</string>
+    <string name="update_notice_message">Nexora Player %1$s is now available. %2$s</string>
+    <string name="playlist_most_played">Most played</string>
+    <string name="apk_download_error">Could not download the update.</string>
+    <string name="apk_server_error">The server responded %1$d while downloading the APK. %2$s</string>
+    <string name="apk_downloading">Downloading update…</string>
+    <string name="apk_empty">The downloaded APK is empty or does not exist.</string>
+    <string name="apk_size_mismatch">The APK size does not match the server value.</string>
+    <string name="apk_sha_failed">APK SHA-256 verification failed.</string>
+    <string name="update_server_error">Update server responded %1$d: %2$s</string>
+    <string name="notification_library_channel_title">Nexora Library</string>
+    <string name="notification_library_channel_desc">Alerts when new audio or videos are detected</string>
+    <string name="notification_new_music_detected">New music detected</string>
+    <string name="notification_new_videos_detected">New videos detected</string>
+    <string name="notification_new_media_detected">New media detected</string>
+    <string name="notification_new_audio_video">%1$d audio files and %2$d videos are ready in the app.</string>
+    <string name="notification_new_audio">%1$d audio files are ready in the app.</string>
+    <string name="notification_new_video">%1$d videos are ready in the app.</string>
+    <string name="notification_update_required">Required update %1$s available.</string>
+    <string name="notification_update_available">New version %1$s available to download.</string>
+    <string name="notification_update_title">Nexora Player update</string>
+    <string name="player_preparing">Preparing playback</string>
+    <string name="volume_overlay_boosted">Nexora Volume · %1$d%%</string>
+    <string name="volume_overlay_normal">Volume · %1$d%%</string>
+    <string name="volume_overlay_boosted_desc">Amplified up to 150%%</string>
+    <string name="volume_overlay_normal_desc">System volume intercepted by Nexora</string>
+    <string name="apk_preparing_download">Preparing download…</string>
+    <string name="apk_downloaded_opening">APK downloaded. Opening installer…</string>
+    <string name="apk_authorize_install">Authorize Nexora Player to install updates.</string>
+    <string name="notification_new_video_detected">New video detected</string>
+    <string name="notification_remote_channel_title">Updates and notices</string>
+    <string name="notification_remote_channel_desc">Notices sent from the Nexora Player server</string>
+    <string name="playback_channel_title">Nexora Playback</string>
+    <string name="playback_channel_desc">Music playback controls</string>
+    <string name="settings_crossfade">Crossfade</string>
+    <string name="greeting_caption_morning">Clean morning to listen to your library.</string>
+    <string name="greeting_caption_afternoon">Warm afternoon to keep playing.</string>
+    <string name="greeting_caption_evening">Quiet night for music without noise.</string>
+    <string name="queue_count_in_queue">%1$d songs in the queue</string>
+    <string name="queue_show_playlist">Show playlist</string>
+    <string name="favorites_title">Favorites</string>
+    <string name="favorites_desc">Only songs saved here are played</string>
+    <string name="favorites_count">%1$d songs • %2$s</string>
+    <string name="favorites_play">Play favorites</string>
+    <string name="favorites_empty_title">No favorites yet</string>
+    <string name="favorites_empty_body">Mark songs with the favorite button to see them here and play only that list.</string>
+    <string name="folder_manager_title">Folder management</string>
+    <string name="folders_detected">%1$d folders detected</string>
+    <string name="folder_hide_small">Hide small</string>
+    <string name="restore">Restore</string>
+    <string name="folder_sort_songs">Songs</string>
+    <string name="folder_sort_size">Size</string>
+    <string name="folder_summary">%1$d songs • %2$s</string>
+    <string name="history_title">History</string>
+    <string name="history_empty">No recent plays</string>
+    <string name="history_desc">Your most played and recent songs</string>
+    <string name="notifications_title">News and notices</string>
+    <string name="notifications_subtitle">Server messages and published versions</string>
+    <string name="notifications_empty_title">No pending notices</string>
+    <string name="notifications_empty_body">When the server publishes new features, notices or updates, they will appear here.</string>
+    <string name="notification_new_badge">New</string>
+    <string name="notification_mark_read">Mark as read</string>
+    <string name="notification_recent">Recent</string>
+    <string name="playlist_count">%1$d songs • %2$s</string>
+    <string name="playlist_auto_desc">Read-only automatic playlist based on real plays.</string>
+    <string name="songs_title">Songs</string>
+    <string name="playlist_empty_auto">Not enough plays yet.</string>
+    <string name="playlist_empty_regular">No songs in this playlist yet.</string>
+    <string name="playlist_add_music">Add music</string>
+    <string name="playlist_no_more_songs">No more songs available to add.</string>
+    <string name="unknown_artist">Unknown</string>
+    <string name="no_album">No album</string>
+    <string name="stats_title">Usage statistics</string>
+    <string name="stats_subtitle">Your local playback summary</string>
+    <string name="stats_minutes">Minutes</string>
+    <string name="stats_played">played</string>
+    <string name="stats_items">Items</string>
+    <string name="stats_registered">registered</string>
+    <string name="stats_top_song">Most played song</string>
+    <string name="stats_top_artist">Most played artist</string>
+    <string name="stats_top_album">Favorite album</string>
+    <string name="stats_top_video">Most watched video</string>
+    <string name="stats_no_data">No data yet</string>
+    <string name="stats_play_count">%1$d plays</string>
+    <string name="stats_weekly_monthly">Local weekly/monthly top</string>
+    <string name="stats_data_hint">Data is calculated on-device from your saved plays.</string>
+    <string name="release_required_title">Required update</string>
+    <string name="release_available_title">New version available</string>
+    <string name="release_required_body">This version must be installed to keep using Nexora Player with stability.</string>
+    <string name="release_available_body">A newer version is ready from the official server.</string>
+    <string name="release_date">Published: %1$s</string>
+    <string name="release_recent_title">Recent improvements</string>
+    <string name="release_recent_body">Fixes, new features and optimizations published from the server.</string>
+    <string name="release_note_fallback">Improvement included in this version.</string>
+    <string name="release_preparing">Preparing update…</string>
+    <string name="release_install_permission_hint">After authorizing external installs, tap Download again.</string>
+    <string name="release_open_browser">Open download in browser</string>
+    <string name="release_required_no_later">The “Update later” option is disabled because the server marked this version as required.</string>
+    <string name="release_downloading">Downloading…</string>
+    <string name="release_download">Download</string>
+    <string name="release_later">Update later</string>
+    <string name="folder_ignore_tones">Ignore tones</string>
+    <string name="folder_sort_path">Path</string>
+    <string name="folder_sort_name">Name</string>
+    <string name="action_clean">Clear</string>
+    <string name="action_rename">Rename</string>
+    <string name="action_duplicate">Duplicate</string>
+    <string name="action_export">Export</string>
+    <string name="action_shuffle">Shuffle</string>
+    <string name="action_save">Save</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_remove">Remove</string>
+    <string name="action_move_up">Move up</string>
+    <string name="action_move_down">Move down</string>
+    <string name="playlist_regular_desc">You can edit, duplicate, export and reorder this playlist.</string>
+    <string name="playlist_add_selected">Add selected</string>
+    <string name="playlist_rename_title">Rename playlist</string>
+    <string name="playlist_created_count">%1$d lists · your mixes and collections</string>
+    <string name="playlist_auto_replays_desc">Sorted by real plays</string>
+    <string name="playlist_one_song">1 song</string>
+    <string name="playlist_many_songs">%1$d songs</string>
+    <string name="playlist_delete_desc">Delete playlist</string>
+    <string name="edit_audio_write_cancelled">The user canceled the write operation.</string>
+    <string name="edit_audio_title">Edit song</string>
+    <string name="edit_audio_add_cover">Tap to add cover</string>
+    <string name="edit_audio_remove_cover">Remove cover</string>
+    <string name="edit_audio_file_info">File information</string>
+    <string name="edit_audio_file_info_desc">Changes will be written directly to the audio file.</string>
+    <string name="edit_audio_label_title">Title</string>
+    <string name="edit_audio_label_album">Album</string>
+    <string name="edit_audio_saving">Saving…</string>
+    <string name="edit_audio_save_changes">Save changes</string>
+    <string name="edit_audio_crop_hint">Drag the box to choose the crop area</string>
+    <string name="eq_disabled_saved">Disabled, but saved so you can keep using it later</string>
+    <string name="eq_applied_hint">The configuration remains applied even if you close this screen.</string>
+    <string name="eq_restore_template">Restore template</string>
+    <string name="eq_customization">Customization</string>
+    <string name="action_close">Close</string>
+    <string name="lyrics_no_song">No song</string>
+    <string name="lyrics_pause">Pause</string>
+    <string name="lyrics_save_lrc">Save as .lrc</string>
+    <string name="lyrics_save_lrc_desc">Creates a lyrics file next to the song</string>
+    <string name="lyrics_save_lyrics">Save lyrics</string>
+    <string name="lyrics_sync_hint">Play the song and tap each line at the exact moment it is heard. The timestamp will be marked automatically.</string>
+    <string name="lyrics_text_hint">Write one line per row.</string>
+    <string name="lyrics_example_timed">Timed:  [01:23.00] Lyrics here</string>
+    <string name="lyrics_example_plain">No time:  Lyrics here</string>
+    <string name="lyrics_label">Song lyrics</string>
+    <string name="lyrics_placeholder">Write the lyrics here...
+One line per row
+
+First line
+Second line
+Third line</string>
+    <string name="lyrics_empty_line">(empty line)</string>
+    <string name="audio_remove_favorite">Remove from favorites</string>
+    <string name="audio_add_favorite">Add to favorites</string>
+    <string name="audio_shuffle">Shuffle</string>
+    <string name="audio_repeat">Repeat</string>
+    <string name="audio_boosted_percent">Boosted: %1$d%%</string>
+    <string name="audio_system_percent">System: %1$d%%</string>
+    <string name="lyrics_not_saved">This song has no saved lyrics.</string>
+    <string name="action_search_online">Search online</string>
+    <string name="lyrics_display_both">Showing original and translation</string>
+    <string name="lyrics_change_translation_view">Change translation view</string>
+    <string name="action_add">Add</string>
+    <string name="action_edit">Edit</string>
+    <string name="lyrics_search_or_manual">You can search online or write it manually.</string>
+    <string name="lyrics_add_manual">Add manually</string>
+    <string name="queue_song_count">%1$d song</string>
+    <string name="queue_song_count_plural">%1$d songs</string>
+    <string name="queue_empty_playlist">No songs in the playlist.</string>
+    <string name="label_duration">Duration</string>
+    <string name="label_album">Album</string>
+    <string name="queue_view_playlist">View playlist</string>
+    <string name="queue_next_songs">Next: %1$d songs</string>
+    <string name="music_share">Share</string>
+    <string name="music_hide">Hide</string>
+    <string name="music_playback_section">PLAYBACK</string>
+    <string name="music_play_next">Play next</string>
+    <string name="music_play_next_desc">It will be added after the current song</string>
+    <string name="music_add_queue">Add to queue</string>
+    <string name="music_add_queue_desc">It will be placed at the end of the list</string>
+    <string name="music_edit_song">Edit song</string>
+    <string name="music_edit_song_desc">Change name, artist, album and cover</string>
+    <string name="music_info_section">INFORMATION</string>
+    <string name="label_title">Title</string>
+    <string name="label_artist">Artist</string>
+    <string name="music_delete_song">Delete song</string>
+    <string name="music_delete_desc">This action cannot be undone</string>
+    <string name="music_delete_warning">The file will be permanently deleted from the device and all its app data will be removed.</string>
+    <string name="share_video">Share video</string>
+    <string name="video_rename_title">Rename video</string>
+    <string name="video_list">Video list</string>
+    <string name="video_options">More options</string>
+    <string name="video_rename_file">Rename file</string>
+    <string name="video_external_subtitles">External .srt subtitles</string>
+    <string name="video_aspect_ratio">Ratio: %1$s</string>
+    <string name="video_up_next">Up next</string>
+    <string name="video_hide">Hide video</string>
+    <string name="widget_no_lyrics">Original lyrics not saved</string>
+    <string name="widget_playback">Playback widget</string>
+    <string name="playlist_copy_suffix">%1$s copy</string>
+    <string name="eq_title">Nexora Equalizer</string>
+    <string name="eq_active_bands">%1$d active bands</string>
+    <string name="eq_not_available">Not available on this device</string>
+    <string name="eq_current_state">Current status</string>
+    <string name="eq_active_template">Active · %1$s</string>
+    <string name="eq_templates">Templates</string>
+    <string name="eq_bars">Bars</string>
+    <string name="eq_unsupported_device">This device does not expose a compatible equalizer.</string>
+    <string name="eq_profile_name">Profile name</string>
+    <string name="eq_reload">Reload</string>
+    <string name="eq_reset_all">Reset all</string>
+    <string name="eq_template_flat">Flat</string>
+    <string name="eq_template_flat_desc">Neutral reference response.</string>
+    <string name="eq_template_bass">Bass</string>
+    <string name="eq_template_bass_desc">Boosts the impact of bass and sub-bass.</string>
+    <string name="eq_template_warm">Warm</string>
+    <string name="eq_template_warm_desc">Softens highs and rounds mids.</string>
+    <string name="eq_template_vocal">Vocals</string>
+    <string name="eq_template_vocal_desc">Highlights the midrange for voice and dialogue.</string>
+    <string name="eq_template_piano">Piano</string>
+    <string name="eq_template_piano_desc">More brightness and presence for instruments.</string>
+    <string name="eq_template_party">Party</string>
+    <string name="eq_template_party_desc">More presence at the extremes and more energy.</string>
+    <string name="eq_template_podcast">Podcast</string>
+    <string name="eq_template_podcast_desc">Reduces musical noise and prioritizes clarity.</string>
+    <string name="eq_custom_name_default">My customization</string>
+    <string name="edit_audio_save_error">Save error: %1$s</string>
+    <string name="edit_audio_edit_error">Could not edit the file: %1$s</string>
+    <string name="edit_audio_cover">Cover</string>
+    <string name="edit_audio_change_cover">Change cover</string>
+    <string name="edit_audio_crop_cover">Crop cover</string>
+    <string name="edit_audio_crop">Crop</string>
+    <string name="lyrics_go_edit_text">Go to Edit text</string>
+    <string name="lyrics_placeholder_full">Write the lyrics here...
+One line per row
+
+Example:
+First line
+Second line
+Third line</string>
+    <string name="lyrics_tap">Tap →</string>
+    <string name="action_previous_track">Previous</string>
+    <string name="action_next_track">Next</string>
+    <string name="lyrics_sync_tab">🎵  Sync</string>
+    <string name="lyrics_edit_text_tab">✏️  Edit text</string>
+    <string name="music_favorite">Favorite</string>
+    <string name="music_like">Like</string>
+    <string name="music_share_chooser">Share %1$s</string>
+    <string name="music_edit_section">EDIT</string>
+    <string name="music_add_to_playlist_section">ADD TO PLAYLIST</string>
+    <string name="music_file_section">FILE</string>
+    <string name="music_folder">Folder</string>
+    <string name="music_delete_device">Delete from device</string>
+    <string name="music_delete">Delete</string>
+    <string name="action_refresh">Refresh</string>
+    <string name="video_options_content">Options</string>
+    <string name="video_edit_file">Edit file</string>
+    <string name="video_delete_file">Delete file</string>
+    <string name="video_edit_chooser">Edit video</string>
+    <string name="video_rename_desc">Change the visible file name. Android may ask for permission to modify it.</string>
+    <string name="video_filename">File name</string>
+    <string name="video_brightness">Brightness</string>
+    <string name="video_volume">Volume</string>
+    <string name="video_queue_count">%1$d videos</string>
+    <string name="video_tap_to_jump">Tap to jump</string>
+    <string name="video_unlock">Unlock</string>
+    <string name="video_lock_controls">Lock controls</string>
+    <string name="video_aspect_fit">Fit</string>
+    <string name="video_aspect_fill">Fill</string>
+    <string name="video_aspect_crop">Crop</string>
+    <string name="video_edit_external">Edit with another app</string>
+    <string name="video_aspect_16_9">16:9</string>
+    <string name="video_aspect_4_3">4:3</string>
+    <string name="share_text_body">🎧 Discover Nexora Player
+
+A modern multimedia player for Android, designed to listen to your music and watch your videos with a cleaner, faster and more elegant experience.
+
+✨ Highlights:
+🎵 Plays local music and videos
+🌙 Modern premium interface
+🔀 Shuffle and repeat mode
+⏱️ Sleep Timer for listening before sleeping
+🎚️ Crossfade between songs
+📁 Organization by folders, albums and artists
+📝 Song lyrics with translation
+⭐ Playlists and automatic most-played list
+📲 Updates from the app
+
+Try Nexora Player if you want a complete, lightweight and stylish player.
+
+⬇️ Download it from the official page:
+%1$s</string>
+    <string name="widget_playing_nexora">Playing in Nexora</string>
+    <string name="widget_tap_open">Tap to open the app</string>
+    <string name="eq_band">Band</string>
+</resources>

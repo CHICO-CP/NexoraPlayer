@@ -1,5 +1,7 @@
 package com.nexora.player.equalizer
 
+import androidx.annotation.StringRes
+import com.nexora.player.R
 import kotlin.math.max
 import kotlin.math.min
 
@@ -14,8 +16,8 @@ const val NEXORA_CUSTOM_TEMPLATE_ID = "custom"
  */
 data class EqualizerTemplate(
     val id: String,
-    val name: String,
-    val description: String,
+    @StringRes val nameRes: Int,
+    @StringRes val descriptionRes: Int,
     val icon: String,
     val curve: List<Float>
 )
@@ -23,56 +25,56 @@ data class EqualizerTemplate(
 object NexoraEqualizerTemplates {
     val flat = EqualizerTemplate(
         id = "flat",
-        name = "Plano",
-        description = "Respuesta neutra para referencia.",
+        nameRes = R.string.eq_template_flat,
+        descriptionRes = R.string.eq_template_flat_desc,
         icon = "◻",
         curve = listOf(0.50f, 0.50f, 0.50f, 0.50f, 0.50f)
     )
 
     val bassBoost = EqualizerTemplate(
         id = "bass_boost",
-        name = "Bajos",
-        description = "Refuerza el impacto de graves y subgraves.",
+        nameRes = R.string.eq_template_bass,
+        descriptionRes = R.string.eq_template_bass_desc,
         icon = "🎸",
         curve = listOf(0.88f, 0.78f, 0.54f, 0.38f, 0.30f)
     )
 
     val warm = EqualizerTemplate(
         id = "warm",
-        name = "Cálido",
-        description = "Suaviza agudos y redondea medios.",
+        nameRes = R.string.eq_template_warm,
+        descriptionRes = R.string.eq_template_warm_desc,
         icon = "🔥",
         curve = listOf(0.72f, 0.68f, 0.58f, 0.48f, 0.42f)
     )
 
     val vocal = EqualizerTemplate(
         id = "vocal",
-        name = "Voces",
-        description = "Destaca la zona media para voz y diálogo.",
+        nameRes = R.string.eq_template_vocal,
+        descriptionRes = R.string.eq_template_vocal_desc,
         icon = "🎤",
         curve = listOf(0.42f, 0.58f, 0.72f, 0.62f, 0.46f)
     )
 
     val piano = EqualizerTemplate(
         id = "piano",
-        name = "Piano",
-        description = "Más brillo y presencia para instrumentos.",
+        nameRes = R.string.eq_template_piano,
+        descriptionRes = R.string.eq_template_piano_desc,
         icon = "🎹",
         curve = listOf(0.34f, 0.46f, 0.58f, 0.76f, 0.92f)
     )
 
     val party = EqualizerTemplate(
         id = "party",
-        name = "Fiesta",
-        description = "Más presencia en extremos y más energía.",
+        nameRes = R.string.eq_template_party,
+        descriptionRes = R.string.eq_template_party_desc,
         icon = "🎧",
         curve = listOf(0.80f, 0.68f, 0.54f, 0.70f, 0.86f)
     )
 
     val podcast = EqualizerTemplate(
         id = "podcast",
-        name = "Podcast",
-        description = "Reduce ruido musical y prioriza claridad.",
+        nameRes = R.string.eq_template_podcast,
+        descriptionRes = R.string.eq_template_podcast_desc,
         icon = "🎙️",
         curve = listOf(0.30f, 0.48f, 0.78f, 0.66f, 0.40f)
     )

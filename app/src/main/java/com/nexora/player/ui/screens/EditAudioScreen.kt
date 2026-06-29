@@ -75,12 +75,14 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.nexora.player.R
 import com.nexora.player.data.editor.AudioFileEditor
 import com.nexora.player.data.model.MediaEntry
 import kotlinx.coroutines.Dispatchers
@@ -185,7 +187,7 @@ fun EditAudioDialog(
                         onSave(edit.title, edit.artist, edit.album, artUri)
 
                     is AudioFileEditor.EditResult.Error -> {
-                        saveError = "Error al guardar: ${commitResult.message}"
+                        saveError = context.getString(R.string.edit_audio_save_error, commitResult.message)
                     }
 
                     else -> Unit
@@ -196,7 +198,7 @@ fun EditAudioDialog(
             pendingEdit = null
             pendingArtworkUri = null
             isSaving    = false
-            saveError   = "El usuario canceló la operación de escritura."
+            saveError   = context.getString(R.string.edit_audio_write_cancelled)
         }
     }
 
@@ -242,7 +244,7 @@ fun EditAudioDialog(
 
                 is AudioFileEditor.EditResult.Error -> {
                     isSaving  = false
-                    saveError = "No se pudo editar el archivo: ${editResult.message}"
+                    saveError = context.getString(R.string.edit_audio_edit_error, editResult.message)
                 }
             }
         }
@@ -272,10 +274,10 @@ fun EditAudioDialog(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             IconButton(onClick = onDismiss, enabled = !isSaving) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack, "Cancelar")
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_cancel))
                             }
                             Text(
-                                "Editar canción",
+                                stringResource(R.string.edit_audio_title),
                                 style = MaterialTheme.typography.titleMedium.copy(
                                     fontWeight = FontWeight.SemiBold
                                 )
@@ -288,7 +290,7 @@ fun EditAudioDialog(
                                     )
                                 } else {
                                     Icon(
-                                        Icons.Filled.Check, "Guardar",
+                                        Icons.Filled.Check, stringResource(R.string.action_save),
                                         tint = MaterialTheme.colorScheme.primary
                                     )
                                 }
@@ -312,7 +314,7 @@ fun EditAudioDialog(
                             verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             Text(
-                                "Portada",
+                                stringResource(R.string.edit_audio_cover),
                                 style = MaterialTheme.typography.titleSmall.copy(
                                     fontWeight = FontWeight.SemiBold
                                 )
@@ -331,7 +333,7 @@ fun EditAudioDialog(
                                 if (bmp != null) {
                                     Image(
                                         bitmap             = bmp.asImageBitmap(),
-                                        contentDescription = "Portada",
+                                        contentDescription = stringResource(R.string.edit_audio_cover),
                                         contentScale       = ContentScale.Crop,
                                         modifier           = Modifier.fillMaxSize()
                                     )
@@ -343,7 +345,7 @@ fun EditAudioDialog(
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Icon(
-                                            Icons.Filled.CameraAlt, "Cambiar portada",
+                                            Icons.Filled.CameraAlt, stringResource(R.string.edit_audio_change_cover),
                                             tint     = Color.White,
                                             modifier = Modifier.size(36.dp)
                                         )
@@ -359,7 +361,7 @@ fun EditAudioDialog(
                                             modifier = Modifier.size(40.dp)
                                         )
                                         Text(
-                                            "Toca para añadir portada",
+                                            stringResource(R.string.edit_audio_add_cover),
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
@@ -372,7 +374,7 @@ fun EditAudioDialog(
                                     Icon(Icons.Filled.CameraAlt, null,
                                         modifier = Modifier.size(16.dp))
                                     Spacer(Modifier.width(4.dp))
-                                    Text("Cambiar portada")
+                                    Text(stringResource(R.string.edit_audio_change_cover))
                                 }
                                 if (currentArtwork != null) {
                                     TextButton(
@@ -385,7 +387,7 @@ fun EditAudioDialog(
                                             modifier = Modifier.size(16.dp),
                                             tint     = MaterialTheme.colorScheme.error)
                                         Spacer(Modifier.width(4.dp))
-                                        Text("Quitar portada",
+                                        Text(stringResource(R.string.edit_audio_remove_cover),
                                             color = MaterialTheme.colorScheme.error)
                                     }
                                 }
@@ -405,20 +407,20 @@ fun EditAudioDialog(
                                 verticalArrangement = Arrangement.spacedBy(14.dp)
                             ) {
                                 Text(
-                                    "Información del archivo",
+                                    stringResource(R.string.edit_audio_file_info),
                                     style = MaterialTheme.typography.titleSmall.copy(
                                         fontWeight = FontWeight.SemiBold
                                     )
                                 )
                                 Text(
-                                    "Los cambios se escribirán directamente en el archivo de audio.",
+                                    stringResource(R.string.edit_audio_file_info_desc),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 OutlinedTextField(
                                     value         = newTitle,
                                     onValueChange = { newTitle = it },
-                                    label         = { Text("Título") },
+                                    label         = { Text(stringResource(R.string.edit_audio_label_title)) },
                                     modifier      = Modifier.fillMaxWidth(),
                                     shape         = RoundedCornerShape(12.dp),
                                     singleLine    = true,
@@ -427,7 +429,7 @@ fun EditAudioDialog(
                                 OutlinedTextField(
                                     value         = newArtist,
                                     onValueChange = { newArtist = it },
-                                    label         = { Text("Artista") },
+                                    label         = { Text(stringResource(R.string.label_artist)) },
                                     modifier      = Modifier.fillMaxWidth(),
                                     shape         = RoundedCornerShape(12.dp),
                                     singleLine    = true,
@@ -436,7 +438,7 @@ fun EditAudioDialog(
                                 OutlinedTextField(
                                     value         = newAlbum,
                                     onValueChange = { newAlbum = it },
-                                    label         = { Text("Álbum") },
+                                    label         = { Text(stringResource(R.string.edit_audio_label_album)) },
                                     modifier      = Modifier.fillMaxWidth(),
                                     shape         = RoundedCornerShape(12.dp),
                                     singleLine    = true,
@@ -461,7 +463,7 @@ fun EditAudioDialog(
                                 Icon(Icons.Filled.Check, null)
                             }
                             Spacer(Modifier.width(8.dp))
-                            Text(if (isSaving) "Guardando..." else "Guardar cambios",
+                            Text(if (isSaving) stringResource(R.string.edit_audio_saving) else stringResource(R.string.edit_audio_save_changes),
                                 style = MaterialTheme.typography.labelLarge)
                         }
 
@@ -536,11 +538,11 @@ private fun CropImageDialog(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     IconButton(onClick = onDismiss) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Cancelar",
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_cancel),
                             tint = Color.White)
                     }
                     Text(
-                        "Recortar portada",
+                        stringResource(R.string.edit_audio_crop_cover),
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.SemiBold
                         ),
@@ -582,7 +584,7 @@ private fun CropImageDialog(
                             onConfirm(Bitmap.createBitmap(sourceBitmap, safeX, safeY, safeSize, safeSize))
                         }
                     }) {
-                        Text("Recortar",
+                        Text(stringResource(R.string.edit_audio_crop),
                             color = Color(0xFF007AFF),
                             style = MaterialTheme.typography.labelLarge.copy(
                                 fontWeight = FontWeight.SemiBold
@@ -676,7 +678,7 @@ private fun CropImageDialog(
                 }
 
                 Text(
-                    "Arrastra el recuadro para elegir el área de recorte",
+                    stringResource(R.string.edit_audio_crop_hint),
                     style    = MaterialTheme.typography.bodySmall,
                     color    = Color.White.copy(alpha = 0.60f),
                     modifier = Modifier

@@ -52,6 +52,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -59,6 +60,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.nexora.player.R
 import com.nexora.player.data.lyrics.Lyrics
 import com.nexora.player.data.lyrics.LrcParser
 import com.nexora.player.data.lyrics.LyricsSource
@@ -138,15 +140,15 @@ fun LyricsEditorDialog(
                         verticalAlignment     = Alignment.CenterVertically
                     ) {
                         IconButton(onClick = onDismiss) {
-                            Icon(Icons.Filled.Close, "Cerrar")
+                            Icon(Icons.Filled.Close, stringResource(R.string.action_close))
                         }
                         Text(
-                            "Editor de Letra",
+                            stringResource(R.string.lyrics_editor_title),
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
                         )
                         IconButton(onClick = { onSave(rawText, exportToFile) }) {
                             Icon(
-                                Icons.Filled.Save, "Guardar",
+                                Icons.Filled.Save, stringResource(R.string.action_save),
                                 tint = MaterialTheme.colorScheme.primary
                             )
                         }
@@ -199,7 +201,7 @@ fun LyricsEditorDialog(
                                 // Title + artist
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text     = currentSong?.title ?: "Sin canción",
+                                        text     = currentSong?.title ?: stringResource(R.string.lyrics_no_song),
                                         style    = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
@@ -268,7 +270,7 @@ fun LyricsEditorDialog(
                                 verticalAlignment     = Alignment.CenterVertically
                             ) {
                                 IconButton(onClick = { PlayerEngine.skipPrevious(context) }) {
-                                    Icon(Icons.Filled.SkipPrevious, "Anterior",
+                                    Icon(Icons.Filled.SkipPrevious, stringResource(R.string.action_previous_track),
                                         modifier = Modifier.size(26.dp))
                                 }
                                 Spacer(Modifier.width(4.dp))
@@ -290,7 +292,7 @@ fun LyricsEditorDialog(
                                     Icon(
                                         imageVector = if (snapshot.isPlaying) Icons.Filled.Pause
                                                       else Icons.Filled.PlayArrow,
-                                        contentDescription = if (snapshot.isPlaying) "Pausar" else "Reproducir",
+                                        contentDescription = if (snapshot.isPlaying) stringResource(R.string.lyrics_pause) else stringResource(R.string.action_play),
                                         modifier = Modifier.size(28.dp)
                                     )
                                 }
@@ -307,7 +309,7 @@ fun LyricsEditorDialog(
                                 }
                                 Spacer(Modifier.width(4.dp))
                                 IconButton(onClick = { PlayerEngine.skipNext(context) }) {
-                                    Icon(Icons.Filled.SkipNext, "Siguiente",
+                                    Icon(Icons.Filled.SkipNext, stringResource(R.string.action_next_track),
                                         modifier = Modifier.size(26.dp))
                                 }
                             }
@@ -320,8 +322,8 @@ fun LyricsEditorDialog(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         listOf(
-                            true  to "🎵  Sincronizar",
-                            false to "✏️  Editar texto"
+                            true  to stringResource(R.string.lyrics_sync_tab),
+                            false to stringResource(R.string.lyrics_edit_text_tab)
                         ).forEach { (isSync, label) ->
                             Surface(
                                 onClick  = { syncMode = isSync },
@@ -384,13 +386,13 @@ fun LyricsEditorDialog(
                             ) {
                                 Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
                                     Text(
-                                        "Guardar como .lrc",
+                                        stringResource(R.string.lyrics_save_lrc),
                                         style = MaterialTheme.typography.bodyMedium.copy(
                                             fontWeight = FontWeight.Medium
                                         )
                                     )
                                     Text(
-                                        "Crea un archivo de letra junto a la canción",
+                                        stringResource(R.string.lyrics_save_lrc_desc),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -408,7 +410,7 @@ fun LyricsEditorDialog(
                                 Icon(Icons.Filled.Save, null)
                                 Spacer(Modifier.width(8.dp))
                                 Text(
-                                    "Guardar letra",
+                                    stringResource(R.string.lyrics_save_lyrics),
                                     style = MaterialTheme.typography.labelLarge
                                 )
                             }
@@ -443,7 +445,7 @@ private fun SyncModeContent(
             )
         ) {
             Text(
-                text = "💡  Reproduce la canción y toca cada línea en el momento exacto en que se escucha. El tiempo se marcará solo.",
+                text = "💡  ${stringResource(R.string.lyrics_sync_hint)}",
                 style    = MaterialTheme.typography.bodySmall,
                 color    = MaterialTheme.colorScheme.onSecondaryContainer,
                 modifier = Modifier.padding(12.dp)
@@ -469,19 +471,19 @@ private fun SyncModeContent(
                         tint     = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        "Aún no hay letra escrita",
+                        stringResource(R.string.lyrics_empty_title),
                         style = MaterialTheme.typography.titleSmall.copy(
                             fontWeight = FontWeight.SemiBold
                         )
                     )
                     Text(
-                        "Ve a \"Editar texto\" para escribir la letra primero, y luego vuelve aquí para sincronizarla con la canción.",
+                        stringResource(R.string.lyrics_empty_body),
                         style     = MaterialTheme.typography.bodySmall,
                         color     = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center
                     )
                     FilledTonalButton(onClick = onSwitchToEdit) {
-                        Text("Ir a Editar texto")
+                        Text(stringResource(R.string.lyrics_go_edit_text))
                     }
                 }
             }
@@ -520,19 +522,19 @@ private fun EditModeContent(
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text(
-                    "💡  Escribe una línea por renglón.",
+                    "💡  ${stringResource(R.string.lyrics_text_hint)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSecondaryContainer
                 )
                 Text(
-                    "Con tiempo:  [01:23.00] Letra aquí",
+                    stringResource(R.string.lyrics_example_timed),
                     style = MaterialTheme.typography.labelSmall.copy(
                         fontFamily = FontFamily.Monospace
                     ),
                     color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.80f)
                 )
                 Text(
-                    "Sin tiempo:  Letra aquí",
+                    stringResource(R.string.lyrics_example_plain),
                     style = MaterialTheme.typography.labelSmall.copy(
                         fontFamily = FontFamily.Monospace
                     ),
@@ -547,15 +549,10 @@ private fun EditModeContent(
             modifier       = Modifier
                 .fillMaxWidth()
                 .heightIn(min = 300.dp),
-            label          = { Text("Letra de la canción") },
+            label          = { Text(stringResource(R.string.lyrics_label)) },
             placeholder    = {
                 Text(
-                    "Escribe aquí la letra...\n" +
-                    "Una línea por renglón\n\n" +
-                    "Ejemplo:\n" +
-                    "Primera línea\n" +
-                    "Segunda línea\n" +
-                    "Tercera línea"
+                    stringResource(R.string.lyrics_placeholder_full)
                 )
             },
             shape    = RoundedCornerShape(16.dp),
@@ -592,7 +589,7 @@ private fun LyricSyncRow(
             verticalAlignment     = Alignment.CenterVertically
         ) {
             Text(
-                text     = text.ifBlank { "(línea vacía)" },
+                text     = text.ifBlank { stringResource(R.string.lyrics_empty_line) },
                 style    = MaterialTheme.typography.bodyLarge,
                 color    = if (hasTime) MaterialTheme.colorScheme.onPrimaryContainer
                            else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -608,7 +605,7 @@ private fun LyricSyncRow(
                         else MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)
             ) {
                 Text(
-                    text  = if (hasTime) formatDuration(timestampMs) else "Toca →",
+                    text  = if (hasTime) formatDuration(timestampMs) else stringResource(R.string.lyrics_tap),
                     style = MaterialTheme.typography.labelMedium.copy(
                         fontWeight = if (hasTime) FontWeight.Bold else FontWeight.Normal,
                         fontFamily = if (hasTime) FontFamily.Monospace else FontFamily.Default

@@ -463,8 +463,8 @@ fun AudioPlayerScreen(
                         Icon(
                             imageVector = if (isFavorite) Icons.Filled.Favorite
                                           else Icons.Filled.FavoriteBorder,
-                            contentDescription = if (isFavorite) "Quitar de favoritos"
-                                                 else "Agregar a favoritos",
+                            contentDescription = if (isFavorite) stringResource(R.string.audio_remove_favorite)
+                                                 else stringResource(R.string.audio_add_favorite),
                             tint     = if (isFavorite) Color(0xFFFF3B30)
                                        else Color.White.copy(alpha = 0.65f),
                             modifier = Modifier.size(26.dp)
@@ -528,30 +528,6 @@ fun AudioPlayerScreen(
 
                 Spacer(Modifier.height(10.dp))
 
-                NexoraVolumePanel(
-                    preferences = appPreferences,
-                    onSystemVolumeChange = { percent ->
-                        val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
-                        val maxVolume = audioManager?.getStreamMaxVolume(AudioManager.STREAM_MUSIC)?.coerceAtLeast(1) ?: 1
-                        audioManager?.setStreamVolume(
-                            AudioManager.STREAM_MUSIC,
-                            ((percent.coerceIn(0f, 1f)) * maxVolume).roundToInt().coerceIn(0, maxVolume),
-                            if (appPreferences.volumeBoostEnabled) 0 else AudioManager.FLAG_SHOW_UI
-                        )
-                    },
-                    onBoostChange = { gainMb ->
-                        val safeGain = gainMb.coerceIn(0, 1800)
-                        PlayerEngine.setVolumeBoost(appPreferences.volumeBoostEnabled, safeGain)
-                        scope.launch { preferencesRepository.setVolumeBoostGainMb(safeGain) }
-                    },
-                    onToggleBoost = { enabled ->
-                        PlayerEngine.setVolumeBoost(enabled, appPreferences.volumeBoostGainMb)
-                        scope.launch { preferencesRepository.setVolumeBoostEnabled(enabled) }
-                    }
-                )
-
-                Spacer(Modifier.height(10.dp))
-
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly,
@@ -564,7 +540,7 @@ fun AudioPlayerScreen(
                     }) {
                         Icon(
                             imageVector = Icons.Filled.Shuffle,
-                            contentDescription = "Aleatorio",
+                            contentDescription = stringResource(R.string.audio_shuffle),
                             tint = if (appPreferences.shuffleEnabled) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.62f)
                         )
                     }
@@ -576,7 +552,7 @@ fun AudioPlayerScreen(
                     }) {
                         Icon(
                             imageVector = if (appPreferences.repeatMode == NexoraRepeatMode.ONE) Icons.Filled.RepeatOne else Icons.Filled.Repeat,
-                            contentDescription = "Repetición",
+                            contentDescription = stringResource(R.string.audio_repeat),
                             tint = if (appPreferences.repeatMode == NexoraRepeatMode.OFF) Color.White.copy(alpha = 0.62f) else MaterialTheme.colorScheme.primary
                         )
                     }
@@ -703,7 +679,7 @@ private fun PlayerTopBar(
         IconButton(onClick = onBack) {
             Icon(
                 imageVector    = Icons.Filled.ArrowBack,
-                contentDescription = "Volver",
+                contentDescription = stringResource(R.string.action_back),
                 tint           = Color.White
             )
         }
@@ -784,7 +760,7 @@ private fun NexoraVolumePanel(
                 Column(modifier = Modifier.weight(1f)) {
                     Text("Volumen Nexora", color = Color.White, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold))
                     Text(
-                        if (preferences.volumeBoostEnabled) "Amplificado: $displayPercent%" else "Sistema: ${(systemVolume * 100).roundToInt()}%",
+                        if (preferences.volumeBoostEnabled) stringResource(R.string.audio_boosted_percent, displayPercent) else stringResource(R.string.audio_system_percent, (systemVolume * 100).roundToInt()),
                         color = Color.White.copy(alpha = 0.56f),
                         style = MaterialTheme.typography.labelSmall
                     )
@@ -1067,7 +1043,7 @@ private fun InlineLyricsSection(
 
             lyrics == null -> {
                 Text(
-                    text  = "Esta canción no tiene letra guardada.",
+                    text  = stringResource(R.string.lyrics_not_saved),
                     style = MaterialTheme.typography.bodyMedium,
                     color = Color.White.copy(alpha = 0.45f)
                 )
@@ -1079,7 +1055,7 @@ private fun InlineLyricsSection(
                         color   = Color(0xFF7C3AED).copy(alpha = 0.70f)
                     ) {
                         Text(
-                            text     = "Buscar en línea",
+                            text     = stringResource(R.string.action_search_online),
                             style    = MaterialTheme.typography.labelLarge,
                             color    = Color.White,
                             modifier = Modifier.padding(horizontal = 18.dp, vertical = 10.dp)
@@ -1343,7 +1319,7 @@ private fun CompactLyricsCard(
                             color   = Color.White.copy(alpha = 0.14f)
                         ) {
                             Text(
-                                text     = "Buscar en línea",
+                                text     = stringResource(R.string.action_search_online),
                                 style    = MaterialTheme.typography.labelMedium,
                                 color    = Color.White.copy(alpha = 0.90f),
                                 modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
@@ -1431,7 +1407,7 @@ private fun FullLyricsSheet(
                 ) {
                     Column(Modifier.weight(1f)) {
                         Text(
-                            text = "Letras",
+                            text = stringResource(R.string.lyrics_title),
                             style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
                             color = Color.White,
                             maxLines = 1
@@ -1440,7 +1416,7 @@ private fun FullLyricsSheet(
                             text = when (safeDisplayMode) {
                                 LyricsDisplayMode.ORIGINAL -> "Mostrando letra original"
                                 LyricsDisplayMode.TRANSLATED -> "Mostrando letra traducida"
-                                LyricsDisplayMode.BOTH -> "Mostrando original y traducción"
+                                LyricsDisplayMode.BOTH -> stringResource(R.string.lyrics_display_both)
                             },
                             style = MaterialTheme.typography.bodySmall,
                             color = Color.White.copy(alpha = 0.56f),
@@ -1461,12 +1437,12 @@ private fun FullLyricsSheet(
                         ) {
                             Icon(
                                 Icons.Filled.Translate,
-                                contentDescription = "Cambiar vista de traducción",
+                                contentDescription = stringResource(R.string.lyrics_change_translation_view),
                                 tint = if (translatedLines.isNotEmpty()) Color.White else Color.White.copy(alpha = 0.28f)
                             )
                         }
                         TextButton(onClick = onEdit) {
-                            Text(if (lyrics == null) "Agregar" else "Editar", color = Color.White.copy(alpha = 0.76f))
+                            Text(if (lyrics == null) stringResource(R.string.action_add) else stringResource(R.string.action_edit), color = Color.White.copy(alpha = 0.76f))
                         }
                     }
                 }
@@ -1537,13 +1513,13 @@ private fun FullLyricsSheet(
                                     textAlign = TextAlign.Center
                                 )
                                 Text(
-                                    text = "Puedes buscarla en línea o escribirla manualmente.",
+                                    text = stringResource(R.string.lyrics_search_or_manual),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = Color.White.copy(alpha = 0.52f),
                                     textAlign = TextAlign.Center
                                 )
-                                FilledTonalButton(onClick = onSearchOnline) { Text("Buscar en línea") }
-                                TextButton(onClick = onEdit) { Text("Agregar manualmente", color = Color.White.copy(alpha = 0.72f)) }
+                                FilledTonalButton(onClick = onSearchOnline) { Text(stringResource(R.string.action_search_online)) }
+                                TextButton(onClick = onEdit) { Text(stringResource(R.string.lyrics_add_manual), color = Color.White.copy(alpha = 0.72f)) }
                             }
                         }
                     }
@@ -1714,7 +1690,7 @@ private fun PlaylistSheet(
             ) {
                 Text("Playlist", style = MaterialTheme.typography.titleLarge)
                 Text(
-                    text  = "${queue.size} canción${if (queue.size != 1) "es" else ""}",
+                    text  = if (queue.size == 1) stringResource(R.string.queue_song_count, queue.size) else stringResource(R.string.queue_song_count_plural, queue.size),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -1742,7 +1718,7 @@ private fun PlaylistSheet(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text  = "No hay canciones en la playlist.",
+                        text  = stringResource(R.string.queue_empty_playlist),
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -1807,18 +1783,18 @@ private fun DetailsSheet(
                     )
                     HorizontalDivider()
                     ListItem(
-                        headlineContent  = { Text("Duración") },
+                        headlineContent  = { Text(stringResource(R.string.label_duration)) },
                         supportingContent = { Text(formatDuration(current.durationMs)) },
                         leadingContent   = { Icon(Icons.Filled.MusicNote, null) }
                     )
                     ListItem(
                         headlineContent  = { Text("Artista") },
-                        supportingContent = { Text(current.artist.ifBlank { "Desconocido" }) },
+                        supportingContent = { Text(current.artist.ifBlank { stringResource(R.string.unknown_artist) }) },
                         leadingContent   = { Icon(Icons.Filled.Info, null) }
                     )
                     ListItem(
-                        headlineContent  = { Text("Álbum") },
-                        supportingContent = { Text(current.album.ifBlank { "Sin álbum" }) },
+                        headlineContent  = { Text(stringResource(R.string.label_album)) },
+                        supportingContent = { Text(current.album.ifBlank { stringResource(R.string.no_album) }) },
                         leadingContent   = { Icon(Icons.AutoMirrored.Filled.PlaylistPlay, null) }
                     )
                     ListItem(
@@ -1831,11 +1807,11 @@ private fun DetailsSheet(
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 TextButton(onClick = onOpenEqualizer) { Text("Ecualizador") }
-                TextButton(onClick = onShowQueue)     { Text("Ver playlist") }
+                TextButton(onClick = onShowQueue)     { Text(stringResource(R.string.queue_view_playlist)) }
             }
 
             Text(
-                text  = "Siguiente: ${queue.drop(currentIndex + 1).size} canciones",
+                text  = stringResource(R.string.queue_next_songs, queue.drop(currentIndex + 1).size),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

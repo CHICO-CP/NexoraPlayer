@@ -11,6 +11,7 @@ import android.os.Build
 import android.media.AudioManager
 import android.provider.MediaStore
 import android.view.ViewGroup
+import androidx.annotation.StringRes
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
@@ -137,15 +138,15 @@ private val NxDivider  = Color.White.copy(alpha = 0.07f)
 private val GradientAccent = Brush.horizontalGradient(listOf(NxAccent, NxAccent2))
 
 private enum class VideoAspectMode(
-    val label: String,
+    @StringRes val labelRes: Int,
     val resizeMode: Int,
     val frameRatio: Float? = null
 ) {
-    FIT("Ajustar", AspectRatioFrameLayout.RESIZE_MODE_FIT),
-    FILL("Llenar", AspectRatioFrameLayout.RESIZE_MODE_FILL),
-    CROP("Recortar", AspectRatioFrameLayout.RESIZE_MODE_ZOOM),
-    RATIO_16_9("16:9", AspectRatioFrameLayout.RESIZE_MODE_FIT, 16f / 9f),
-    RATIO_4_3("4:3", AspectRatioFrameLayout.RESIZE_MODE_FIT, 4f / 3f);
+    FIT(R.string.video_aspect_fit, AspectRatioFrameLayout.RESIZE_MODE_FIT),
+    FILL(R.string.video_aspect_fill, AspectRatioFrameLayout.RESIZE_MODE_FILL),
+    CROP(R.string.video_aspect_crop, AspectRatioFrameLayout.RESIZE_MODE_ZOOM),
+    RATIO_16_9(R.string.video_aspect_16_9, AspectRatioFrameLayout.RESIZE_MODE_FIT, 16f / 9f),
+    RATIO_4_3(R.string.video_aspect_4_3, AspectRatioFrameLayout.RESIZE_MODE_FIT, 4f / 3f);
 
     companion object {
         fun fromName(value: String): VideoAspectMode = runCatching { valueOf(value) }.getOrDefault(FIT)
@@ -329,7 +330,7 @@ fun VideoPlayerScreen(
             putExtra(Intent.EXTRA_TEXT, item.title)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
-        runCatching { context.startActivity(Intent.createChooser(intent, "Compartir video")) }
+        runCatching { context.startActivity(Intent.createChooser(intent, context.getString(R.string.share_video))) }
     }
 
     fun editCurrentVideo() {
@@ -338,7 +339,7 @@ fun VideoPlayerScreen(
             setDataAndType(item.uri, item.mimeType ?: "video/*")
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
         }
-        runCatching { context.startActivity(Intent.createChooser(intent, "Editar video")) }
+        runCatching { context.startActivity(Intent.createChooser(intent, context.getString(R.string.video_edit_chooser))) }
     }
 
     fun requestRenameVideo(item: MediaEntry, newName: String) {
@@ -493,14 +494,14 @@ fun VideoPlayerScreen(
     if (renameTarget != null) {
         AlertDialog(
             onDismissRequest = { renameDialogItem = null },
-            title = { Text("Renombrar video") },
+            title = { Text(stringResource(R.string.video_rename_title)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Cambia el nombre visible del archivo. Android puede pedir permiso para modificarlo.")
+                    Text(stringResource(R.string.video_rename_desc))
                     OutlinedTextField(
                         value = renameValue,
                         onValueChange = { renameValue = it },
-                        label = { Text("Nombre del archivo") },
+                        label = { Text(stringResource(R.string.video_filename)) },
                         singleLine = true
                     )
                 }
@@ -509,10 +510,10 @@ fun VideoPlayerScreen(
                 Button(onClick = {
                     requestRenameVideo(renameTarget, renameValue)
                     renameDialogItem = null
-                }) { Text("Guardar") }
+                }) { Text(stringResource(R.string.action_save)) }
             },
             dismissButton = {
-                TextButton(onClick = { renameDialogItem = null }) { Text("Cancelar") }
+                TextButton(onClick = { renameDialogItem = null }) { Text(stringResource(R.string.action_cancel)) }
             }
         )
     }
@@ -683,11 +684,11 @@ private fun PortraitScreen(
                     .padding(horizontal = 4.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                NxIconBtn(Icons.AutoMirrored.Filled.ArrowBack, "Volver", onClick = onClose)
+                NxIconBtn(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back), onClick = onClose)
                 Spacer(Modifier.weight(1f))
                 NxIconBtn(
                     if (controlsLocked) Icons.Filled.LockOpen else Icons.Filled.Lock,
-                    if (controlsLocked) "Desbloquear" else "Bloquear controles",
+                    if (controlsLocked) stringResource(R.string.video_unlock) else stringResource(R.string.video_lock_controls),
                     onClick = onToggleLock
                 )
                 VideoOptionsButton(
@@ -826,13 +827,13 @@ private fun PortraitScreen(
                 ) {
                     Icon(
                         imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-                        contentDescription = if (isPlaying) "Pausar" else "Reproducir",
+                        contentDescription = if (isPlaying) stringResource(R.string.lyrics_pause) else stringResource(R.string.action_play),
                         tint = Color.White,
                         modifier = Modifier.size(34.dp)
                     )
                 }
 
-                NxControlBtn(Icons.Filled.SkipNext, "Siguiente", iconSize = 26.dp, onClick = onNext)
+                NxControlBtn(Icons.Filled.SkipNext, stringResource(R.string.action_next_track), iconSize = 26.dp, onClick = onNext)
                 NxControlBtn(Icons.Filled.Forward10, "+10 s", iconSize = 24.dp) {
                     onSeekTo((positionMs + 10_000L).coerceAtMost(durationMs))
                 }
@@ -845,14 +846,14 @@ private fun PortraitScreen(
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 NxSlider(
                     icon    = Icons.Filled.Brightness6,
-                    label   = "Brillo",
+                    label   = stringResource(R.string.video_brightness),
                     value   = brightness,
                     range   = 0f..1f,
                     onChange = onBrightnessChange
                 )
                 NxSlider(
                     icon    = if (volumeFraction < 0.01f) Icons.Filled.VolumeOff else Icons.Filled.VolumeUp,
-                    label   = "Volumen",
+                    label   = stringResource(R.string.video_volume),
                     value   = volumeFraction,
                     range   = 0f..1f,
                     onChange = onVolumeChange
@@ -875,14 +876,14 @@ private fun PortraitScreen(
                         )
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            "Lista de videos",
+                            stringResource(R.string.video_list),
                             color      = Color.White,
                             fontWeight = FontWeight.SemiBold,
                             fontSize   = 14.sp
                         )
                         Spacer(Modifier.weight(1f))
                         Text(
-                            "${queueFromCurrent.size} videos",
+                            stringResource(R.string.video_queue_count, queueFromCurrent.size),
                             color    = Color.White.copy(0.4f),
                             fontSize = 12.sp
                         )
@@ -1205,7 +1206,7 @@ private fun LandscapeControls(
                 .padding(horizontal = 18.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            NxIconBtn(Icons.AutoMirrored.Filled.ArrowBack, "Volver", onClick = onBack)
+            NxIconBtn(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back), onClick = onBack)
             Spacer(Modifier.width(10.dp))
             Column(Modifier.weight(1f)) {
                 Text(
@@ -1229,7 +1230,7 @@ private fun LandscapeControls(
             }
             NxIconBtn(
                 if (controlsLocked) Icons.Filled.LockOpen else Icons.Filled.Lock,
-                if (controlsLocked) "Desbloquear" else "Bloquear controles",
+                if (controlsLocked) stringResource(R.string.video_unlock) else stringResource(R.string.video_lock_controls),
                 onClick = onToggleLock
             )
             if (!controlsLocked) {
@@ -1397,13 +1398,13 @@ private fun VideoOptionsButton(
 ) {
     var expanded by remember { mutableStateOf(false) }
     Box {
-        NxIconBtn(Icons.Filled.MoreVert, "Más opciones", onClick = { expanded = true })
+        NxIconBtn(Icons.Filled.MoreVert, stringResource(R.string.video_options), onClick = { expanded = true })
         DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false }
         ) {
             DropdownMenuItem(
-                text = { Text("Compartir video") },
+                text = { Text(stringResource(R.string.share_video)) },
                 leadingIcon = { Icon(Icons.Filled.Share, null) },
                 onClick = {
                     expanded = false
@@ -1411,7 +1412,7 @@ private fun VideoOptionsButton(
                 }
             )
             DropdownMenuItem(
-                text = { Text("Renombrar archivo") },
+                text = { Text(stringResource(R.string.video_rename_file)) },
                 leadingIcon = { Icon(Icons.Filled.Edit, null) },
                 onClick = {
                     expanded = false
@@ -1419,7 +1420,7 @@ private fun VideoOptionsButton(
                 }
             )
             DropdownMenuItem(
-                text = { Text("Editar con otra app") },
+                text = { Text(stringResource(R.string.video_edit_external)) },
                 leadingIcon = { Icon(Icons.Filled.Edit, null) },
                 onClick = {
                     expanded = false
@@ -1427,7 +1428,7 @@ private fun VideoOptionsButton(
                 }
             )
             DropdownMenuItem(
-                text = { Text("Borrar archivo") },
+                text = { Text(stringResource(R.string.video_delete_file)) },
                 leadingIcon = { Icon(Icons.Filled.Delete, null) },
                 onClick = {
                     expanded = false
@@ -1435,7 +1436,7 @@ private fun VideoOptionsButton(
                 }
             )
             DropdownMenuItem(
-                text = { Text("Subtítulos .srt externos") },
+                text = { Text(stringResource(R.string.video_external_subtitles)) },
                 leadingIcon = { Icon(Icons.Filled.Subtitles, null) },
                 onClick = {
                     expanded = false
@@ -1443,13 +1444,13 @@ private fun VideoOptionsButton(
                 }
             )
             DropdownMenuItem(
-                text = { Text("Relación: ${aspectMode.label}") },
+                text = { Text(stringResource(R.string.video_aspect_ratio, stringResource(aspectMode.labelRes))) },
                 leadingIcon = { Icon(Icons.Filled.AspectRatio, null) },
                 onClick = { }
             )
             VideoAspectMode.values().forEach { mode ->
                 DropdownMenuItem(
-                    text = { Text(if (mode == aspectMode) "✓ ${mode.label}" else mode.label) },
+                    text = { Text(if (mode == aspectMode) "✓ ${stringResource(mode.labelRes)}" else stringResource(mode.labelRes)) },
                     onClick = {
                         expanded = false
                         onAspectModeSelected(mode)
@@ -1611,8 +1612,8 @@ private fun QueueDrawer(
                 Icon(Icons.AutoMirrored.Filled.PlaylistPlay, null, tint = NxAccent, modifier = Modifier.size(20.dp))
                 Spacer(Modifier.width(10.dp))
                 Column(Modifier.weight(1f)) {
-                    Text("A continuación", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                    Text("Toca para saltar", color = Color.White.copy(0.45f), fontSize = 12.sp)
+                    Text(stringResource(R.string.video_up_next), color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                    Text(stringResource(R.string.video_tap_to_jump), color = Color.White.copy(0.45f), fontSize = 12.sp)
                 }
             }
             HorizontalDivider(color = NxDivider)

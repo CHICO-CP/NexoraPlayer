@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.nexora.player.R
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.util.Locale
@@ -15,7 +16,7 @@ private val Context.equalizerDataStore by preferencesDataStore(name = "nexora_eq
 data class EqualizerSettings(
     val enabled: Boolean = false,
     val templateId: String = NexoraEqualizerTemplates.flat.id,
-    val customName: String = "Mi personalización",
+    val customName: String = "My customization",
     val customCurve: List<Float> = emptyList()
 )
 
@@ -32,7 +33,7 @@ class EqualizerPreferencesRepository(private val context: Context) {
         EqualizerSettings(
             enabled = prefs[Keys.ENABLED] ?: false,
             templateId = prefs[Keys.TEMPLATE_ID] ?: NexoraEqualizerTemplates.flat.id,
-            customName = prefs[Keys.CUSTOM_NAME] ?: "Mi personalización",
+            customName = prefs[Keys.CUSTOM_NAME] ?: context.getString(R.string.eq_custom_name_default),
             customCurve = (prefs[Keys.CUSTOM_CURVE] ?: "")
                 .decodeCurve()
                 .ifEmpty { emptyList() }
@@ -50,7 +51,7 @@ class EqualizerPreferencesRepository(private val context: Context) {
     suspend fun saveCustomPreset(name: String, curve: List<Float>) {
         context.equalizerDataStore.edit { prefs ->
             prefs[Keys.TEMPLATE_ID] = NEXORA_CUSTOM_TEMPLATE_ID
-            prefs[Keys.CUSTOM_NAME] = name.trim().ifBlank { "Mi personalización" }
+            prefs[Keys.CUSTOM_NAME] = name.trim().ifBlank { context.getString(R.string.eq_custom_name_default) }
             prefs[Keys.CUSTOM_CURVE] = curve.encodeCurve()
         }
     }
@@ -58,7 +59,7 @@ class EqualizerPreferencesRepository(private val context: Context) {
     suspend fun restoreDefault() {
         context.equalizerDataStore.edit { prefs ->
             prefs[Keys.TEMPLATE_ID] = NexoraEqualizerTemplates.flat.id
-            prefs[Keys.CUSTOM_NAME] = "Mi personalización"
+            prefs[Keys.CUSTOM_NAME] = context.getString(R.string.eq_custom_name_default)
             prefs[Keys.CUSTOM_CURVE] = ""
             prefs[Keys.ENABLED] = false
         }

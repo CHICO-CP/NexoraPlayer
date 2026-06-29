@@ -7,6 +7,7 @@ import android.os.Build
 import android.provider.Settings
 import androidx.core.content.FileProvider
 import com.nexora.player.BuildConfig
+import com.nexora.player.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -35,7 +36,7 @@ class ApkUpdateInstaller(private val context: Context) {
             downloading = true,
             progressPercent = 0,
             totalBytes = expectedSize,
-            message = "Preparando descarga…"
+            message = context.getString(R.string.apk_preparing_download)
         )
 
         runCatching {
@@ -46,7 +47,7 @@ class ApkUpdateInstaller(private val context: Context) {
                 progressPercent = 100,
                 downloadedBytes = outFile.length(),
                 totalBytes = outFile.length(),
-                message = "APK descargado. Abriendo instalador…",
+                message = context.getString(R.string.apk_downloaded_opening),
                 error = null
             )
             openInstaller(outFile)
@@ -55,7 +56,7 @@ class ApkUpdateInstaller(private val context: Context) {
                 active = true,
                 downloading = false,
                 message = null,
-                error = throwable.message ?: "No se pudo descargar la actualización."
+                error = throwable.message ?: context.getString(R.string.apk_download_error)
             )
         }
     }
@@ -77,7 +78,7 @@ class ApkUpdateInstaller(private val context: Context) {
             val code = connection.responseCode
             if (code !in 200..299) {
                 val error = connection.errorStream?.bufferedReader()?.use { it.readText() }.orEmpty()
-                throw IllegalStateException("El servidor respondió $code al descargar el APK. $error")
+                throw IllegalStateException(context.getString(R.string.apk_server_error, code, error))
             }
             val total = connection.contentLengthLong.takeIf { it > 0L } ?: expectedSize
             var readTotal = 0L
@@ -98,7 +99,7 @@ class ApkUpdateInstaller(private val context: Context) {
                             progressPercent = progress,
                             downloadedBytes = readTotal,
                             totalBytes = total,
-                            message = "Descargando actualización…"
+                            message = context.getString(R.string.apk_downloading)
                         )
                     }
                 }
@@ -110,18 +111,18 @@ class ApkUpdateInstaller(private val context: Context) {
 
     private fun validate(file: File, expectedSize: Long?, expectedSha256: String?) {
         if (!file.exists() || file.length() <= 0L) {
-            throw IllegalStateException("El APK descargado está vacío o no existe.")
+            throw IllegalStateException(context.getString(R.string.apk_empty))
         }
         if (expectedSize != null && expectedSize > 0L) {
             val delta = kotlin.math.abs(file.length() - expectedSize)
             if (delta > 1024L * 1024L) {
-                throw IllegalStateException("El tamaño del APK no coincide con el informado por el servidor.")
+                throw IllegalStateException(context.getString(R.string.apk_size_mismatch))
             }
         }
         if (!expectedSha256.isNullOrBlank()) {
             val digest = sha256(file)
             if (digest != expectedSha256) {
-                throw IllegalStateException("La verificación SHA-256 del APK falló.")
+                throw IllegalStateException(context.getString(R.string.apk_sha_failed))
             }
         }
     }
@@ -131,7 +132,7 @@ class ApkUpdateInstaller(private val context: Context) {
             _state.value = _state.value.copy(
                 downloading = false,
                 waitingForInstallPermission = true,
-                message = "Autoriza a Nexora Player para instalar actualizaciones.",
+                message = context.getString(R.string.apk_authorize_install),
                 error = null
             )
             val permissionIntent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
