@@ -156,6 +156,11 @@ class MainActivity : AppCompatActivity() {
                                 modifier = Modifier.fillMaxWidth(),
                                 sortMode = if (state.selectedDestination == AppDestination.MUSIC) state.audioSort else null,
                                 onSortSelected = viewModel::setAudioSort,
+                                hasUnreadNotifications = state.unreadRemoteNoticeCount > 0,
+                                onNotificationsClick = {
+                                    searchExpanded = false
+                                    showNotificationCenter = true
+                                },
                                 onSettingsClick = {
                                     searchExpanded = false
                                     showSettingsScreen = true

@@ -563,6 +563,7 @@ Third line</string>
     <string name="video_rename_file">Rename file</string>
     <string name="video_external_subtitles">External .srt subtitles</string>
     <string name="video_aspect_ratio">Ratio: %1$s</string>
+    <string name="video_now_playing_badge">Now playing</string>
     <string name="video_up_next">Up next</string>
     <string name="video_hide">Hide video</string>
     <string name="widget_no_lyrics">Original lyrics not saved</string>

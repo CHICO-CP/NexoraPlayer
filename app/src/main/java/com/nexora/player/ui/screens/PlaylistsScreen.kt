@@ -250,8 +250,8 @@ private fun PlaylistPreviewMosaic(
     val preview = items.take(4)
 
     Surface(
-        modifier = modifier.clip(RoundedCornerShape(6.dp)),
-        shape = RoundedCornerShape(6.dp),
+        modifier = modifier.clip(RoundedCornerShape(4.dp)),
+        shape = RoundedCornerShape(4.dp),
         color = MaterialTheme.colorScheme.surfaceVariant
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -267,7 +267,8 @@ private fun PlaylistPreviewMosaic(
                             if (index < preview.size) {
                                 MediaArtwork(
                                     item = preview[index].toMediaEntry(),
-                                    modifier = Modifier.fillMaxSize()
+                                    modifier = Modifier.fillMaxSize(),
+                                    cornerRadius = 0.dp
                                 )
                             } else {
                                 Box(

@@ -85,7 +85,10 @@ data class AppUiState(
     val nexoraVolumePercent: Int = 0,
     val nexoraVolumeBoosted: Boolean = false,
     val nexoraVolumeOverlayVisible: Boolean = false
-)
+) {
+    val unreadRemoteNoticeCount: Int
+        get() = remoteNotices.count { it.readAt <= 0L }
+}
 
 const val NEXORA_LIKED_PLAYLIST_ID = Long.MIN_VALUE + 41L
 const val NEXORA_MOST_PLAYED_PLAYLIST_ID = Long.MIN_VALUE + 42L

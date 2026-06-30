@@ -563,6 +563,7 @@ Tercera línea</string>
     <string name="video_rename_file">Renombrar archivo</string>
     <string name="video_external_subtitles">Subtítulos .srt externos</string>
     <string name="video_aspect_ratio">Relación: %1$s</string>
+    <string name="video_now_playing_badge">Reproduciendo</string>
     <string name="video_up_next">A continuación</string>
     <string name="video_hide">Ocultar video</string>
     <string name="widget_no_lyrics">Letra original no guardada</string>

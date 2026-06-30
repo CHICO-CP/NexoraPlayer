@@ -14,6 +14,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Brightness4
+import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.WbSunny
@@ -49,6 +50,8 @@ fun GreetingBanner(
     modifier: Modifier = Modifier,
     sortMode: SortMode? = null,
     onSortSelected: (SortMode) -> Unit = {},
+    hasUnreadNotifications: Boolean = false,
+    onNotificationsClick: () -> Unit = {},
     onSettingsClick: () -> Unit = {}
 ) {
     val hour = remember { Calendar.getInstance().get(Calendar.HOUR_OF_DAY) }
@@ -138,6 +141,24 @@ fun GreetingBanner(
                         if (expanded) Icons.Filled.Close else Icons.Filled.Search,
                         contentDescription = stringResource(if (expanded) R.string.search_close else R.string.search_open)
                     )
+                }
+
+                FilledTonalIconButton(onClick = onNotificationsClick) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Filled.NotificationsActive,
+                            contentDescription = stringResource(R.string.notifications_title)
+                        )
+                        if (hasUnreadNotifications) {
+                            Surface(
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .size(9.dp),
+                                shape = CircleShape,
+                                color = Color(0xFFFF3B30)
+                            ) {}
+                        }
+                    }
                 }
 
                 FilledTonalIconButton(onClick = onSettingsClick) {

@@ -320,7 +320,7 @@ private fun PlaylistPreviewMosaic(
     modifier: Modifier = Modifier
 ) {
     val preview = items.take(4)
-    ElevatedCard(modifier = modifier.clip(RoundedCornerShape(6.dp))) {
+    ElevatedCard(modifier = modifier.clip(RoundedCornerShape(4.dp)), shape = RoundedCornerShape(4.dp)) {
         Column(modifier = Modifier.fillMaxSize()) {
             repeat(2) { row ->
                 Row(modifier = Modifier.weight(1f)) {
@@ -328,7 +328,7 @@ private fun PlaylistPreviewMosaic(
                         val index = row * 2 + col
                         Box(modifier = Modifier.weight(1f).fillMaxSize(), contentAlignment = Alignment.Center) {
                             if (index < preview.size) {
-                                MediaArtwork(item = preview[index].toMediaEntry(), modifier = Modifier.fillMaxSize())
+                                MediaArtwork(item = preview[index].toMediaEntry(), modifier = Modifier.fillMaxSize(), cornerRadius = 0.dp)
                             } else {
                                 Icon(Icons.Filled.MusicNote, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                             }

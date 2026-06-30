@@ -19,9 +19,6 @@ import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
@@ -34,6 +31,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.nexora.player.R
 import com.nexora.player.data.model.MediaEntry
@@ -44,7 +42,8 @@ import kotlinx.coroutines.withContext
 @Composable
 fun MediaArtwork(
     item: MediaEntry,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    cornerRadius: Dp = 24.dp
 ) {
     val context = LocalContext.current
     val artwork = produceState<ImageBitmap?>(initialValue = null, item.id, item.uri.toString()) {
@@ -67,9 +66,11 @@ fun MediaArtwork(
         )
     }
 
+    val artworkShape = RoundedCornerShape(cornerRadius)
+
     Card(
-        modifier = modifier.clip(RoundedCornerShape(24.dp)),
-        shape = RoundedCornerShape(24.dp),
+        modifier = modifier.clip(artworkShape),
+        shape = artworkShape,
         colors = CardDefaults.cardColors(containerColor = Color.Transparent)
     ) {
         Box(
@@ -127,21 +128,6 @@ fun MediaArtwork(
                             .align(Alignment.Center)
                     )
                 }
-            }
-
-            Surface(
-                color = Color.Black.copy(alpha = 0.22f),
-                shape = RoundedCornerShape(14.dp),
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(12.dp)
-            ) {
-                Text(
-                    text = if (item.kind == MediaKind.AUDIO) "Audio" else "Video",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = Color.White,
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-                )
             }
         }
     }
