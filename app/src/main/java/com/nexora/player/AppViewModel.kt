@@ -71,6 +71,7 @@ data class AppUiState(
     val onlineLoading: Boolean = false,
     val onlineError: String? = null,
     val folderSummaries: List<FolderSummary> = emptyList(),
+    val hiddenMediaItems: List<MediaEntry> = emptyList(),
     val preferences: AppPreferences = AppPreferences(),
     val updateInfo: RemoteUpdateInfo? = null,
     val updateChecking: Boolean = false,
@@ -290,11 +291,19 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             val hiddenIds = _uiState.value.preferences.hiddenAudioIds
             val hiddenFolders = _uiState.value.preferences.hiddenFolders
             val allAudio = mediaRepository.loadAudio(_uiState.value.audioSort)
+            val allVideos = mediaRepository.loadVideos(_uiState.value.videoSort)
             val folderSummaries = presentation.library.folderSummaries(allAudio)
             val audio = presentation.library.visibleAudio(allAudio, hiddenIds, hiddenFolders)
-            val videos = mediaRepository.loadVideos(_uiState.value.videoSort)
-                .filterNot { it.id in hiddenIds }
-            _uiState.value = _uiState.value.copy(audio = audio, videos = videos, folderSummaries = folderSummaries)
+            val videos = allVideos.filterNot { it.id in hiddenIds }
+            val hiddenMediaItems = (allAudio + allVideos)
+                .filter { it.id in hiddenIds }
+                .sortedWith(compareBy<MediaEntry> { it.kind.ordinal }.thenBy { it.title.lowercase() })
+            _uiState.value = _uiState.value.copy(
+                audio = audio,
+                videos = videos,
+                folderSummaries = folderSummaries,
+                hiddenMediaItems = hiddenMediaItems
+            )
 
             if (_uiState.value.preferences.libraryChangeNotificationsEnabled) {
                 MediaLibraryNotifier.maybeNotify(context, audio, videos)
@@ -776,6 +785,21 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun restoreHiddenAudio() {
         viewModelScope.launch {
             preferencesRepository.clearHiddenAudioIds()
+            refreshLibrary()
+        }
+    }
+
+    fun restoreHiddenMedia(id: Long) {
+        viewModelScope.launch {
+            preferencesRepository.removeHiddenAudioId(id)
+            refreshLibrary()
+        }
+    }
+
+    fun restoreHiddenMedia(ids: Set<Long>) {
+        if (ids.isEmpty()) return
+        viewModelScope.launch {
+            ids.forEach { id -> preferencesRepository.removeHiddenAudioId(id) }
             refreshLibrary()
         }
     }
