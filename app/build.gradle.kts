@@ -13,8 +13,8 @@ android {
         applicationId = "com.nexora.player"
         minSdk = 24
         targetSdk = 35
-        versionCode = 7
-        versionName = "1.9.7"
+        versionCode = 8
+        versionName = "2.0.0"
         buildConfigField("String", "NEXORA_SERVER_URL", "\"https://nexoraplayer.vercel.app\"")
     }
 

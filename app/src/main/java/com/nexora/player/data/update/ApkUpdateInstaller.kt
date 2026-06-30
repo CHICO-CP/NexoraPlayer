@@ -199,7 +199,7 @@ class ApkUpdateInstaller(private val context: Context) {
                 context.getString(
                     R.string.apk_package_mismatch,
                     BuildConfig.APPLICATION_ID,
-                    packageInfo.packageName ?: "unknown"
+                    packageInfo.packageName
                 )
             )
         }
@@ -246,24 +246,14 @@ class ApkUpdateInstaller(private val context: Context) {
             "${context.packageName}.fileprovider",
             file
         )
-        val intent = Intent(Intent.ACTION_INSTALL_PACKAGE).apply {
-            data = uri
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(uri, "application/vnd.android.package-archive")
             clipData = ClipData.newRawUri("Nexora Player update", uri)
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             putExtra(Intent.EXTRA_NOT_UNKNOWN_SOURCE, true)
         }
-        runCatching {
-            context.startActivity(intent)
-        }.onFailure {
-            val fallback = Intent(Intent.ACTION_VIEW).apply {
-                setDataAndType(uri, "application/vnd.android.package-archive")
-                clipData = ClipData.newRawUri("Nexora Player update", uri)
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            }
-            context.startActivity(fallback)
-        }
+        context.startActivity(intent)
     }
 
     private fun sha256(file: File): String {
