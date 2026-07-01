@@ -19,16 +19,20 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.CloudUpload
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.LibraryMusic
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -47,13 +51,11 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -82,6 +84,11 @@ import com.nexora.player.data.online.OnlineUserSession
 import com.nexora.player.ui.components.MediaArtwork
 import com.nexora.player.ui.components.formatDuration
 
+private const val ONLINE_TAB_HOME = 0
+private const val ONLINE_TAB_SEARCH = 1
+private const val ONLINE_TAB_ACCOUNT = 2
+private const val ONLINE_TAB_UPLOAD = 3
+
 @Composable
 fun OnlineScreen(
     modifier: Modifier = Modifier,
@@ -90,12 +97,15 @@ fun OnlineScreen(
     onLogin: (String, String) -> Unit,
     onRegister: (String, String, String) -> Unit,
     onGoogleLogin: () -> Unit,
+    selectedTab: Int,
+    onTabSelected: (Int) -> Unit,
     onLogout: () -> Unit,
     onRefresh: () -> Unit,
-    onQueryChange: (String) -> Unit,
     onSearch: () -> Unit,
     onClearSearch: () -> Unit,
     onPlaySong: (OnlineSongDto) -> Unit,
+    onUpdateProfile: (String) -> Unit,
+    onChangePassword: (String) -> Unit,
     onToggleUploadSelection: (MediaEntry) -> Unit,
     onClearUploadSelection: () -> Unit,
     onUploadSelected: () -> Unit
@@ -122,46 +132,35 @@ fun OnlineScreen(
         return
     }
 
-    var tab by rememberSaveable { mutableIntStateOf(0) }
-    val tabs = listOf(
-        R.string.online_tab_home,
-        R.string.online_tab_search,
-        R.string.online_tab_account,
-        R.string.online_tab_upload
-    )
+    val safeTab = selectedTab.coerceIn(ONLINE_TAB_HOME, ONLINE_TAB_UPLOAD)
 
-    Column(modifier = modifier.fillMaxSize()) {
-        TabRow(selectedTabIndex = tab) {
-            tabs.forEachIndexed { index, titleRes ->
-                Tab(
-                    selected = tab == index,
-                    onClick = { tab = index },
-                    text = { Text(stringResource(titleRes), maxLines = 1) }
-                )
-            }
-        }
-
-        when (tab) {
-            0 -> OnlineHomeContent(
+    Column(
+        modifier = modifier.fillMaxSize().padding(horizontal = 14.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        OnlineSectionSwitcher(selectedTab = safeTab, onTabSelected = onTabSelected)
+        when (safeTab) {
+            ONLINE_TAB_HOME -> OnlineHomeContent(
                 state = state,
                 onRefresh = onRefresh,
                 onPlaySong = onPlaySong,
                 modifier = Modifier.fillMaxSize()
             )
-            1 -> OnlineSearchContent(
+            ONLINE_TAB_SEARCH -> OnlineSearchContent(
                 state = state,
-                onQueryChange = onQueryChange,
                 onSearch = onSearch,
                 onClearSearch = onClearSearch,
                 onPlaySong = onPlaySong,
                 modifier = Modifier.fillMaxSize()
             )
-            2 -> OnlineAccountContent(
+            ONLINE_TAB_ACCOUNT -> OnlineAccountContent(
                 state = state,
                 onLogout = onLogout,
+                onUpdateProfile = onUpdateProfile,
+                onChangePassword = onChangePassword,
                 modifier = Modifier.fillMaxSize()
             )
-            3 -> OnlineUploadContent(
+            ONLINE_TAB_UPLOAD -> OnlineUploadContent(
                 localAudio = localAudio,
                 selectedIds = state.selectedUploadIds,
                 progress = state.uploadProgress,
@@ -170,6 +169,45 @@ fun OnlineScreen(
                 onUploadSelected = onUploadSelected,
                 modifier = Modifier.fillMaxSize()
             )
+        }
+    }
+}
+
+@Composable
+private fun OnlineSectionSwitcher(selectedTab: Int, onTabSelected: (Int) -> Unit) {
+    val tabs = listOf(
+        ONLINE_TAB_HOME to R.string.online_tab_home,
+        ONLINE_TAB_SEARCH to R.string.online_tab_search,
+        ONLINE_TAB_ACCOUNT to R.string.online_tab_account,
+        ONLINE_TAB_UPLOAD to R.string.online_tab_upload
+    )
+    ElevatedCard(shape = RoundedCornerShape(26.dp), modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(6.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            tabs.forEach { (index, labelRes) ->
+                val selected = selectedTab == index
+                Surface(
+                    onClick = { onTabSelected(index) },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(20.dp),
+                    color = if (selected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+                    tonalElevation = if (selected) 3.dp else 0.dp
+                ) {
+                    Box(modifier = Modifier.padding(horizontal = 8.dp, vertical = 11.dp), contentAlignment = Alignment.Center) {
+                        Text(
+                            text = stringResource(labelRes),
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                            color = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -205,20 +243,18 @@ private fun OnlineAuthContent(
             .background(
                 Brush.verticalGradient(
                     listOf(
-                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
                         MaterialTheme.colorScheme.surface,
+                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.13f),
                         MaterialTheme.colorScheme.surface
                     )
                 )
             )
-            .padding(18.dp),
+            .padding(horizontal = 18.dp, vertical = 10.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        item { OnlineAuthHero() }
         item {
-            OnlineAuthHero()
-        }
-        item {
-            ElevatedCard(shape = RoundedCornerShape(30.dp)) {
+            ElevatedCard(shape = RoundedCornerShape(32.dp), modifier = Modifier.fillMaxWidth()) {
                 Column(
                     modifier = Modifier.fillMaxWidth().padding(18.dp),
                     verticalArrangement = Arrangement.spacedBy(13.dp)
@@ -232,29 +268,6 @@ private fun OnlineAuthContent(
                         text = stringResource(R.string.online_auth_subtitle),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    OutlinedButton(
-                        enabled = !loading,
-                        onClick = onGoogleLogin,
-                        modifier = Modifier.fillMaxWidth().height(54.dp),
-                        shape = RoundedCornerShape(18.dp)
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_google_logo),
-                            contentDescription = null,
-                            tint = Color.Unspecified,
-                            modifier = Modifier.size(22.dp)
-                        )
-                        Spacer(Modifier.size(10.dp))
-                        Text(stringResource(R.string.online_google_login_action), fontWeight = FontWeight.SemiBold)
-                    }
-
-                    Text(
-                        text = stringResource(R.string.online_or_email_login),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.align(Alignment.CenterHorizontally)
                     )
 
                     if (registerMode) {
@@ -300,18 +313,10 @@ private fun OnlineAuthContent(
                             modifier = Modifier.fillMaxWidth()
                         )
                         if (password.isNotBlank() && password.length < 6) {
-                            Text(
-                                text = stringResource(R.string.online_password_minimum),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.error
-                            )
+                            InlineError(text = stringResource(R.string.online_password_minimum))
                         }
                         if (confirmPassword.isNotBlank() && !passwordsMatch) {
-                            Text(
-                                text = stringResource(R.string.online_passwords_do_not_match),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.error
-                            )
+                            InlineError(text = stringResource(R.string.online_passwords_do_not_match))
                         }
                     }
 
@@ -337,6 +342,24 @@ private fun OnlineAuthContent(
                     TextButton(onClick = { registerMode = !registerMode }, modifier = Modifier.fillMaxWidth()) {
                         Text(if (registerMode) stringResource(R.string.online_have_account) else stringResource(R.string.online_need_account))
                     }
+
+                    OnlineDividerLabel(text = stringResource(R.string.online_auth_google_divider))
+
+                    OutlinedButton(
+                        enabled = !loading,
+                        onClick = onGoogleLogin,
+                        modifier = Modifier.fillMaxWidth().height(54.dp),
+                        shape = RoundedCornerShape(18.dp)
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_google_logo),
+                            contentDescription = null,
+                            tint = Color.Unspecified,
+                            modifier = Modifier.size(22.dp)
+                        )
+                        Spacer(Modifier.size(10.dp))
+                        Text(stringResource(R.string.online_google_login_action), fontWeight = FontWeight.SemiBold)
+                    }
                 }
             }
         }
@@ -345,9 +368,9 @@ private fun OnlineAuthContent(
 
 @Composable
 private fun OnlineAuthHero() {
-    Card(
-        shape = RoundedCornerShape(30.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.62f))
+    ElevatedCard(
+        shape = RoundedCornerShape(32.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.48f))
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(18.dp),
@@ -357,17 +380,30 @@ private fun OnlineAuthHero() {
             Box(
                 modifier = Modifier
                     .size(60.dp)
-                    .clip(RoundedCornerShape(20.dp))
+                    .clip(RoundedCornerShape(22.dp))
                     .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Filled.CloudDone, contentDescription = null, modifier = Modifier.size(34.dp))
+                Icon(Icons.Filled.CloudDone, contentDescription = null, modifier = Modifier.size(34.dp), tint = MaterialTheme.colorScheme.primary)
             }
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Text(stringResource(R.string.online_auth_title), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                Text(stringResource(R.string.online_account_connected), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.online_top_subtitle_guest), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
+    }
+}
+
+@Composable
+private fun OnlineDividerLabel(text: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        HorizontalDivider(modifier = Modifier.weight(1f), thickness = 0.5.dp)
+        Text(text, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        HorizontalDivider(modifier = Modifier.weight(1f), thickness = 0.5.dp)
     }
 }
 
@@ -402,6 +438,11 @@ private fun PasswordField(
 }
 
 @Composable
+private fun InlineError(text: String) {
+    Text(text = text, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+}
+
+@Composable
 private fun OnlineHomeContent(
     state: OnlineUiState,
     onRefresh: () -> Unit,
@@ -409,15 +450,20 @@ private fun OnlineHomeContent(
     modifier: Modifier
 ) {
     LazyColumn(
-        modifier = modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+        modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         item {
-            OnlineHeaderCard(
-                title = stringResource(R.string.online_home_title),
-                subtitle = stringResource(R.string.online_home_subtitle),
-                icon = { Icon(Icons.Filled.CloudDone, contentDescription = null, modifier = Modifier.size(34.dp)) },
-                trailing = {
+            OnlineStatsRow(
+                songsCount = state.songs.size,
+                resultsCount = state.searchResults.size,
+                selectedCount = state.selectedUploadIds.size
+            )
+        }
+        item {
+            SectionTitleRow(
+                title = stringResource(R.string.online_home_recent_title),
+                action = {
                     IconButton(onClick = onRefresh) {
                         Icon(Icons.Filled.Refresh, contentDescription = stringResource(R.string.action_refresh))
                     }
@@ -438,32 +484,62 @@ private fun OnlineHomeContent(
 }
 
 @Composable
+private fun OnlineStatsRow(songsCount: Int, resultsCount: Int, selectedCount: Int) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        OnlineStatCard(label = stringResource(R.string.online_stats_songs), value = songsCount.toString(), modifier = Modifier.weight(1f))
+        OnlineStatCard(label = stringResource(R.string.online_stats_results), value = resultsCount.toString(), modifier = Modifier.weight(1f))
+        OnlineStatCard(label = stringResource(R.string.online_stats_upload_ready), value = selectedCount.toString(), modifier = Modifier.weight(1f))
+    }
+}
+
+@Composable
+private fun OnlineStatCard(label: String, value: String, modifier: Modifier = Modifier) {
+    ElevatedCard(shape = RoundedCornerShape(22.dp), modifier = modifier) {
+        Column(modifier = Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+    }
+}
+
+@Composable
+private fun SectionTitleRow(title: String, action: @Composable (() -> Unit)? = null) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 2.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        action?.invoke()
+    }
+}
+
+@Composable
 private fun OnlineSearchContent(
     state: OnlineUiState,
-    onQueryChange: (String) -> Unit,
     onSearch: () -> Unit,
     onClearSearch: () -> Unit,
     onPlaySong: (OnlineSongDto) -> Unit,
     modifier: Modifier
 ) {
     LazyColumn(
-        modifier = modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+        modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         item {
-            ElevatedCard(shape = RoundedCornerShape(24.dp)) {
+            ElevatedCard(shape = RoundedCornerShape(24.dp), modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        OutlinedTextField(
-                            value = state.onlineQuery,
-                            onValueChange = onQueryChange,
-                            label = { Text(stringResource(R.string.online_search_hint)) },
-                            leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-                            singleLine = true,
-                            modifier = Modifier.weight(1f)
-                        )
-                        IconButton(onClick = onSearch) {
-                            Icon(Icons.Filled.Search, contentDescription = stringResource(R.string.online_search_action))
+                        Icon(Icons.Filled.Search, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(stringResource(R.string.online_tab_search), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                            Text(
+                                text = if (state.onlineQuery.isBlank()) stringResource(R.string.online_search_from_top) else state.onlineQuery,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
                         }
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -478,6 +554,9 @@ private fun OnlineSearchContent(
         if (state.onlineQuery.isNotBlank() && !state.searching && state.searchResults.isEmpty() && state.searchError == null) {
             item { EmptyOnlineCard(text = stringResource(R.string.online_empty_search)) }
         }
+        if (state.onlineQuery.isBlank() && state.searchResults.isEmpty()) {
+            item { EmptyOnlineCard(text = stringResource(R.string.online_search_from_top)) }
+        }
         items(state.searchResults, key = { it.id }) { song ->
             OnlineSongRow(song = song, onClick = { onPlaySong(song) })
         }
@@ -488,56 +567,156 @@ private fun OnlineSearchContent(
 private fun OnlineAccountContent(
     state: OnlineUiState,
     onLogout: () -> Unit,
+    onUpdateProfile: (String) -> Unit,
+    onChangePassword: (String) -> Unit,
     modifier: Modifier
 ) {
     val session = state.session
     LazyColumn(
-        modifier = modifier.padding(18.dp),
+        modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         item {
-            ElevatedCard(shape = RoundedCornerShape(28.dp)) {
-                Column(
-                    modifier = Modifier.fillMaxWidth().padding(18.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(14.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        OnlineProfileAvatar(session = session, size = 74)
-                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                            Text(
-                                text = session?.profileName ?: stringResource(R.string.online_account_connected),
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            Text(
-                                text = session?.email ?: stringResource(R.string.online_account_connected),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            AssistChip(
-                                onClick = {},
-                                label = { Text(session.providerLabel()) }
-                            )
-                        }
-                    }
-                    HorizontalDivider(thickness = 0.4.dp, color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+            OnlineAccountHero(session = session, onLogout = onLogout)
+        }
+        item {
+            ProfileEditorCard(state = state, onUpdateProfile = onUpdateProfile)
+        }
+        item {
+            PasswordSettingsCard(state = state, onChangePassword = onChangePassword)
+        }
+    }
+}
+
+@Composable
+private fun OnlineAccountHero(session: OnlineUserSession?, onLogout: () -> Unit) {
+    ElevatedCard(shape = RoundedCornerShape(30.dp), modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                OnlineProfileAvatar(session = session, size = 78)
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                     Text(
-                        text = stringResource(R.string.online_account_session_persistent),
+                        text = session?.profileName ?: stringResource(R.string.online_account_connected),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = session?.email ?: stringResource(R.string.online_account_connected),
                         style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    AssistChip(onClick = {}, label = { Text(session.providerLabel()) })
+                }
+            }
+            FilledTonalButton(onClick = onLogout, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp)) {
+                Icon(Icons.Filled.Logout, contentDescription = null)
+                Spacer(Modifier.size(8.dp))
+                Text(stringResource(R.string.online_logout))
+            }
+        }
+    }
+}
+
+@Composable
+private fun ProfileEditorCard(state: OnlineUiState, onUpdateProfile: (String) -> Unit) {
+    val session = state.session
+    var displayName by rememberSaveable(session?.userId, session?.displayName, session?.username) {
+        mutableStateOf(session?.profileName.orEmpty())
+    }
+    ElevatedCard(shape = RoundedCornerShape(28.dp), modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Filled.Edit, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(stringResource(R.string.online_profile_edit_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.online_account_profile_subtitle), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            OutlinedTextField(
+                value = displayName,
+                onValueChange = { displayName = it },
+                label = { Text(stringResource(R.string.online_profile_name_label)) },
+                leadingIcon = { Icon(Icons.Filled.Person, contentDescription = null) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+            state.profileMessage?.let { SuccessCard(message = it) }
+            state.profileError?.let { ErrorCard(message = it) }
+            Button(
+                onClick = { onUpdateProfile(displayName) },
+                enabled = !state.profileSaving && displayName.trim().length >= 2,
+                modifier = Modifier.fillMaxWidth().height(50.dp),
+                shape = RoundedCornerShape(18.dp)
+            ) {
+                if (state.profileSaving) CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp) else {
+                    Icon(Icons.Filled.Save, contentDescription = null)
+                    Spacer(Modifier.size(8.dp))
+                    Text(stringResource(R.string.online_profile_save))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PasswordSettingsCard(state: OnlineUiState, onChangePassword: (String) -> Unit) {
+    val isGoogleAccount = state.session.providerLabel() == stringResource(R.string.online_provider_google)
+    var password by rememberSaveable { mutableStateOf("") }
+    var confirmPassword by rememberSaveable { mutableStateOf("") }
+    var passwordVisible by rememberSaveable { mutableStateOf(false) }
+    var confirmPasswordVisible by rememberSaveable { mutableStateOf(false) }
+    val matches = password == confirmPassword
+    val canSave = !state.passwordSaving && password.length >= 6 && confirmPassword.isNotBlank() && matches
+
+    ElevatedCard(shape = RoundedCornerShape(28.dp), modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Filled.Key, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(stringResource(R.string.online_password_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text(
+                        text = if (isGoogleAccount) stringResource(R.string.online_google_password_note) else stringResource(R.string.online_email_password_note),
+                        style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    FilledTonalButton(onClick = onLogout, modifier = Modifier.fillMaxWidth()) {
-                        Icon(Icons.Filled.Logout, contentDescription = null)
-                        Spacer(Modifier.size(8.dp))
-                        Text(stringResource(R.string.online_logout))
-                    }
+                }
+            }
+            PasswordField(
+                value = password,
+                onValueChange = { password = it },
+                label = stringResource(R.string.online_new_password),
+                visible = passwordVisible,
+                onVisibleChange = { passwordVisible = !passwordVisible },
+                imeAction = ImeAction.Next,
+                modifier = Modifier.fillMaxWidth()
+            )
+            PasswordField(
+                value = confirmPassword,
+                onValueChange = { confirmPassword = it },
+                label = stringResource(R.string.online_confirm_new_password),
+                visible = confirmPasswordVisible,
+                onVisibleChange = { confirmPasswordVisible = !confirmPasswordVisible },
+                imeAction = ImeAction.Done,
+                modifier = Modifier.fillMaxWidth()
+            )
+            if (password.isNotBlank() && password.length < 6) InlineError(text = stringResource(R.string.online_password_minimum))
+            if (confirmPassword.isNotBlank() && !matches) InlineError(text = stringResource(R.string.online_passwords_do_not_match))
+            state.passwordMessage?.let { SuccessCard(message = it) }
+            state.passwordError?.let { ErrorCard(message = it) }
+            Button(
+                onClick = { onChangePassword(password) },
+                enabled = canSave,
+                modifier = Modifier.fillMaxWidth().height(50.dp),
+                shape = RoundedCornerShape(18.dp)
+            ) {
+                if (state.passwordSaving) CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp) else {
+                    Icon(Icons.Filled.Key, contentDescription = null)
+                    Spacer(Modifier.size(8.dp))
+                    Text(stringResource(R.string.online_change_password))
                 }
             }
         }
@@ -588,19 +767,19 @@ private fun OnlineUploadContent(
     modifier: Modifier
 ) {
     LazyColumn(
-        modifier = modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+        modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         item {
-            OnlineHeaderCard(
-                title = stringResource(R.string.online_upload_title),
-                subtitle = stringResource(R.string.online_upload_subtitle),
-                icon = { Icon(Icons.Filled.CloudUpload, contentDescription = null, modifier = Modifier.size(34.dp)) }
-            )
-        }
-        item {
             ElevatedCard(shape = RoundedCornerShape(24.dp)) {
                 Column(modifier = Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Filled.CloudUpload, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(stringResource(R.string.online_upload_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                            Text(stringResource(R.string.online_upload_subtitle), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
                     Text(stringResource(R.string.online_upload_selected, selectedIds.size), fontWeight = FontWeight.SemiBold)
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Button(
@@ -635,35 +814,6 @@ private fun OnlineUploadContent(
                 enabled = !progress.running,
                 onToggle = { onToggleSelection(item) }
             )
-        }
-    }
-}
-
-@Composable
-private fun OnlineHeaderCard(
-    title: String,
-    subtitle: String,
-    icon: @Composable () -> Unit,
-    trailing: (@Composable () -> Unit)? = null
-) {
-    Card(
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.56f))
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(18.dp),
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier.size(54.dp).clip(RoundedCornerShape(18.dp)).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)),
-                contentAlignment = Alignment.Center
-            ) { icon() }
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            trailing?.invoke()
         }
     }
 }
@@ -765,6 +915,23 @@ private fun ErrorCard(message: String, onRetry: (() -> Unit)? = null) {
             if (onRetry != null) {
                 TextButton(onClick = onRetry) { Text(stringResource(R.string.action_retry)) }
             }
+        }
+    }
+}
+
+@Composable
+private fun SuccessCard(message: String) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f)),
+        shape = RoundedCornerShape(18.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+            Text(message, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimaryContainer)
         }
     }
 }

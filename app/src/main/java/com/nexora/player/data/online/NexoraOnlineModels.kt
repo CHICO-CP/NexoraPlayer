@@ -83,7 +83,13 @@ data class OnlineUiState(
     val songsError: String? = null,
     val searchError: String? = null,
     val selectedUploadIds: Set<Long> = emptySet(),
-    val uploadProgress: OnlineUploadProgress = OnlineUploadProgress()
+    val uploadProgress: OnlineUploadProgress = OnlineUploadProgress(),
+    val profileSaving: Boolean = false,
+    val profileMessage: String? = null,
+    val profileError: String? = null,
+    val passwordSaving: Boolean = false,
+    val passwordMessage: String? = null,
+    val passwordError: String? = null
 ) {
     val loggedIn: Boolean get() = session != null
 }

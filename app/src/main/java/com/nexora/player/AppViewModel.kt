@@ -649,6 +649,81 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun onlineUpdateProfile(displayName: String) {
+        val session = _uiState.value.online.session ?: return
+        val cleanName = displayName.trim()
+        if (cleanName.length < 2) {
+            _uiState.value = _uiState.value.copy(
+                online = _uiState.value.online.copy(
+                    profileError = context.getString(R.string.online_profile_name_required),
+                    profileMessage = null
+                )
+            )
+            return
+        }
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                online = _uiState.value.online.copy(profileSaving = true, profileError = null, profileMessage = null)
+            )
+            val result = runCatching { onlineApiClient.updateProfile(session, cleanName) }
+            result.onSuccess { updatedSession ->
+                onlineSessionStore.save(updatedSession)
+                _uiState.value = _uiState.value.copy(
+                    online = _uiState.value.online.copy(
+                        session = updatedSession,
+                        profileSaving = false,
+                        profileError = null,
+                        profileMessage = context.getString(R.string.online_profile_saved)
+                    )
+                )
+            }.onFailure { throwable ->
+                _uiState.value = _uiState.value.copy(
+                    online = _uiState.value.online.copy(
+                        profileSaving = false,
+                        profileMessage = null,
+                        profileError = onlineAuthErrorMessage(throwable, R.string.online_profile_save_error)
+                    )
+                )
+            }
+        }
+    }
+
+    fun onlineChangePassword(newPassword: String) {
+        val session = _uiState.value.online.session ?: return
+        if (newPassword.length < 6) {
+            _uiState.value = _uiState.value.copy(
+                online = _uiState.value.online.copy(
+                    passwordError = context.getString(R.string.online_password_minimum),
+                    passwordMessage = null
+                )
+            )
+            return
+        }
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                online = _uiState.value.online.copy(passwordSaving = true, passwordError = null, passwordMessage = null)
+            )
+            val result = runCatching { onlineApiClient.updatePassword(session, newPassword) }
+            result.onSuccess {
+                _uiState.value = _uiState.value.copy(
+                    online = _uiState.value.online.copy(
+                        passwordSaving = false,
+                        passwordError = null,
+                        passwordMessage = context.getString(R.string.online_password_changed)
+                    )
+                )
+            }.onFailure { throwable ->
+                _uiState.value = _uiState.value.copy(
+                    online = _uiState.value.online.copy(
+                        passwordSaving = false,
+                        passwordMessage = null,
+                        passwordError = onlineAuthErrorMessage(throwable, R.string.online_password_change_error)
+                    )
+                )
+            }
+        }
+    }
+
     fun onlineGoogleAuthUrl(): String {
         return runCatching { onlineApiClient.googleOAuthUrl() }
             .getOrElse { throwable ->

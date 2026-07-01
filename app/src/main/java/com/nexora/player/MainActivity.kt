@@ -47,6 +47,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -71,6 +72,7 @@ import com.nexora.player.data.model.MediaKind
 import com.nexora.player.ui.components.BottomPlayerBar
 import com.nexora.player.ui.components.ux.IosBottomTabBar
 import com.nexora.player.ui.components.GreetingBanner
+import com.nexora.player.ui.components.OnlineModeTopBar
 import com.nexora.player.ui.screens.FavoritesScreen
 import com.nexora.player.ui.screens.FolderManagerScreen
 import com.nexora.player.ui.screens.MusicScreen
@@ -117,6 +119,8 @@ class MainActivity : AppCompatActivity() {
             var showThemeScreen by rememberSaveable { mutableStateOf(false) }
             var showLanguageScreen by rememberSaveable { mutableStateOf(false) }
             var showSettingsScreen by rememberSaveable { mutableStateOf(false) }
+            var onlineTab by rememberSaveable { mutableIntStateOf(0) }
+            var onlineSearchExpanded by rememberSaveable { mutableStateOf(false) }
             val greeting = rememberGreeting()
             val availableUpdate = state.updateInfo
             val shouldShowUpdateDialog = availableUpdate?.available == true && (
@@ -137,10 +141,10 @@ class MainActivity : AppCompatActivity() {
             ) {
                 val destinations = remember(state.preferences.onlineMusicSearchEnabled) {
                     buildList {
-                        if (state.preferences.onlineMusicSearchEnabled) add(AppDestination.ONLINE)
                         add(AppDestination.MUSIC)
                         add(AppDestination.VIDEOS)
                         add(AppDestination.PLAYLISTS)
+                        if (state.preferences.onlineMusicSearchEnabled) add(AppDestination.ONLINE)
                     }
                 }
 
@@ -154,25 +158,56 @@ class MainActivity : AppCompatActivity() {
                                 .padding(horizontal = 12.dp, vertical = 14.dp),
                             verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            GreetingBanner(
-                                greeting = greeting,
-                                query = if (state.selectedDestination == AppDestination.ONLINE) "" else state.search,
-                                expanded = searchExpanded && state.selectedDestination != AppDestination.ONLINE,
-                                onExpandedChange = { searchExpanded = it && state.selectedDestination != AppDestination.ONLINE },
-                                onQueryChange = { if (state.selectedDestination != AppDestination.ONLINE) viewModel.setSearch(it) },
-                                modifier = Modifier.fillMaxWidth(),
-                                sortMode = if (state.selectedDestination == AppDestination.MUSIC) state.audioSort else null,
-                                onSortSelected = viewModel::setAudioSort,
-                                hasUnreadNotifications = state.unreadRemoteNoticeCount > 0,
-                                onNotificationsClick = {
-                                    searchExpanded = false
-                                    showNotificationCenter = true
-                                },
-                                onSettingsClick = {
-                                    searchExpanded = false
-                                    showSettingsScreen = true
-                                }
-                            )
+                            if (state.selectedDestination == AppDestination.ONLINE) {
+                                OnlineModeTopBar(
+                                    session = state.online.session,
+                                    query = state.online.onlineQuery,
+                                    searchExpanded = onlineSearchExpanded,
+                                    onSearchExpandedChange = { expanded ->
+                                        onlineSearchExpanded = expanded
+                                        if (expanded) onlineTab = 1
+                                        if (!expanded && state.online.onlineQuery.isNotBlank()) viewModel.clearOnlineSearch()
+                                    },
+                                    onQueryChange = { query ->
+                                        onlineTab = 1
+                                        viewModel.setOnlineQuery(query)
+                                    },
+                                    onSearch = {
+                                        onlineTab = 1
+                                        onlineSearchExpanded = true
+                                        viewModel.searchOnlineNow()
+                                    },
+                                    onProfileClick = {
+                                        onlineSearchExpanded = false
+                                        onlineTab = 2
+                                    },
+                                    onSettingsClick = {
+                                        onlineSearchExpanded = false
+                                        showSettingsScreen = true
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            } else {
+                                GreetingBanner(
+                                    greeting = greeting,
+                                    query = state.search,
+                                    expanded = searchExpanded,
+                                    onExpandedChange = { searchExpanded = it },
+                                    onQueryChange = viewModel::setSearch,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    sortMode = if (state.selectedDestination == AppDestination.MUSIC) state.audioSort else null,
+                                    onSortSelected = viewModel::setAudioSort,
+                                    hasUnreadNotifications = state.unreadRemoteNoticeCount > 0,
+                                    onNotificationsClick = {
+                                        searchExpanded = false
+                                        showNotificationCenter = true
+                                    },
+                                    onSettingsClick = {
+                                        searchExpanded = false
+                                        showSettingsScreen = true
+                                    }
+                                )
+                            }
                         }
                     },
                     bottomBar = {
@@ -222,6 +257,8 @@ class MainActivity : AppCompatActivity() {
                         onOpenLanguageScreen = { showLanguageScreen = true },
                         onCloseLanguageScreen = { showLanguageScreen = false },
                         onCloseSettingsScreen = { showSettingsScreen = false },
+                        onlineTab = onlineTab,
+                        onOnlineTabChange = { onlineTab = it },
                         onOpenOnlineGoogleLogin = {
                             val url = viewModel.onlineGoogleAuthUrl()
                             openGoogleAuthUrl(url)
@@ -392,6 +429,8 @@ private fun AppContent(
     onOpenLanguageScreen: () -> Unit,
     onCloseLanguageScreen: () -> Unit,
     onCloseSettingsScreen: () -> Unit,
+    onlineTab: Int,
+    onOnlineTabChange: (Int) -> Unit,
     onOpenOnlineGoogleLogin: () -> Unit
 ) {
     if (showFolderManager) {
@@ -579,6 +618,8 @@ private fun AppContent(
         onOpenStats = onOpenStats,
         onOpenThemeScreen = onOpenThemeScreen,
         onOpenLanguageScreen = onOpenLanguageScreen,
+        onlineTab = onlineTab,
+        onOnlineTabChange = onOnlineTabChange,
         onOpenOnlineGoogleLogin = onOpenOnlineGoogleLogin
     )
 }
@@ -595,14 +636,16 @@ private fun DestinationPagerContent(
     onOpenStats: () -> Unit,
     onOpenThemeScreen: () -> Unit,
     onOpenLanguageScreen: () -> Unit,
+    onlineTab: Int,
+    onOnlineTabChange: (Int) -> Unit,
     onOpenOnlineGoogleLogin: () -> Unit
 ) {
     val destinations = remember(state.preferences.onlineMusicSearchEnabled) {
         buildList {
-            if (state.preferences.onlineMusicSearchEnabled) add(AppDestination.ONLINE)
             add(AppDestination.MUSIC)
             add(AppDestination.VIDEOS)
             add(AppDestination.PLAYLISTS)
+            if (state.preferences.onlineMusicSearchEnabled) add(AppDestination.ONLINE)
         }
     }
 
@@ -627,7 +670,8 @@ private fun DestinationPagerContent(
 
     HorizontalPager(
         state = pagerState,
-        modifier = modifier.fillMaxSize()
+        modifier = modifier.fillMaxSize(),
+        userScrollEnabled = state.selectedDestination != AppDestination.ONLINE
     ) { page ->
         when (destinations[page]) {
             AppDestination.ONLINE -> OnlineScreen(
@@ -637,12 +681,15 @@ private fun DestinationPagerContent(
                 onLogin = viewModel::onlineLogin,
                 onRegister = viewModel::onlineRegister,
                 onGoogleLogin = onOpenOnlineGoogleLogin,
+                selectedTab = onlineTab,
+                onTabSelected = onOnlineTabChange,
                 onLogout = viewModel::onlineLogout,
                 onRefresh = viewModel::loadOnlineSongs,
-                onQueryChange = viewModel::setOnlineQuery,
                 onSearch = { viewModel.searchOnlineNow() },
                 onClearSearch = viewModel::clearOnlineSearch,
                 onPlaySong = viewModel::playOnlineSong,
+                onUpdateProfile = viewModel::onlineUpdateProfile,
+                onChangePassword = viewModel::onlineChangePassword,
                 onToggleUploadSelection = viewModel::toggleOnlineUploadSelection,
                 onClearUploadSelection = viewModel::clearOnlineUploadSelection,
                 onUploadSelected = viewModel::uploadSelectedOnlineSongs

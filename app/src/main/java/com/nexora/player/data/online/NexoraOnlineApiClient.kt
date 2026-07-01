@@ -117,6 +117,59 @@ class NexoraOnlineApiClient(private val context: Context) {
         json.toSession()
     }
 
+    suspend fun updateProfile(session: OnlineUserSession, displayName: String): OnlineUserSession = withContext(Dispatchers.IO) {
+        ensureSupabaseConfigured()
+        val cleanName = displayName.trim()
+        val body = JSONObject()
+            .put(
+                "data",
+                JSONObject()
+                    .put("name", cleanName)
+                    .put("full_name", cleanName)
+                    .put("display_name", cleanName)
+                    .put("username", cleanName)
+            )
+            .toString()
+            .toByteArray()
+        val json = requestJson(
+            url = "$supabaseUrl/auth/v1/user",
+            method = "PUT",
+            body = body,
+            bearerToken = session.accessToken,
+            extraHeaders = supabaseUserHeaders(json = true),
+            requiresAuthEnvelope = false,
+            appSignature = false
+        )
+        val user = json.optJSONObject("user") ?: json
+        val profile = extractProfile(user = user, fallbackEmail = session.email, fallbackProvider = session.provider)
+        session.copy(
+            email = profile.email ?: session.email,
+            userId = user.optString("id").takeIf { it.isNotBlank() } ?: session.userId,
+            displayName = profile.displayName ?: cleanName.ifBlank { session.displayName },
+            username = profile.username ?: cleanName.ifBlank { session.username },
+            avatarUrl = profile.avatarUrl ?: session.avatarUrl,
+            provider = profile.provider ?: session.provider
+        )
+    }
+
+    suspend fun updatePassword(session: OnlineUserSession, newPassword: String) = withContext(Dispatchers.IO) {
+        ensureSupabaseConfigured()
+        val body = JSONObject()
+            .put("password", newPassword)
+            .toString()
+            .toByteArray()
+        requestJson(
+            url = "$supabaseUrl/auth/v1/user",
+            method = "PUT",
+            body = body,
+            bearerToken = session.accessToken,
+            extraHeaders = supabaseUserHeaders(json = true),
+            requiresAuthEnvelope = false,
+            appSignature = false
+        )
+        Unit
+    }
+
     suspend fun refreshSession(session: OnlineUserSession): OnlineUserSession = withContext(Dispatchers.IO) {
         ensureSupabaseConfigured()
         val refreshToken = session.refreshToken ?: throw OnlineApiException(context.getString(R.string.online_error_missing_refresh_token))
@@ -263,6 +316,11 @@ class NexoraOnlineApiClient(private val context: Context) {
     private fun supabaseHeaders(json: Boolean): Map<String, String> = buildMap {
         put("apikey", supabaseAnonKey)
         put("Authorization", "Bearer $supabaseAnonKey")
+        if (json) put("Content-Type", "application/json")
+    }
+
+    private fun supabaseUserHeaders(json: Boolean): Map<String, String> = buildMap {
+        put("apikey", supabaseAnonKey)
         if (json) put("Content-Type", "application/json")
     }
 
