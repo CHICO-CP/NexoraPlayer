@@ -3,6 +3,7 @@ package com.nexora.player
 import android.app.Application
 import android.content.Intent
 import android.media.AudioManager
+import android.net.Uri
 import org.json.JSONArray
 import org.json.JSONObject
 import androidx.lifecycle.AndroidViewModel
@@ -605,6 +606,42 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     )
                 )
             }
+        }
+    }
+
+    fun onlineGoogleAuthUrl(): String {
+        return runCatching { onlineApiClient.googleOAuthUrl() }
+            .getOrElse { throwable ->
+                _uiState.value = _uiState.value.copy(
+                    online = _uiState.value.online.copy(
+                        authError = throwable.message ?: getApplication<Application>().getString(R.string.online_error_google_login_unavailable)
+                    )
+                )
+                ""
+            }
+    }
+
+    fun handleOnlineAuthCallback(uri: Uri?) {
+        val result = runCatching { onlineApiClient.parseGoogleOAuthCallback(uri) }
+        result.onSuccess { session ->
+            if (session == null) return
+            onlineSessionStore.save(session)
+            _uiState.value = _uiState.value.copy(
+                online = _uiState.value.online.copy(
+                    session = session,
+                    restoringSession = false,
+                    authLoading = false,
+                    authError = null
+                )
+            )
+            if (_uiState.value.preferences.onlineMusicSearchEnabled) loadOnlineSongs()
+        }.onFailure { throwable ->
+            _uiState.value = _uiState.value.copy(
+                online = _uiState.value.online.copy(
+                    authLoading = false,
+                    authError = throwable.message ?: getApplication<Application>().getString(R.string.online_error_google_callback)
+                )
+            )
         }
     }
 

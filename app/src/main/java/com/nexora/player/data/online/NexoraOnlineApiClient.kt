@@ -1,7 +1,9 @@
 package com.nexora.player.data.online
 
 import android.content.Context
+import android.net.Uri
 import android.provider.Settings
+import android.util.Base64
 import com.nexora.player.BuildConfig
 import com.nexora.player.R
 import com.nexora.player.data.model.MediaEntry
@@ -10,11 +12,11 @@ import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.BufferedInputStream
-import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
+import java.net.URLDecoder
 import java.net.URLEncoder
 import java.security.MessageDigest
 import javax.crypto.Mac
@@ -27,10 +29,41 @@ class NexoraOnlineApiClient(private val context: Context) {
     private val apiPrefix: String = if (apiBaseUrl.endsWith("/api/v1")) apiBaseUrl else "$apiBaseUrl/api/v1"
     private val supabaseUrl: String = BuildConfig.NEXORA_SUPABASE_URL.trimEnd('/')
     private val supabaseAnonKey: String = BuildConfig.NEXORA_SUPABASE_ANON_KEY
+    private val googleRedirectUrl: String = BuildConfig.NEXORA_SUPABASE_GOOGLE_REDIRECT_URL.ifBlank { "nexoraplayer://auth/callback" }
     private val appClientId: String = BuildConfig.NEXORA_API_APP_ID.ifBlank { "music-mobile-app" }
     private val appSecret: String = BuildConfig.NEXORA_API_APP_SHARED_SECRET
     private val deviceId: String by lazy {
         Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID).orEmpty().ifBlank { "anonymous-device" }
+    }
+
+    fun googleOAuthUrl(): String {
+        ensureSupabaseConfigured()
+        val redirect = URLEncoder.encode(googleRedirectUrl, "UTF-8")
+        val scopes = URLEncoder.encode("email profile", "UTF-8")
+        return "$supabaseUrl/auth/v1/authorize?provider=google&redirect_to=$redirect&scopes=$scopes"
+    }
+
+    fun parseGoogleOAuthCallback(uri: Uri?): OnlineUserSession? {
+        if (uri == null) return null
+        val isExpectedCallback = uri.scheme == "nexoraplayer" && uri.host == "auth" && uri.path.orEmpty().startsWith("/callback")
+        if (!isExpectedCallback) return null
+
+        val params = parseUriCallbackParams(uri)
+        val error = params["error_description"] ?: params["error"]
+        if (!error.isNullOrBlank()) throw OnlineApiException(error)
+
+        val accessToken = params["access_token"].orEmpty()
+        if (accessToken.isBlank()) throw OnlineApiException(context.getString(R.string.online_error_google_callback))
+
+        val expiresIn = params["expires_in"]?.toLongOrNull()?.coerceAtLeast(60L) ?: 3600L
+        val claims = decodeJwtPayload(accessToken)
+        return OnlineUserSession(
+            accessToken = accessToken,
+            refreshToken = params["refresh_token"]?.takeIf { it.isNotBlank() },
+            expiresAtEpochSeconds = System.currentTimeMillis() / 1000L + expiresIn,
+            email = claims?.optString("email")?.takeIf { it.isNotBlank() },
+            userId = claims?.optString("sub")?.takeIf { it.isNotBlank() }
+        )
     }
 
     suspend fun login(email: String, password: String): OnlineUserSession = withContext(Dispatchers.IO) {
@@ -150,23 +183,23 @@ class NexoraOnlineApiClient(private val context: Context) {
     }
 
     suspend fun uploadSong(session: OnlineUserSession, entry: MediaEntry): OnlineSongDto = withContext(Dispatchers.IO) {
-        val file = copyContentUriToTempFile(entry)
+        val audioFile = copyContentUriToTempFile(entry)
+        val boundary = "----NexoraBoundary${System.currentTimeMillis()}"
+        val multipartFile = createMultipartUploadFile(boundary, audioFile, entry)
         try {
-            val boundary = "----NexoraBoundary${System.currentTimeMillis()}"
-            val body = buildMultipartBody(boundary, file, entry)
-            val json = requestJson(
+            val json = requestMultipartJson(
                 url = "$apiPrefix/songs/upload",
                 method = "POST",
-                body = body,
-                contentType = "multipart/form-data; boundary=$boundary",
+                multipartFile = multipartFile,
+                boundary = boundary,
                 bearerToken = session.accessToken,
-                appSignature = appSecret.isNotBlank(),
-                requiresAuthEnvelope = true
+                appSignature = appSecret.isNotBlank()
             )
             val data = json.optJSONObject("data") ?: json
             parseSong(data)
         } finally {
-            runCatching { file.delete() }
+            runCatching { audioFile.delete() }
+            runCatching { multipartFile.delete() }
         }
     }
 
@@ -256,6 +289,66 @@ class NexoraOnlineApiClient(private val context: Context) {
         return json
     }
 
+    private fun requestMultipartJson(
+        url: String,
+        method: String,
+        multipartFile: File,
+        boundary: String,
+        bearerToken: String? = null,
+        appSignature: Boolean = appSecret.isNotBlank()
+    ): JSONObject {
+        val bodyHash = if (appSignature) sha256FileHex(multipartFile) else ""
+        val timestamp = System.currentTimeMillis().toString()
+        val connection = (URL(url).openConnection() as HttpURLConnection).apply {
+            requestMethod = method
+            connectTimeout = 15_000
+            readTimeout = 120_000
+            useCaches = false
+            doOutput = true
+            setRequestProperty("Accept", "application/json")
+            setRequestProperty("Content-Type", "multipart/form-data; boundary=$boundary")
+            setRequestProperty("Content-Length", multipartFile.length().toString())
+            setRequestProperty("x-client-id", "nexora-player-android")
+            setRequestProperty("x-client-version", BuildConfig.VERSION_NAME)
+            setRequestProperty("x-app-platform", "android")
+            setRequestProperty("x-app-id", appClientId)
+            setRequestProperty("x-device-id", deviceId)
+            bearerToken?.let { setRequestProperty("Authorization", "Bearer $it") }
+        }
+
+        if (appSignature) {
+            val uri = URL(url)
+            val pathAndQuery = uri.file
+            val canonical = "${method.uppercase()}\n$pathAndQuery\n$timestamp\n$deviceId\n$bodyHash"
+            connection.setRequestProperty("x-app-timestamp", timestamp)
+            connection.setRequestProperty("x-body-sha256", bodyHash)
+            connection.setRequestProperty("x-app-signature", hmacSha256Hex(appSecret, canonical))
+        }
+
+        multipartFile.inputStream().use { input ->
+            connection.outputStream.use { output -> input.copyTo(output, DEFAULT_BUFFER_SIZE) }
+        }
+
+        val code = connection.responseCode
+        val response = (if (code in 200..299) connection.inputStream else connection.errorStream)
+            ?.bufferedReader()
+            ?.use { it.readText() }
+            .orEmpty()
+        val json = runCatching { JSONObject(response) }.getOrElse { JSONObject().put("message", response) }
+        if (code !in 200..299) {
+            val error = json.optJSONObject("error")
+            val message = error?.optString("message")?.takeIf { it.isNotBlank() }
+                ?: json.optString("message").takeIf { it.isNotBlank() }
+                ?: context.getString(R.string.online_error_http, code)
+            throw OnlineApiException(message)
+        }
+        if (json.has("success") && !json.optBoolean("success", false)) {
+            val message = json.optJSONObject("error")?.optString("message") ?: context.getString(R.string.online_error_server_generic)
+            throw OnlineApiException(message)
+        }
+        return json
+    }
+
     private fun parseSongsResponse(json: JSONObject, requestedLimit: Int, requestedOffset: Int): OnlineSongsResponse {
         val data = json.opt("data")
         val itemsJson: JSONArray = when (data) {
@@ -322,12 +415,35 @@ class NexoraOnlineApiClient(private val context: Context) {
         )
     }
 
+    private fun parseUriCallbackParams(uri: Uri): Map<String, String> {
+        val pairs = mutableMapOf<String, String>()
+        uri.queryParameterNames.forEach { key ->
+            uri.getQueryParameter(key)?.let { pairs[key] = it }
+        }
+        uri.encodedFragment.orEmpty()
+            .split('&')
+            .filter { it.contains('=') }
+            .forEach { pair ->
+                val key = pair.substringBefore('=')
+                val value = pair.substringAfter('=')
+                pairs[URLDecoder.decode(key, "UTF-8")] = URLDecoder.decode(value, "UTF-8")
+            }
+        return pairs
+    }
+
+    private fun decodeJwtPayload(jwt: String): JSONObject? = runCatching {
+        val payload = jwt.split('.').getOrNull(1) ?: return@runCatching null
+        val decoded = Base64.decode(payload, Base64.URL_SAFE or Base64.NO_PADDING or Base64.NO_WRAP)
+        JSONObject(String(decoded))
+    }.getOrNull()
+
     private fun copyContentUriToTempFile(entry: MediaEntry): File {
         val suffix = when {
             entry.mimeType?.contains("mpeg", ignoreCase = true) == true -> ".mp3"
             entry.mimeType?.contains("mp4", ignoreCase = true) == true -> ".m4a"
             entry.mimeType?.contains("flac", ignoreCase = true) == true -> ".flac"
             entry.mimeType?.contains("wav", ignoreCase = true) == true -> ".wav"
+            entry.mimeType?.contains("ogg", ignoreCase = true) == true -> ".ogg"
             else -> ".audio"
         }
         val file = File.createTempFile("nexora-upload-", suffix, context.cacheDir)
@@ -339,32 +455,68 @@ class NexoraOnlineApiClient(private val context: Context) {
         return file
     }
 
-    private fun buildMultipartBody(boundary: String, file: File, entry: MediaEntry): ByteArray {
-        val out = ByteArrayOutputStream()
-        fun write(value: String) = out.write(value.toByteArray())
-        fun field(name: String, value: String) {
+    private fun createMultipartUploadFile(boundary: String, audioFile: File, entry: MediaEntry): File {
+        val multipart = File.createTempFile("nexora-upload-body-", ".multipart", context.cacheDir)
+        multipart.outputStream().use { out ->
+            fun write(value: String) = out.write(value.toByteArray())
+            fun field(name: String, value: String) {
+                write("--$boundary\r\n")
+                write("Content-Disposition: form-data; name=\"$name\"\r\n\r\n")
+                write(value)
+                write("\r\n")
+            }
+
+            field("title", entry.title)
+            field("artist", entry.artist.ifBlank { context.getString(R.string.online_unknown_artist) })
+            if (entry.album.isNotBlank()) field("album", entry.album)
+            if (entry.durationMs > 0L) field("duration", (entry.durationMs / 1000L).toString())
+            if (!entry.mimeType.isNullOrBlank()) field("mime_type", entry.mimeType)
+
             write("--$boundary\r\n")
-            write("Content-Disposition: form-data; name=\"$name\"\r\n\r\n")
-            write(value)
-            write("\r\n")
+            write("Content-Disposition: form-data; name=\"file\"; filename=\"${entry.uploadFilename()}\"\r\n")
+            write("Content-Type: ${entry.mimeType ?: "audio/mpeg"}\r\n\r\n")
+            audioFile.inputStream().use { input -> input.copyTo(out, DEFAULT_BUFFER_SIZE) }
+            write("\r\n--$boundary--\r\n")
         }
-        field("title", entry.title)
-        field("artist", entry.artist.ifBlank { context.getString(R.string.online_unknown_artist) })
-        if (entry.album.isNotBlank()) field("album", entry.album)
-        if (entry.durationMs > 0L) field("duration", (entry.durationMs / 1000L).toString())
-        write("--$boundary\r\n")
-        write("Content-Disposition: form-data; name=\"file\"; filename=\"${entry.title.safeFilename()}\"\r\n")
-        write("Content-Type: ${entry.mimeType ?: "audio/mpeg"}\r\n\r\n")
-        out.write(file.readBytes())
-        write("\r\n--$boundary--\r\n")
-        return out.toByteArray()
+        return multipart
     }
 
-    private fun String.safeFilename(): String = replace(Regex("[^A-Za-z0-9._-]+"), "_").ifBlank { "audio.mp3" }
+    private fun MediaEntry.uploadFilename(): String {
+        val base = title.safeFilename().ifBlank { "audio" }
+        val pathExtension = uri.lastPathSegment
+            ?.substringAfterLast('.', missingDelimiterValue = "")
+            .orEmpty()
+            .takeIf { it.length in 2..5 }
+        val extension = when {
+            pathExtension != null -> ".$pathExtension"
+            mimeType?.contains("mpeg", ignoreCase = true) == true -> ".mp3"
+            mimeType?.contains("mp4", ignoreCase = true) == true -> ".m4a"
+            mimeType?.contains("flac", ignoreCase = true) == true -> ".flac"
+            mimeType?.contains("wav", ignoreCase = true) == true -> ".wav"
+            mimeType?.contains("ogg", ignoreCase = true) == true -> ".ogg"
+            else -> ".mp3"
+        }
+        return if (base.contains('.')) base else base + extension
+    }
+
+    private fun String.safeFilename(): String = replace(Regex("[^A-Za-z0-9._-]+"), "_").trim('_').ifBlank { "audio" }
 
     private fun sha256Hex(bytes: ByteArray): String = MessageDigest.getInstance("SHA-256")
         .digest(bytes)
         .joinToString("") { "%02x".format(it.toInt() and 0xff) }
+
+    private fun sha256FileHex(file: File): String {
+        val digest = MessageDigest.getInstance("SHA-256")
+        file.inputStream().use { input ->
+            val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+            while (true) {
+                val read = input.read(buffer)
+                if (read <= 0) break
+                digest.update(buffer, 0, read)
+            }
+        }
+        return digest.digest().joinToString("") { "%02x".format(it.toInt() and 0xff) }
+    }
 
     private fun hmacSha256Hex(secret: String, value: String): String {
         val mac = Mac.getInstance("HmacSHA256")

@@ -699,4 +699,8 @@ Try Nexora Player if you want a complete, lightweight and stylish player.
     <string name="online_error_http">HTTP error %1$d</string>
     <string name="online_error_server_generic">Server error</string>
     <string name="online_error_read_local_file">Could not read local file: %1$s</string>
+    <string name="online_google_login_action">Continue with Google</string>
+    <string name="online_or_email_login">or use email and password</string>
+    <string name="online_error_google_callback">Could not complete Google sign-in. Check the Supabase redirect URL.</string>
+    <string name="online_error_google_login_unavailable">Google sign-in is not available because Supabase is not configured.</string>
 </resources>

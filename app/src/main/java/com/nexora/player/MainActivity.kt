@@ -100,6 +100,7 @@ class MainActivity : AppCompatActivity() {
         installSplashScreen()
         super.onCreate(savedInstanceState)
         requestMediaPermissions()
+        handleDeepLink(intent)
 
         setContent {
             val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -206,7 +207,11 @@ class MainActivity : AppCompatActivity() {
                         onOpenThemeScreen = { showThemeScreen = true },
                         onCloseThemeScreen = { showThemeScreen = false },
                         onOpenLanguageScreen = { showLanguageScreen = true },
-                        onCloseLanguageScreen = { showLanguageScreen = false }
+                        onCloseLanguageScreen = { showLanguageScreen = false },
+                        onOpenOnlineGoogleLogin = {
+                            val url = viewModel.onlineGoogleAuthUrl()
+                            if (url.isNotBlank()) openExternalUrl(url)
+                        }
                     )
                 }
 
@@ -248,6 +253,16 @@ class MainActivity : AppCompatActivity() {
                 )
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleDeepLink(intent)
+    }
+
+    private fun handleDeepLink(intent: Intent?) {
+        viewModel.handleOnlineAuthCallback(intent?.data)
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
@@ -315,7 +330,8 @@ private fun AppContent(
     onOpenThemeScreen: () -> Unit,
     onCloseThemeScreen: () -> Unit,
     onOpenLanguageScreen: () -> Unit,
-    onCloseLanguageScreen: () -> Unit
+    onCloseLanguageScreen: () -> Unit,
+    onOpenOnlineGoogleLogin: () -> Unit
 ) {
     if (showFolderManager) {
         BackHandler(onBack = onCloseFolderManager)
@@ -495,6 +511,7 @@ private fun DestinationPagerContent(
                 localAudio = state.audio,
                 onLogin = viewModel::onlineLogin,
                 onRegister = viewModel::onlineRegister,
+                onGoogleLogin = onOpenOnlineGoogleLogin,
                 onLogout = viewModel::onlineLogout,
                 onRefresh = viewModel::loadOnlineSongs,
                 onQueryChange = viewModel::setOnlineQuery,

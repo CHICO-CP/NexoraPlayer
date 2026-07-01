@@ -72,6 +72,7 @@ fun OnlineScreen(
     localAudio: List<MediaEntry>,
     onLogin: (String, String) -> Unit,
     onRegister: (String, String, String) -> Unit,
+    onGoogleLogin: () -> Unit,
     onLogout: () -> Unit,
     onRefresh: () -> Unit,
     onQueryChange: (String) -> Unit,
@@ -98,7 +99,8 @@ fun OnlineScreen(
             loading = state.authLoading,
             error = state.authError,
             onLogin = onLogin,
-            onRegister = onRegister
+            onRegister = onRegister,
+            onGoogleLogin = onGoogleLogin
         )
         return
     }
@@ -161,7 +163,8 @@ private fun OnlineAuthContent(
     loading: Boolean,
     error: String?,
     onLogin: (String, String) -> Unit,
-    onRegister: (String, String, String) -> Unit
+    onRegister: (String, String, String) -> Unit,
+    onGoogleLogin: () -> Unit
 ) {
     var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
@@ -189,6 +192,21 @@ private fun OnlineAuthContent(
                         text = if (registerMode) stringResource(R.string.online_create_account) else stringResource(R.string.online_login),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
+                    )
+                    FilledTonalButton(
+                        enabled = !loading,
+                        onClick = onGoogleLogin,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Filled.AccountCircle, contentDescription = null)
+                        Spacer(Modifier.size(8.dp))
+                        Text(stringResource(R.string.online_google_login_action))
+                    }
+                    Text(
+                        text = stringResource(R.string.online_or_email_login),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.align(Alignment.CenterHorizontally)
                     )
                     OutlinedTextField(
                         value = email,

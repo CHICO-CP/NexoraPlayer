@@ -18,10 +18,11 @@ android {
         minSdk = 24
         targetSdk = 35
         versionCode = 8
-        versionName = "2.0.1"
+        versionName = "2.0.2"
         val nexoraOnlineApiBaseUrl = System.getenv("NEXORA_ONLINE_API_BASE_URL") ?: "https://nexoraplayerapi.vercel.app"
         val nexoraSupabaseUrl = System.getenv("NEXORA_SUPABASE_URL") ?: "https://rbzkczwifeqkzcoqwyjq.supabase.co"
         val nexoraSupabaseAnonKey = System.getenv("NEXORA_SUPABASE_ANON_KEY") ?: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJiemtjendpZmVxa3pjb3F3eWpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3MTY2NDQsImV4cCI6MjA5ODI5MjY0NH0.JYfLzRf25MMcj_MFqB5M1rIU0YeDGRQZtW8yKwWY2V8"
+        val nexoraSupabaseGoogleRedirectUrl = System.getenv("NEXORA_SUPABASE_GOOGLE_REDIRECT_URL") ?: "nexoraplayer://auth/callback"
         val nexoraApiAppId = System.getenv("NEXORA_API_APP_ID") ?: "nexora-player-ghost"
         val nexoraApiAppSharedSecret = System.getenv("NEXORA_API_APP_SHARED_SECRET") ?: "9f4f1e1ed32f830f7a9b18e1b7c0c98fd4d9281a97ff7cbf705c7a40c7ec53cba199b6f541d71856d9a2c2ea33192f902b1633e2de8e6a6b87e70ef5a4d66"
 
@@ -29,6 +30,7 @@ android {
         buildConfigField("String", "NEXORA_ONLINE_API_BASE_URL", nexoraOnlineApiBaseUrl.asBuildConfigString())
         buildConfigField("String", "NEXORA_SUPABASE_URL", nexoraSupabaseUrl.asBuildConfigString())
         buildConfigField("String", "NEXORA_SUPABASE_ANON_KEY", nexoraSupabaseAnonKey.asBuildConfigString())
+        buildConfigField("String", "NEXORA_SUPABASE_GOOGLE_REDIRECT_URL", nexoraSupabaseGoogleRedirectUrl.asBuildConfigString())
         buildConfigField("String", "NEXORA_API_APP_ID", nexoraApiAppId.asBuildConfigString())
         buildConfigField("String", "NEXORA_API_APP_SHARED_SECRET", nexoraApiAppSharedSecret.asBuildConfigString())
     }
