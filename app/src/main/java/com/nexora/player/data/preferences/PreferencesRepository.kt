@@ -55,7 +55,7 @@ class PreferencesRepository(private val context: Context) {
             lastDestination = prefs.stringValue(Keys.LAST_DESTINATION, AppDestination.MUSIC.name).toDestination(),
             themeMode = prefs.stringValue(Keys.THEME_MODE, AppThemeMode.SYSTEM.name).toThemeMode(),
             dynamicColor = prefs[Keys.DYNAMIC_COLOR] ?: true,
-            onlineMusicSearchEnabled = prefs[Keys.ONLINE_MUSIC_SEARCH_ENABLED] ?: true,
+            onlineMusicSearchEnabled = prefs[Keys.ONLINE_MUSIC_SEARCH_ENABLED] ?: false,
             lyricsTranslationEnabled = prefs[Keys.LYRICS_TRANSLATION_ENABLED] ?: true,
             volumeBoostEnabled = prefs[Keys.VOLUME_BOOST_ENABLED] ?: false,
             volumeBoostGainMb = prefs.stringValue(Keys.VOLUME_BOOST_GAIN_MB, "600").toIntOrNull()?.coerceIn(0, 1800) ?: 600,

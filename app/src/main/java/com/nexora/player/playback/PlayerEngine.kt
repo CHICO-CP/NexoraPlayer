@@ -11,6 +11,9 @@ import androidx.media3.common.MimeTypes
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.datasource.DefaultDataSource
+import androidx.media3.datasource.DefaultHttpDataSource
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import com.nexora.player.data.model.NexoraRepeatMode
 import com.nexora.player.data.model.MediaEntry
 import com.nexora.player.data.model.MediaKind
@@ -41,6 +44,8 @@ object PlayerEngine {
     @Volatile private var playbackVolume: Float = 1.0f
     @Volatile private var crossfadeEnabled: Boolean = false
     @Volatile private var crossfadeDurationMs: Int = 1200
+    @Volatile private var httpRequestHeaders: Map<String, String> = emptyMap()
+    private var httpDataSourceFactory: DefaultHttpDataSource.Factory? = null
 
     private val _snapshot = MutableStateFlow(PlaybackSnapshot())
     val snapshot: StateFlow<PlaybackSnapshot> = _snapshot.asStateFlow()
@@ -62,7 +67,17 @@ object PlayerEngine {
 
     fun get(context: Context): ExoPlayer {
         return player ?: synchronized(this) {
-            player ?: ExoPlayer.Builder(context.applicationContext).build().also { created ->
+            player ?: run {
+                val appContext = context.applicationContext
+                val httpFactory = DefaultHttpDataSource.Factory()
+                    .setAllowCrossProtocolRedirects(true)
+                    .setDefaultRequestProperties(httpRequestHeaders)
+                httpDataSourceFactory = httpFactory
+                val dataSourceFactory = DefaultDataSource.Factory(appContext, httpFactory)
+                ExoPlayer.Builder(appContext)
+                    .setMediaSourceFactory(DefaultMediaSourceFactory(dataSourceFactory))
+                    .build()
+            }.also { created ->
                 created.repeatMode = repeatMode.toPlayerRepeatMode()
                 created.shuffleModeEnabled = shuffleEnabled
                 created.setPlaybackSpeed(playbackSpeed)
@@ -204,6 +219,16 @@ object PlayerEngine {
         updateSnapshot(player)
     }
 
+
+    fun setHttpRequestHeaders(headers: Map<String, String>) {
+        httpRequestHeaders = headers.filterKeys { it.isNotBlank() }.filterValues { it.isNotBlank() }
+        httpDataSourceFactory?.setDefaultRequestProperties(httpRequestHeaders)
+    }
+
+    fun clearHttpRequestHeaders() {
+        setHttpRequestHeaders(emptyMap())
+    }
+
     fun setShuffleEnabled(enabled: Boolean) {
         shuffleEnabled = enabled
         player?.shuffleModeEnabled = enabled
@@ -262,6 +287,7 @@ object PlayerEngine {
             release()
         }
         player = null
+        httpDataSourceFactory = null
         crossfadeController.detach()
         synchronized(queueLock) { queue = emptyList() }
         EqualizerSessionManager.release()

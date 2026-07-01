@@ -124,7 +124,6 @@ fun MusicScreen(
     var showEditDialog  by remember { mutableStateOf(false) }
     val context         = LocalContext.current
     val sheetState      = rememberModalBottomSheetState(skipPartiallyExpanded = false)
-    val userPlaylists   = remember(playlists) { playlists.filter { it.id >= 0 } }
 
     // ── Launchers ─────────────────────────────────────────────────────────────
 
@@ -371,9 +370,9 @@ fun MusicScreen(
                 }
 
                 // Section: Playlists
-                if (userPlaylists.isNotEmpty()) {
+                if (playlists.isNotEmpty()) {
                     SheetSection(stringResource(R.string.music_add_to_playlist_section)) {
-                        userPlaylists.forEachIndexed { idx, playlist ->
+                        playlists.forEachIndexed { idx, playlist ->
                             SheetRow(
                                 icon    = Icons.AutoMirrored.Filled.PlaylistAdd,
                                 title   = playlist.name,
@@ -389,7 +388,7 @@ fun MusicScreen(
                                     selectedItem = null
                                 }
                             )
-                            if (idx < userPlaylists.lastIndex) SheetDivider()
+                            if (idx < playlists.lastIndex) SheetDivider()
                         }
                     }
                 }

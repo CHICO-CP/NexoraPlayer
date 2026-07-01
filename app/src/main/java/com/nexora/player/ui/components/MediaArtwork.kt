@@ -19,6 +19,9 @@ import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
@@ -31,24 +34,29 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.nexora.player.R
 import com.nexora.player.data.model.MediaEntry
 import com.nexora.player.data.model.MediaKind
+import com.nexora.player.data.model.MediaSource
+import coil.compose.AsyncImage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 @Composable
 fun MediaArtwork(
     item: MediaEntry,
-    modifier: Modifier = Modifier,
-    cornerRadius: Dp = 24.dp
+    modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val artwork = produceState<ImageBitmap?>(initialValue = null, item.id, item.uri.toString()) {
-        value = withContext(Dispatchers.IO) {
-            loadArtworkBitmap(context, item)?.asImageBitmap()
+    val artwork = produceState<ImageBitmap?>(initialValue = null, item.id, item.uri.toString(), item.artworkUrl) {
+        value = if (!item.artworkUrl.isNullOrBlank()) {
+            null
+        } else {
+            withContext(Dispatchers.IO) {
+                loadArtworkBitmap(context, item)?.asImageBitmap()
+            }
         }
     }.value
 
@@ -66,11 +74,9 @@ fun MediaArtwork(
         )
     }
 
-    val artworkShape = RoundedCornerShape(cornerRadius)
-
     Card(
-        modifier = modifier.clip(artworkShape),
-        shape = artworkShape,
+        modifier = modifier.clip(RoundedCornerShape(24.dp)),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = Color.Transparent)
     ) {
         Box(
@@ -78,7 +84,23 @@ fun MediaArtwork(
                 .fillMaxSize()
                 .background(brush = Brush.linearGradient(palette))
         ) {
-            if (artwork != null) {
+            if (!item.artworkUrl.isNullOrBlank()) {
+                AsyncImage(
+                    model = item.artworkUrl,
+                    contentDescription = item.title,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(Color.Transparent, Color.Black.copy(alpha = 0.35f))
+                            )
+                        )
+                )
+            } else if (artwork != null) {
                 Image(
                     bitmap = artwork,
                     contentDescription = item.title,
@@ -109,7 +131,7 @@ fun MediaArtwork(
                 )
             }
 
-            if (artwork == null) {
+            if (artwork == null && item.artworkUrl.isNullOrBlank()) {
                 if (item.kind == MediaKind.AUDIO) {
                     Icon(
                         imageVector = Icons.Filled.MusicNote,
@@ -128,6 +150,25 @@ fun MediaArtwork(
                             .align(Alignment.Center)
                     )
                 }
+            }
+
+            Surface(
+                color = Color.Black.copy(alpha = 0.22f),
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(12.dp)
+            ) {
+                Text(
+                    text = when {
+                        item.source == MediaSource.ONLINE -> stringResource(R.string.media_badge_online)
+                        item.kind == MediaKind.AUDIO -> stringResource(R.string.media_badge_audio)
+                        else -> stringResource(R.string.media_badge_video)
+                    },
+                    style = MaterialTheme.typography.labelLarge,
+                    color = Color.White,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                )
             }
         }
     }

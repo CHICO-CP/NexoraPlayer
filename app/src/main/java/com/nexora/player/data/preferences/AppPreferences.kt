@@ -11,7 +11,7 @@ data class AppPreferences(
     val lastDestination: AppDestination = AppDestination.MUSIC,
     val themeMode: AppThemeMode = AppThemeMode.SYSTEM,
     val dynamicColor: Boolean = true,
-    val onlineMusicSearchEnabled: Boolean = true,
+    val onlineMusicSearchEnabled: Boolean = false,
     val lyricsTranslationEnabled: Boolean = true,
     val volumeBoostEnabled: Boolean = false,
     val volumeBoostGainMb: Int = 600,

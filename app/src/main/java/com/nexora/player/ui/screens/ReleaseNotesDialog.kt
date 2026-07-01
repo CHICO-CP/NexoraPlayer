@@ -48,7 +48,6 @@ fun ReleaseNotesDialog(
     onLater: () -> Unit,
     installState: UpdateInstallState = UpdateInstallState(),
     onOpenInBrowser: () -> Unit = {},
-    onAuthorizeInstallPermission: () -> Unit = {},
     onClearInstallMessage: () -> Unit = {}
 ) {
     val latest = updateInfo.latestVersion
@@ -174,20 +173,10 @@ fun ReleaseNotesDialog(
             }
         },
         confirmButton = {
-            val waitingForPermission = installState.waitingForInstallPermission
-            Button(
-                onClick = if (waitingForPermission) onAuthorizeInstallPermission else onDownload,
-                enabled = !installState.downloading
-            ) {
+            Button(onClick = onDownload, enabled = !installState.downloading) {
                 Icon(Icons.Filled.Download, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.size(8.dp))
-                Text(
-                    when {
-                        installState.downloading -> stringResource(R.string.release_downloading)
-                        waitingForPermission -> stringResource(R.string.release_authorize_install)
-                        else -> stringResource(R.string.release_download)
-                    }
-                )
+                Text(if (installState.downloading) stringResource(R.string.release_downloading) else stringResource(R.string.release_download))
             }
         },
         dismissButton = {

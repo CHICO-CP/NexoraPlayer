@@ -9,6 +9,11 @@ enum class MediaKind {
     VIDEO
 }
 
+enum class MediaSource {
+    LOCAL,
+    ONLINE
+}
+
 enum class SortMode(@StringRes val labelRes: Int) {
     DATE_ADDED_DESC(R.string.sort_date_added_desc),
     DATE_ADDED_ASC(R.string.sort_date_added_asc),
@@ -103,6 +108,7 @@ enum class AppLanguage(
 }
 
 enum class AppDestination(@StringRes val labelRes: Int) {
+    ONLINE(R.string.nav_online),
     MUSIC(R.string.nav_music),
     VIDEOS(R.string.nav_videos),
     QUEUE(R.string.nav_queue),
@@ -127,7 +133,10 @@ data class MediaEntry(
     val height: Int? = null,
     val mimeType: String? = null,
     val folder: String? = null,
-    val albumId: Long? = null
+    val albumId: Long? = null,
+    val source: MediaSource = MediaSource.LOCAL,
+    val onlineId: String? = null,
+    val artworkUrl: String? = null
 ) {
     val resolutionLabel: String
         get() = if (width != null && height != null) "${width}x$height" else "—"

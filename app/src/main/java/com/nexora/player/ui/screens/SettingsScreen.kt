@@ -43,17 +43,14 @@ import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MusicNote
-import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.RestoreFromTrash
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
@@ -72,7 +69,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -92,11 +88,18 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.nexora.player.R
 import com.nexora.player.data.model.AppLanguage
-import com.nexora.player.data.model.MediaEntry
-import com.nexora.player.data.model.MediaKind
 import com.nexora.player.data.model.AppThemeMode
 import com.nexora.player.data.model.NexoraRepeatMode
 import com.nexora.player.data.share.NexoraShareText
+
+// ── Data model for selectively restoring hidden audio ────────────────────────
+
+data class HiddenAudioItem(
+    val id: Long,
+    val title: String,
+    val artist: String = "",
+    val album: String  = ""
+)
 
 // ── Main screen ──────────────────────────────────────────────────────────────
 
@@ -108,7 +111,7 @@ fun SettingsScreen(
     themeMode: AppThemeMode,
     dynamicColor: Boolean,
     hiddenAudioCount: Int,
-    hiddenMediaItems: List<MediaEntry> = emptyList(),
+    hiddenAudioItems: List<HiddenAudioItem> = emptyList(),
     onlineMusicSearchEnabled: Boolean,
     lyricsTranslationEnabled: Boolean,
     volumeBoostEnabled: Boolean,
@@ -126,7 +129,6 @@ fun SettingsScreen(
     updateChecking: Boolean = false,
     updateError: String? = null,
     currentLanguage: AppLanguage,
-    onBack: (() -> Unit)? = null,
     onThemeChange: (AppThemeMode) -> Unit,
     onDynamicColorChange: (Boolean) -> Unit,
     onOnlineMusicSearchChange: (Boolean) -> Unit,
@@ -152,7 +154,6 @@ fun SettingsScreen(
     onOpenThemeSelection: () -> Unit = {},
     onOpenLanguageSelection: () -> Unit = {},
     onCheckUpdates: () -> Unit = {},
-    onClearUpdateMessage: () -> Unit = {},
     onRestoreHiddenItem: (Long) -> Unit = {}
 ) {
     val uriHandler      = LocalUriHandler.current
@@ -162,34 +163,6 @@ fun SettingsScreen(
     val showHiddenSheet = remember { mutableStateOf(false) }
     val showFolderSheet = remember { mutableStateOf(false) }
     val folderInput     = remember { mutableStateOf("") }
-    val updateStatusDialog = remember { mutableStateOf<String?>(null) }
-
-    LaunchedEffect(updateError) {
-        if (!updateError.isNullOrBlank()) {
-            updateStatusDialog.value = updateError
-        }
-    }
-
-    updateStatusDialog.value?.let { message ->
-        AlertDialog(
-            onDismissRequest = {
-                updateStatusDialog.value = null
-                onClearUpdateMessage()
-            },
-            title = { Text(stringResource(R.string.update_status_dialog_title)) },
-            text = { Text(message) },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        updateStatusDialog.value = null
-                        onClearUpdateMessage()
-                    }
-                ) {
-                    Text(stringResource(R.string.action_ok))
-                }
-            }
-        )
-    }
 
     Column(
         modifier = modifier
@@ -198,27 +171,11 @@ fun SettingsScreen(
             .verticalScroll(rememberScrollState())
     ) {
         // Page title
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 12.dp, top = 18.dp, bottom = 8.dp, end = 20.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            if (onBack != null) {
-                IconButton(onClick = onBack) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = stringResource(R.string.action_back)
-                    )
-                }
-            }
-            Text(
-                text = stringResource(R.string.settings_title),
-                style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold),
-                modifier = Modifier.weight(1f)
-            )
-        }
+        Text(
+            text     = stringResource(R.string.settings_title),
+            style    = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold),
+            modifier = Modifier.padding(start = 20.dp, top = 24.dp, bottom = 8.dp, end = 20.dp)
+        )
         Spacer(Modifier.height(4.dp))
 
         // ════════════════════════════════════════════════════════════════════
@@ -421,7 +378,7 @@ fun SettingsScreen(
 
             RowDivider()
 
-            // Hidden media row — tappable to show selective restore sheet
+            // Hidden audio row — tappable to show selective restore sheet
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -440,9 +397,9 @@ fun SettingsScreen(
                     )
                     Text(
                         if (hiddenAudioCount == 0)
-                            stringResource(R.string.settings_no_hidden_files)
+                            stringResource(R.string.settings_no_hidden_songs)
                         else
-                            stringResource(R.string.settings_hidden_files_count, hiddenAudioCount),
+                            stringResource(R.string.settings_hidden_songs_count, hiddenAudioCount),
                         style = MaterialTheme.typography.bodySmall,
                         color = if (hiddenAudioCount > 0)
                                     Color(0xFFFF3B30).copy(alpha = 0.80f)
@@ -652,8 +609,8 @@ fun SettingsScreen(
 
     // ── Hidden audio bottom sheet ────────────────────────────────────────────
     if (showHiddenSheet.value) {
-        HiddenMediaSheet(
-            items           = hiddenMediaItems,
+        HiddenAudioSheet(
+            items           = hiddenAudioItems,
             totalCount      = hiddenAudioCount,
             onRestoreItem   = { id ->
                 onRestoreHiddenItem(id)
@@ -721,21 +678,18 @@ fun SettingsScreen(
     }
 }
 
-// ── Hidden media bottom sheet ────────────────────────────────────────────────
+// ── Hidden audio bottom sheet ────────────────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun HiddenMediaSheet(
-    items: List<MediaEntry>,
+private fun HiddenAudioSheet(
+    items: List<HiddenAudioItem>,
     totalCount: Int,
     onRestoreItem: (Long) -> Unit,
     onRestoreAll: () -> Unit,
     onDismiss: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val selectedIds = remember(items) { mutableStateOf(emptySet<Long>()) }
-    val audioItems = items.filter { it.kind == MediaKind.AUDIO }
-    val videoItems = items.filter { it.kind == MediaKind.VIDEO }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -744,45 +698,45 @@ private fun HiddenMediaSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .fillMaxHeight(0.84f)
-                .padding(horizontal = 18.dp)
+                .fillMaxHeight(0.80f)
+                .padding(horizontal = 20.dp)
         ) {
+            // Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment     = Alignment.CenterVertically
             ) {
-                Column(modifier = Modifier.weight(1f)) {
+                Column {
                     Text(
-                        stringResource(R.string.hidden_media_title),
+                        stringResource(R.string.hidden_audio_title),
                         style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                     )
                     Text(
-                        stringResource(R.string.settings_hidden_files_count, totalCount),
+                        stringResource(R.string.settings_hidden_songs_count, totalCount),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 if (totalCount > 1) {
                     TextButton(onClick = onRestoreAll) {
-                        Text(
-                            stringResource(R.string.hidden_media_restore_all),
+                        Text(stringResource(R.string.hidden_audio_restore_all),
                             color = Color(0xFFFF3B30),
-                            style = MaterialTheme.typography.labelLarge
-                        )
+                            style = MaterialTheme.typography.labelLarge)
                     }
                 }
             }
 
             Spacer(Modifier.height(8.dp))
             HorizontalDivider()
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(8.dp))
 
             if (items.isEmpty()) {
+                // No detailed list available — show count + restore all
                 Box(
-                    modifier = Modifier
+                    modifier         = Modifier
                         .fillMaxWidth()
-                        .height(240.dp),
+                        .height(200.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Column(
@@ -792,121 +746,43 @@ private fun HiddenMediaSheet(
                         Icon(
                             Icons.Filled.VisibilityOff, null,
                             modifier = Modifier.size(48.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            tint     = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            stringResource(R.string.hidden_media_empty_desc),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center
+                            stringResource(R.string.settings_hidden_songs_count, totalCount),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        if (totalCount > 0) {
-                            Button(
-                                onClick = onRestoreAll,
-                                shape = RoundedCornerShape(12.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF3B30))
-                            ) {
-                                Icon(Icons.Filled.RestoreFromTrash, null, modifier = Modifier.size(18.dp))
-                                Spacer(Modifier.width(6.dp))
-                                Text(stringResource(R.string.hidden_media_restore_all))
-                            }
+                        Button(
+                            onClick = onRestoreAll,
+                            shape   = RoundedCornerShape(12.dp),
+                            colors  = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFFFF3B30)
+                            )
+                        ) {
+                            Icon(Icons.Filled.RestoreFromTrash, null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text(stringResource(R.string.hidden_audio_restore_all))
                         }
                     }
                 }
             } else {
+                // Detailed list — each song individually restorable
                 Text(
-                    stringResource(R.string.hidden_media_restore_hint),
+                    stringResource(R.string.hidden_audio_restore_hint),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
-
-                AnimatedVisibility(
-                    visible = selectedIds.value.isNotEmpty(),
-                    enter = expandVertically(),
-                    exit = shrinkVertically()
-                ) {
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 8.dp),
-                        shape = RoundedCornerShape(14.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            Text(
-                                stringResource(R.string.hidden_media_selected_count, selectedIds.value.size),
-                                modifier = Modifier.weight(1f),
-                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
-                            TextButton(
-                                onClick = { selectedIds.value = emptySet() }
-                            ) {
-                                Text(stringResource(R.string.action_cancel))
-                            }
-                            Button(
-                                onClick = {
-                                    selectedIds.value.forEach(onRestoreItem)
-                                    selectedIds.value = emptySet()
-                                },
-                                shape = RoundedCornerShape(12.dp)
-                            ) {
-                                Text(stringResource(R.string.hidden_media_restore_selected))
-                            }
-                        }
-                    }
-                }
-
                 LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier            = Modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    if (audioItems.isNotEmpty()) {
-                        item(key = "hidden_audio_header") {
-                            HiddenMediaSectionHeader(
-                                title = stringResource(R.string.hidden_media_audio_section),
-                                count = audioItems.size
-                            )
-                        }
-                        items(audioItems, key = { "audio-${it.id}" }) { item ->
-                            HiddenMediaRow(
-                                item = item,
-                                selected = item.id in selectedIds.value,
-                                onToggleSelected = {
-                                    selectedIds.value = selectedIds.value.toggle(item.id)
-                                },
-                                onRestore = {
-                                    onRestoreItem(item.id)
-                                    selectedIds.value = selectedIds.value - item.id
-                                }
-                            )
-                        }
-                    }
-                    if (videoItems.isNotEmpty()) {
-                        item(key = "hidden_video_header") {
-                            HiddenMediaSectionHeader(
-                                title = stringResource(R.string.hidden_media_video_section),
-                                count = videoItems.size
-                            )
-                        }
-                        items(videoItems, key = { "video-${it.id}" }) { item ->
-                            HiddenMediaRow(
-                                item = item,
-                                selected = item.id in selectedIds.value,
-                                onToggleSelected = {
-                                    selectedIds.value = selectedIds.value.toggle(item.id)
-                                },
-                                onRestore = {
-                                    onRestoreItem(item.id)
-                                    selectedIds.value = selectedIds.value - item.id
-                                }
-                            )
-                        }
+                    items(items, key = { it.id }) { item ->
+                        HiddenSongRow(
+                            item      = item,
+                            onRestore = { onRestoreItem(item.id) }
+                        )
                     }
                     item { Spacer(Modifier.height(24.dp)) }
                 }
@@ -916,126 +792,67 @@ private fun HiddenMediaSheet(
 }
 
 @Composable
-private fun HiddenMediaSectionHeader(
-    title: String,
-    count: Int
-) {
-    Text(
-        text = "$title · $count",
-        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(start = 4.dp, top = 10.dp, bottom = 2.dp)
-    )
-}
-
-@Composable
-private fun HiddenMediaRow(
-    item: MediaEntry,
-    selected: Boolean,
-    onToggleSelected: () -> Unit,
+private fun HiddenSongRow(
+    item: HiddenAudioItem,
     onRestore: () -> Unit
 ) {
-    val isVideo = item.kind == MediaKind.VIDEO
-    val subtitle = hiddenMediaSubtitle(item)
-
     Surface(
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.72f),
-        tonalElevation = 1.dp,
-        modifier = Modifier.fillMaxWidth()
+        shape         = RoundedCornerShape(14.dp),
+        color         = MaterialTheme.colorScheme.surfaceVariant,
+        tonalElevation = 2.dp,
+        modifier      = Modifier.fillMaxWidth()
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(onClick = onToggleSelected)
-                .padding(horizontal = 10.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment     = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Checkbox(
-                checked = selected,
-                onCheckedChange = { onToggleSelected() }
-            )
             Box(
-                modifier = Modifier
+                modifier         = Modifier
                     .size(42.dp)
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.14f)),
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    if (isVideo) Icons.Filled.Movie else Icons.Filled.MusicNote,
-                    contentDescription = null,
-                    tint = if (isVideo) Color(0xFFFF9500) else Color(0xFF7C3AED),
+                    Icons.Filled.MusicNote, null,
+                    tint     = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(22.dp)
                 )
             }
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    item.title.ifBlank {
-                        stringResource(
-                            if (isVideo) R.string.hidden_media_unknown_video
-                            else R.string.hidden_media_unknown_audio
-                        )
-                    },
-                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                    item.title.ifBlank { stringResource(R.string.hidden_audio_unknown_song) },
+                    style    = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                Text(
-                    subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-            if (!selected) {
-                FilledTonalButton(
-                    onClick = onRestore,
-                    shape = RoundedCornerShape(10.dp),
-                    modifier = Modifier.height(34.dp)
-                ) {
-                    Icon(Icons.Filled.RestoreFromTrash, null, modifier = Modifier.size(15.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text(stringResource(R.string.hidden_media_show), fontSize = 12.sp)
+                if (item.artist.isNotBlank() || item.album.isNotBlank()) {
+                    Text(
+                        listOfNotNull(
+                            item.artist.takeIf { it.isNotBlank() },
+                            item.album.takeIf  { it.isNotBlank() }
+                        ).joinToString(" · "),
+                        style    = MaterialTheme.typography.bodySmall,
+                        color    = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
             }
+            FilledTonalButton(
+                onClick = onRestore,
+                shape   = RoundedCornerShape(10.dp),
+                modifier = Modifier.height(36.dp)
+            ) {
+                Icon(Icons.Filled.RestoreFromTrash, null,
+                    modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(4.dp))
+                Text(stringResource(R.string.hidden_audio_show), fontSize = 12.sp)
+            }
         }
-    }
-}
-
-private fun Set<Long>.toggle(id: Long): Set<Long> =
-    if (id in this) this - id else this + id
-
-private fun hiddenMediaSubtitle(item: MediaEntry): String {
-    val meta = when (item.kind) {
-        MediaKind.AUDIO -> listOfNotNull(
-            item.artist.takeIf { it.isNotBlank() },
-            item.album.takeIf { it.isNotBlank() }
-        )
-        MediaKind.VIDEO -> listOfNotNull(
-            item.resolutionLabel.takeIf { it != "—" },
-            item.folder?.takeIf { it.isNotBlank() }
-        )
-    }
-    val duration = formatHiddenMediaDuration(item.durationMs)
-    return (meta + duration)
-        .filter { it.isNotBlank() }
-        .joinToString(" · ")
-        .ifBlank { item.folder.orEmpty().ifBlank { "—" } }
-}
-
-private fun formatHiddenMediaDuration(durationMs: Long): String {
-    if (durationMs <= 0L) return ""
-    val totalSeconds = durationMs / 1000L
-    val hours = totalSeconds / 3600L
-    val minutes = (totalSeconds % 3600L) / 60L
-    val seconds = totalSeconds % 60L
-    return if (hours > 0L) {
-        "%d:%02d:%02d".format(hours, minutes, seconds)
-    } else {
-        "%d:%02d".format(minutes, seconds)
     }
 }
 

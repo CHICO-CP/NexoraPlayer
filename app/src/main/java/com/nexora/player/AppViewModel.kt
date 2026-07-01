@@ -10,7 +10,6 @@ import androidx.lifecycle.viewModelScope
 import com.nexora.player.data.local.FavoriteMediaEntity
 import com.nexora.player.data.local.LyricsEntity
 import com.nexora.player.data.local.NexoraDatabase
-import com.nexora.player.data.local.OnlineSavedTrackEntity
 import com.nexora.player.data.local.PlaybackHistoryEntity
 import com.nexora.player.data.local.PlaybackStatsEntity
 import com.nexora.player.data.local.PlaylistEntity
@@ -23,13 +22,18 @@ import com.nexora.player.data.model.AppThemeMode
 import com.nexora.player.data.model.MediaEntry
 import com.nexora.player.data.model.FolderSummary
 import com.nexora.player.data.model.MediaKind
+import com.nexora.player.data.model.MediaSource
 import com.nexora.player.data.model.SortMode
 import com.nexora.player.data.model.NexoraRepeatMode
-import com.nexora.player.data.online.OnlineMusicRepository
-import com.nexora.player.data.online.OnlineTrack
 import com.nexora.player.audio.VolumeBoostSessionManager
 import com.nexora.player.data.preferences.AppPreferences
 import com.nexora.player.data.preferences.PreferencesRepository
+import com.nexora.player.data.online.NexoraOnlineApiClient
+import com.nexora.player.data.online.NexoraOnlineSessionStore
+import com.nexora.player.data.online.OnlineSongDto
+import com.nexora.player.data.online.OnlineUiState
+import com.nexora.player.data.online.OnlineUploadProgress
+import com.nexora.player.data.online.toMediaEntry
 import com.nexora.player.data.repository.MediaStoreRepository
 import com.nexora.player.data.update.NexoraUpdateClient
 import com.nexora.player.data.update.RemoteUpdateInfo
@@ -40,7 +44,6 @@ import com.nexora.player.presentation.MainViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -48,8 +51,6 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
 
 data class AppUiState(
@@ -66,32 +67,23 @@ data class AppUiState(
     val favorites: List<FavoriteMediaEntity> = emptyList(),
     val playlists: List<PlaylistEntity> = emptyList(),
     val history: List<PlaybackHistoryEntity> = emptyList(),
-    val onlineSavedTracks: List<OnlineSavedTrackEntity> = emptyList(),
-    val onlineTracks: List<OnlineTrack> = emptyList(),
-    val onlineLoading: Boolean = false,
-    val onlineError: String? = null,
     val folderSummaries: List<FolderSummary> = emptyList(),
-    val hiddenMediaItems: List<MediaEntry> = emptyList(),
     val preferences: AppPreferences = AppPreferences(),
     val updateInfo: RemoteUpdateInfo? = null,
     val updateChecking: Boolean = false,
     val updateError: String? = null,
     val updateDialogDismissedInSession: Boolean = false,
-    val forceShowUpdateDialog: Boolean = false,
     val updateInstallState: UpdateInstallState = UpdateInstallState(),
     val shareUrl: String = BuildConfig.NEXORA_SERVER_URL,
     val remoteNotices: List<RemoteNoticeEntity> = emptyList(),
     val playbackStats: List<PlaybackStatsEntity> = emptyList(),
     val nexoraVolumePercent: Int = 0,
     val nexoraVolumeBoosted: Boolean = false,
-    val nexoraVolumeOverlayVisible: Boolean = false
-) {
-    val unreadRemoteNoticeCount: Int
-        get() = remoteNotices.count { it.readAt <= 0L }
-}
+    val nexoraVolumeOverlayVisible: Boolean = false,
+    val online: OnlineUiState = OnlineUiState()
+)
 
-const val NEXORA_LIKED_PLAYLIST_ID = Long.MIN_VALUE + 41L
-const val NEXORA_MOST_PLAYED_PLAYLIST_ID = Long.MIN_VALUE + 42L
+private const val AUTO_PLAYLIST_ID = Long.MIN_VALUE + 42L
 
 private data class PersistedPlaybackItem(
     val id: Long,
@@ -185,27 +177,28 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val context = application.applicationContext
     private val mediaRepository = MediaStoreRepository(context)
     private val preferencesRepository = PreferencesRepository(context)
-    private val onlineRepository = OnlineMusicRepository()
     private val updateClient = NexoraUpdateClient(application)
     private val updateInstaller = ApkUpdateInstaller(context)
     private val database = NexoraDatabase.get(context)
     private val presentation = MainViewModel()
+    private val onlineApiClient = NexoraOnlineApiClient(context)
+    private val onlineSessionStore = NexoraOnlineSessionStore(context)
 
     private val _uiState = MutableStateFlow(AppUiState())
     val uiState: StateFlow<AppUiState> = _uiState.asStateFlow()
 
-    private var onlineSearchJob: Job? = null
     private var libraryRefreshJob: Job? = null
     private var resumeRestored = false
     private var lastRecordedPlaybackKey: String? = null
     private var volumeOverlayJob: Job? = null
-    private var pendingUpdateAfterInstallPermission: RemoteUpdateInfo? = null
+    private var onlineSearchJob: Job? = null
 
     init {
         observePlayback()
         observeDatabase()
         observePreferences()
         observeUpdateInstaller()
+        restoreOnlineSession()
         refreshLibrary()
         startLibraryPolling()
         checkForUpdates(showDialogOnAvailable = false)
@@ -240,19 +233,26 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private fun observePreferences() {
         viewModelScope.launch {
             preferencesRepository.preferences.collect { prefs ->
+                val safeDestination = if (!prefs.onlineMusicSearchEnabled && prefs.lastDestination == AppDestination.ONLINE) {
+                    AppDestination.MUSIC
+                } else {
+                    prefs.lastDestination
+                }
                 _uiState.value = _uiState.value.copy(
                     audioSort = prefs.audioSort,
                     videoSort = prefs.videoSort,
-                    selectedDestination = prefs.lastDestination,
+                    selectedDestination = safeDestination,
                     preferences = prefs
                 )
+                if (!prefs.onlineMusicSearchEnabled && prefs.lastDestination == AppDestination.ONLINE) {
+                    viewModelScope.launch { preferencesRepository.setLastDestination(AppDestination.MUSIC) }
+                }
                 PlayerEngine.setShuffleEnabled(prefs.shuffleEnabled)
                 PlayerEngine.setRepeatMode(prefs.repeatMode)
                 PlayerEngine.setPlaybackSpeed(prefs.playbackSpeed)
                 PlayerEngine.setPlaybackVolume(prefs.playbackVolume)
                 PlayerEngine.setCrossfadeEnabled(prefs.crossfadeEnabled, prefs.crossfadeDurationMs)
                 refreshLibrary()
-                refreshOnlineResultsIfNeeded()
                 tryRestorePlaybackSession(prefs)
                 if (prefs.sleepTimerEnabled && !prefs.sleepTimerStopAtEndOfTrack && prefs.sleepTimerEndAtMs > 0L && System.currentTimeMillis() >= prefs.sleepTimerEndAtMs) {
                     PlayerEngine.clear(context)
@@ -268,10 +268,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 database.favoritesDao().observeAll(),
                 database.playlistsDao().observePlaylists(),
                 database.historyDao().observeRecent(),
-                database.onlineSavedTracksDao().observeAll(),
                 database.playbackStatsDao().observeTop(200)
-            ) { favorites, playlists, history, onlineSaved, stats ->
-                DatabaseBundle(favorites, playlists, history, onlineSaved, stats, emptyList())
+            ) { favorites, playlists, history, stats ->
+                DatabaseBundle(favorites, playlists, history, stats, emptyList())
             }
 
             combine(libraryBundle, database.remoteNoticesDao().observeAll()) { bundle, notices ->
@@ -279,9 +278,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             }.collect { bundle ->
                 _uiState.value = _uiState.value.copy(
                     favorites = bundle.favorites,
-                    playlists = mergeWithAutoPlaylist(bundle.favorites, bundle.stats, bundle.playlists),
+                    playlists = mergeWithAutoPlaylist(bundle.stats, bundle.playlists),
                     history = bundle.history,
-                    onlineSavedTracks = bundle.onlineSaved,
                     playbackStats = bundle.stats,
                     remoteNotices = bundle.notices
                 )
@@ -294,19 +292,11 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             val hiddenIds = _uiState.value.preferences.hiddenAudioIds
             val hiddenFolders = _uiState.value.preferences.hiddenFolders
             val allAudio = mediaRepository.loadAudio(_uiState.value.audioSort)
-            val allVideos = mediaRepository.loadVideos(_uiState.value.videoSort)
             val folderSummaries = presentation.library.folderSummaries(allAudio)
             val audio = presentation.library.visibleAudio(allAudio, hiddenIds, hiddenFolders)
-            val videos = allVideos.filterNot { it.id in hiddenIds }
-            val hiddenMediaItems = (allAudio + allVideos)
-                .filter { it.id in hiddenIds }
-                .sortedWith(compareBy<MediaEntry> { it.kind.ordinal }.thenBy { it.title.lowercase() })
-            _uiState.value = _uiState.value.copy(
-                audio = audio,
-                videos = videos,
-                folderSummaries = folderSummaries,
-                hiddenMediaItems = hiddenMediaItems
-            )
+            val videos = mediaRepository.loadVideos(_uiState.value.videoSort)
+                .filterNot { it.id in hiddenIds }
+            _uiState.value = _uiState.value.copy(audio = audio, videos = videos, folderSummaries = folderSummaries)
 
             if (_uiState.value.preferences.libraryChangeNotificationsEnabled) {
                 MediaLibraryNotifier.maybeNotify(context, audio, videos)
@@ -315,13 +305,13 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun setDestination(destination: AppDestination) {
+        if (destination == AppDestination.ONLINE && !_uiState.value.preferences.onlineMusicSearchEnabled) return
         _uiState.value = _uiState.value.copy(selectedDestination = destination)
         viewModelScope.launch { preferencesRepository.setLastDestination(destination) }
     }
 
     fun setSearch(query: String) {
         _uiState.value = _uiState.value.copy(search = query)
-        scheduleOnlineSearch(query)
     }
 
     fun setAudioSort(sortMode: SortMode) {
@@ -524,123 +514,295 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun setOnlineMusicSearchEnabled(enabled: Boolean) {
-        viewModelScope.launch { preferencesRepository.setOnlineMusicSearchEnabled(enabled) }
-        if (!enabled) {
-            onlineSearchJob?.cancel()
-            _uiState.value = _uiState.value.copy(
-                onlineTracks = emptyList(),
-                onlineLoading = false,
-                onlineError = null
-            )
-        } else {
-            refreshOnlineResultsIfNeeded()
+        viewModelScope.launch {
+            preferencesRepository.setOnlineMusicSearchEnabled(enabled)
+            if (!enabled && _uiState.value.selectedDestination == AppDestination.ONLINE) {
+                _uiState.value = _uiState.value.copy(selectedDestination = AppDestination.MUSIC)
+                preferencesRepository.setLastDestination(AppDestination.MUSIC)
+            }
+            if (enabled && _uiState.value.online.session != null && _uiState.value.online.songs.isEmpty()) {
+                loadOnlineSongs()
+            }
         }
     }
 
-    private fun scheduleOnlineSearch(query: String) {
+    private fun restoreOnlineSession() {
+        viewModelScope.launch {
+            val stored = onlineSessionStore.load()
+            if (stored == null) {
+                _uiState.value = _uiState.value.copy(online = _uiState.value.online.copy(restoringSession = false, session = null))
+                return@launch
+            }
+            _uiState.value = _uiState.value.copy(online = _uiState.value.online.copy(restoringSession = true, authError = null))
+            val result = runCatching { onlineApiClient.validateSession(stored) }
+            result.onSuccess { session ->
+                onlineSessionStore.save(session)
+                _uiState.value = _uiState.value.copy(
+                    online = _uiState.value.online.copy(
+                        session = session,
+                        restoringSession = false,
+                        authError = null
+                    )
+                )
+                if (_uiState.value.preferences.onlineMusicSearchEnabled) loadOnlineSongs()
+            }.onFailure { throwable ->
+                onlineSessionStore.clear()
+                _uiState.value = _uiState.value.copy(
+                    online = _uiState.value.online.copy(
+                        session = null,
+                        restoringSession = false,
+                        authError = throwable.message ?: getApplication<Application>().getString(R.string.online_error_session_restore)
+                    )
+                )
+            }
+        }
+    }
+
+    fun onlineLogin(email: String, password: String) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(online = _uiState.value.online.copy(authLoading = true, authError = null))
+            val result = runCatching { onlineApiClient.login(email, password) }
+            result.onSuccess { session ->
+                onlineSessionStore.save(session)
+                _uiState.value = _uiState.value.copy(
+                    online = _uiState.value.online.copy(
+                        session = session,
+                        authLoading = false,
+                        authError = null
+                    )
+                )
+                loadOnlineSongs()
+            }.onFailure { throwable ->
+                _uiState.value = _uiState.value.copy(
+                    online = _uiState.value.online.copy(
+                        authLoading = false,
+                        authError = throwable.message ?: getApplication<Application>().getString(R.string.online_error_login)
+                    )
+                )
+            }
+        }
+    }
+
+    fun onlineRegister(email: String, password: String, username: String) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(online = _uiState.value.online.copy(authLoading = true, authError = null))
+            val result = runCatching { onlineApiClient.register(email, password, username) }
+            result.onSuccess { session ->
+                onlineSessionStore.save(session)
+                _uiState.value = _uiState.value.copy(
+                    online = _uiState.value.online.copy(
+                        session = session,
+                        authLoading = false,
+                        authError = null
+                    )
+                )
+                loadOnlineSongs()
+            }.onFailure { throwable ->
+                _uiState.value = _uiState.value.copy(
+                    online = _uiState.value.online.copy(
+                        authLoading = false,
+                        authError = throwable.message ?: getApplication<Application>().getString(R.string.online_error_register)
+                    )
+                )
+            }
+        }
+    }
+
+    fun onlineLogout() {
+        onlineSessionStore.clear()
+        PlayerEngine.clearHttpRequestHeaders()
+        _uiState.value = _uiState.value.copy(
+            online = OnlineUiState(restoringSession = false)
+        )
+    }
+
+    fun loadOnlineSongs() {
+        val session = _uiState.value.online.session ?: return
+        if (!_uiState.value.preferences.onlineMusicSearchEnabled) return
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(online = _uiState.value.online.copy(loadingSongs = true, songsError = null))
+            val result = runCatching { onlineApiClient.getSongs(session, limit = 30, offset = 0) }
+            result.onSuccess { response ->
+                _uiState.value = _uiState.value.copy(
+                    online = _uiState.value.online.copy(
+                        songs = response.items,
+                        loadingSongs = false,
+                        songsError = null
+                    )
+                )
+            }.onFailure { throwable ->
+                _uiState.value = _uiState.value.copy(
+                    online = _uiState.value.online.copy(
+                        loadingSongs = false,
+                        songsError = throwable.message ?: getApplication<Application>().getString(R.string.online_error_load)
+                    )
+                )
+            }
+        }
+    }
+
+    fun setOnlineQuery(query: String) {
+        _uiState.value = _uiState.value.copy(online = _uiState.value.online.copy(onlineQuery = query))
         onlineSearchJob?.cancel()
-        if (query.isBlank() || !_uiState.value.preferences.onlineMusicSearchEnabled) {
-            _uiState.value = _uiState.value.copy(
-                onlineTracks = emptyList(),
-                onlineLoading = false,
-                onlineError = null
-            )
+        val trimmed = query.trim()
+        if (trimmed.length < 2) {
+            _uiState.value = _uiState.value.copy(online = _uiState.value.online.copy(searchResults = emptyList(), searching = false, searchError = null))
             return
         }
-
         onlineSearchJob = viewModelScope.launch {
-            delay(250)
-            _uiState.value = _uiState.value.copy(onlineLoading = true, onlineError = null)
-            val results = runCatching { onlineRepository.search(query, limit = 20) }
-                .getOrElse { throwable ->
-                    _uiState.value = _uiState.value.copy(
-                        onlineLoading = false,
-                        onlineTracks = emptyList(),
-                        onlineError = throwable.message ?: "Online search failed"
-                    )
-                    return@launch
-                }
-
-            _uiState.value = _uiState.value.copy(
-                onlineLoading = false,
-                onlineTracks = results,
-                onlineError = null
-            )
+            delay(450L)
+            searchOnlineNow(trimmed)
         }
     }
 
-    private fun refreshOnlineResultsIfNeeded() {
-        val query = _uiState.value.search
-        if (query.isNotBlank() && _uiState.value.preferences.onlineMusicSearchEnabled) {
-            scheduleOnlineSearch(query)
+    fun searchOnlineNow(query: String = _uiState.value.online.onlineQuery.trim()) {
+        val session = _uiState.value.online.session ?: return
+        val safeQuery = query.trim()
+        if (safeQuery.length < 2) return
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(online = _uiState.value.online.copy(searching = true, searchError = null))
+            val result = runCatching { onlineApiClient.searchSongs(session, safeQuery, limit = 30, offset = 0) }
+            result.onSuccess { response ->
+                _uiState.value = _uiState.value.copy(
+                    online = _uiState.value.online.copy(
+                        searchResults = response.items,
+                        searching = false,
+                        searchError = null
+                    )
+                )
+            }.onFailure { throwable ->
+                _uiState.value = _uiState.value.copy(
+                    online = _uiState.value.online.copy(
+                        searching = false,
+                        searchError = throwable.message ?: getApplication<Application>().getString(R.string.online_error_search)
+                    )
+                )
+            }
+        }
+    }
+
+    fun clearOnlineSearch() {
+        onlineSearchJob?.cancel()
+        _uiState.value = _uiState.value.copy(
+            online = _uiState.value.online.copy(
+                onlineQuery = "",
+                searchResults = emptyList(),
+                searching = false,
+                searchError = null
+            )
+        )
+    }
+
+    fun playOnlineSong(song: OnlineSongDto) {
+        val session = _uiState.value.online.session ?: return
+        val onlineState = _uiState.value.online
+        val source = listOf(onlineState.searchResults, onlineState.songs)
+            .firstOrNull { list -> list.any { it.id == song.id } }
+            ?: listOf(song)
+        val entries = source.mapNotNull { it.toMediaEntry(onlineApiClient.apiBaseUrl) }
+        val startIndex = entries.indexOfFirst { it.onlineId == song.id }.coerceAtLeast(0)
+        if (entries.isEmpty()) return
+        PlayerEngine.setHttpRequestHeaders(onlineApiClient.streamingHeaders(session))
+        playQueue(entries, startIndex)
+    }
+
+    fun toggleOnlineUploadSelection(entry: MediaEntry) {
+        val current = _uiState.value.online.selectedUploadIds
+        val next = if (entry.id in current) current - entry.id else current + entry.id
+        _uiState.value = _uiState.value.copy(online = _uiState.value.online.copy(selectedUploadIds = next))
+    }
+
+    fun clearOnlineUploadSelection() {
+        _uiState.value = _uiState.value.copy(online = _uiState.value.online.copy(selectedUploadIds = emptySet()))
+    }
+
+    fun uploadSelectedOnlineSongs() {
+        val session = _uiState.value.online.session ?: return
+        val selected = _uiState.value.audio.filter { it.id in _uiState.value.online.selectedUploadIds }
+        if (selected.isEmpty()) return
+        viewModelScope.launch {
+            var success = 0
+            var failed = 0
+            val errors = mutableListOf<String>()
+            _uiState.value = _uiState.value.copy(
+                online = _uiState.value.online.copy(
+                    uploadProgress = OnlineUploadProgress(running = true, total = selected.size)
+                )
+            )
+            selected.forEachIndexed { index, entry ->
+                _uiState.value = _uiState.value.copy(
+                    online = _uiState.value.online.copy(
+                        uploadProgress = _uiState.value.online.uploadProgress.copy(
+                            running = true,
+                            currentIndex = index + 1,
+                            total = selected.size,
+                            currentTitle = entry.title,
+                            successCount = success,
+                            failedCount = failed,
+                            message = getApplication<Application>().getString(R.string.online_uploading_progress, index + 1, selected.size)
+                        )
+                    )
+                )
+                val result = runCatching { onlineApiClient.uploadSong(session, entry) }
+                result.onSuccess { success += 1 }
+                result.onFailure { throwable ->
+                    failed += 1
+                    errors += "${entry.title}: ${throwable.message ?: getApplication<Application>().getString(R.string.online_error_upload)}"
+                }
+            }
+            _uiState.value = _uiState.value.copy(
+                online = _uiState.value.online.copy(
+                    selectedUploadIds = emptySet(),
+                    uploadProgress = OnlineUploadProgress(
+                        running = false,
+                        total = selected.size,
+                        currentIndex = selected.size,
+                        successCount = success,
+                        failedCount = failed,
+                        message = getApplication<Application>().getString(R.string.online_upload_finished, success, failed),
+                        errors = errors
+                    )
+                )
+            )
+            if (success > 0) loadOnlineSongs()
         }
     }
 
     fun checkForUpdates(showDialogOnAvailable: Boolean = false) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(updateChecking = true, updateError = null)
-            val result = runCatching {
-                updateClient.checkVersion(
-                    currentVersionCode = BuildConfig.VERSION_CODE,
-                    currentVersionName = BuildConfig.VERSION_NAME
-                )
-            }
+            val result = runCatching { updateClient.checkVersion(BuildConfig.VERSION_CODE) }
             result.onSuccess { info ->
                 RemoteUpdateNotifier.notifyServerMessages(context, info.notifications)
                 storeRemoteNotices(info)
                 if (info.available) {
                     RemoteUpdateNotifier.notifyUpdateAvailable(context, info)
                 }
-
-                val shouldAutoShow = shouldShowUpdateDialog(info, showDialogOnAvailable)
-                val manualNoUpdateMessage = if (showDialogOnAvailable && !info.available) {
-                    getApplication<Application>().getString(
-                        R.string.update_already_latest,
-                        BuildConfig.VERSION_NAME,
-                        BuildConfig.VERSION_CODE
-                    )
-                } else {
-                    null
-                }
-
+                val shouldAutoShow = info.available && (
+                    info.required ||
+                    showDialogOnAvailable ||
+                    (_uiState.value.preferences.postponedUpdateVersionCode < info.latestVersion.versionCode && !_uiState.value.updateDialogDismissedInSession)
+                )
                 _uiState.value = _uiState.value.copy(
                     updateInfo = info,
                     updateChecking = false,
-                    updateError = manualNoUpdateMessage,
+                    updateError = null,
                     shareUrl = info.urls.share.ifBlank { updateClient.shareUrl() },
-                    forceShowUpdateDialog = showDialogOnAvailable && info.available,
-                    updateDialogDismissedInSession = if (showDialogOnAvailable && shouldAutoShow) {
-                        false
-                    } else {
-                        _uiState.value.updateDialogDismissedInSession
-                    }
+                    updateDialogDismissedInSession = if (showDialogOnAvailable && shouldAutoShow) false else _uiState.value.updateDialogDismissedInSession
                 )
             }.onFailure { throwable ->
                 _uiState.value = _uiState.value.copy(
                     updateChecking = false,
                     updateError = throwable.message ?: getApplication<Application>().getString(R.string.update_error_server_query),
-                    forceShowUpdateDialog = false,
                     shareUrl = updateClient.shareUrl()
                 )
             }
         }
     }
 
-    private fun shouldShowUpdateDialog(info: RemoteUpdateInfo, manualCheck: Boolean): Boolean {
-        if (!info.available) return false
-        if (info.required) return true
-        if (manualCheck) return true
-        val preferences = _uiState.value.preferences
-        return preferences.postponedUpdateVersionCode < info.latestVersion.versionCode &&
-            !_uiState.value.updateDialogDismissedInSession
-    }
-
     fun dismissUpdateDialog(postpone: Boolean) {
         val info = _uiState.value.updateInfo ?: return
-        _uiState.value = _uiState.value.copy(
-            updateDialogDismissedInSession = true,
-            forceShowUpdateDialog = false
-        )
+        _uiState.value = _uiState.value.copy(updateDialogDismissedInSession = true)
         if (postpone && !info.required) {
             viewModelScope.launch { preferencesRepository.setPostponedUpdateVersionCode(info.latestVersion.versionCode) }
         }
@@ -648,31 +810,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
 
     fun downloadAndInstallUpdate(info: RemoteUpdateInfo) {
-        if (!updateInstaller.canRequestPackageInstalls()) {
-            pendingUpdateAfterInstallPermission = info
-            updateInstaller.showInstallPermissionRequired()
-            return
-        }
-
-        pendingUpdateAfterInstallPermission = null
         viewModelScope.launch {
             updateInstaller.downloadAndOpenInstaller(info)
         }
-    }
-
-    fun openInstallPermissionSettings() {
-        updateInstaller.openInstallPermissionSettings()
-    }
-
-    fun resumeUpdateAfterInstallPermission() {
-        val pending = pendingUpdateAfterInstallPermission ?: return
-        if (updateInstaller.canRequestPackageInstalls()) {
-            downloadAndInstallUpdate(pending)
-        }
-    }
-
-    fun clearUpdateStatusMessage() {
-        _uiState.value = _uiState.value.copy(updateError = null)
     }
 
     fun clearUpdateInstallMessage() {
@@ -724,16 +864,24 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun playQueue(items: List<MediaEntry>, startIndex: Int = 0) {
+        if (items.getOrNull(startIndex)?.source != MediaSource.ONLINE) {
+            PlayerEngine.clearHttpRequestHeaders()
+        }
         PlayerEngine.setShuffleEnabled(_uiState.value.preferences.shuffleEnabled)
         PlayerEngine.setRepeatMode(_uiState.value.preferences.repeatMode)
         PlayerEngine.setPlaybackSpeed(_uiState.value.preferences.playbackSpeed)
         PlayerEngine.setPlaybackVolume(_uiState.value.preferences.playbackVolume)
         PlayerEngine.setCrossfadeEnabled(_uiState.value.preferences.crossfadeEnabled, _uiState.value.preferences.crossfadeDurationMs)
         PlayerEngine.playQueue(context, items, startIndex)
-        persistPlaybackSessionFromCurrentPlayer()
+        if (items.getOrNull(startIndex)?.source != MediaSource.ONLINE) {
+            persistPlaybackSessionFromCurrentPlayer()
+        }
     }
 
     fun play(item: MediaEntry) {
+        if (item.source != MediaSource.ONLINE) {
+            PlayerEngine.clearHttpRequestHeaders()
+        }
         PlayerEngine.setShuffleEnabled(_uiState.value.preferences.shuffleEnabled)
         PlayerEngine.setRepeatMode(_uiState.value.preferences.repeatMode)
         PlayerEngine.setPlaybackSpeed(_uiState.value.preferences.playbackSpeed)
@@ -788,21 +936,6 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun restoreHiddenAudio() {
         viewModelScope.launch {
             preferencesRepository.clearHiddenAudioIds()
-            refreshLibrary()
-        }
-    }
-
-    fun restoreHiddenMedia(id: Long) {
-        viewModelScope.launch {
-            preferencesRepository.removeHiddenAudioId(id)
-            refreshLibrary()
-        }
-    }
-
-    fun restoreHiddenMedia(ids: Set<Long>) {
-        if (ids.isEmpty()) return
-        viewModelScope.launch {
-            ids.forEach { id -> preferencesRepository.removeHiddenAudioId(id) }
             refreshLibrary()
         }
     }
@@ -865,7 +998,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun deletePlaylist(playlist: PlaylistEntity) {
-        if (playlist.id < 0) return
+        if (playlist.id == AUTO_PLAYLIST_ID) return
         viewModelScope.launch {
             database.playlistsDao().deleteItemsForPlaylist(playlist.id)
             database.playlistsDao().deletePlaylist(playlist.id)
@@ -877,7 +1010,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun addToPlaylist(playlist: PlaylistEntity, entries: List<MediaEntry>) {
-        if (playlist.id < 0 || entries.isEmpty()) return
+        if (playlist.id == AUTO_PLAYLIST_ID || entries.isEmpty()) return
         viewModelScope.launch {
             var next = database.playlistsDao().nextOrderIndex(playlist.id)
             entries.distinctBy { it.id to it.kind }.forEach { entry ->
@@ -900,38 +1033,30 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun playlistItems(playlistId: Long): Flow<List<PlaylistItemEntity>> {
-        return when (playlistId) {
-            NEXORA_MOST_PLAYED_PLAYLIST_ID -> {
-                database.playbackStatsDao().observeTop(200).map { stats -> buildMostPlayedPlaylist(stats) }
-            }
-            NEXORA_LIKED_PLAYLIST_ID -> {
-                database.favoritesDao().observeAll().map { favorites -> buildLikedPlaylist(favorites) }
-            }
-            else -> database.playlistsDao().observeItems(playlistId)
+        return if (playlistId == AUTO_PLAYLIST_ID) {
+            database.playbackStatsDao().observeTop(200).map { stats -> buildMostPlayedPlaylist(stats) }
+        } else {
+            database.playlistsDao().observeItems(playlistId)
         }
     }
 
     fun playlistPreviewItems(playlistId: Long): Flow<List<PlaylistItemEntity>> {
-        return when (playlistId) {
-            NEXORA_MOST_PLAYED_PLAYLIST_ID -> {
-                database.playbackStatsDao().observeTop(200).map { stats -> buildMostPlayedPlaylist(stats).take(4) }
-            }
-            NEXORA_LIKED_PLAYLIST_ID -> {
-                database.favoritesDao().observeAll().map { favorites -> buildLikedPlaylist(favorites).take(4) }
-            }
-            else -> database.playlistsDao().observeItems(playlistId).map { it.take(4) }
+        return if (playlistId == AUTO_PLAYLIST_ID) {
+            database.playbackStatsDao().observeTop(200).map { stats -> buildMostPlayedPlaylist(stats).take(4) }
+        } else {
+            database.playlistsDao().observeItems(playlistId).map { it.take(4) }
         }
     }
 
     fun renamePlaylist(playlist: PlaylistEntity, name: String) {
-        if (playlist.id < 0 || name.isBlank()) return
+        if (playlist.id == AUTO_PLAYLIST_ID || name.isBlank()) return
         viewModelScope.launch {
             database.playlistsDao().updatePlaylist(playlist.copy(name = name.trim(), updatedAt = System.currentTimeMillis()))
         }
     }
 
     fun duplicatePlaylist(playlist: PlaylistEntity, items: List<PlaylistItemEntity>) {
-        if (playlist.id < 0) return
+        if (playlist.id == AUTO_PLAYLIST_ID) return
         viewModelScope.launch {
             val newId = database.playlistsDao().insertPlaylist(
                 PlaylistEntity(name = getApplication<Application>().getString(R.string.playlist_copy_suffix, playlist.name))
@@ -943,7 +1068,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun exportPlaylist(playlist: PlaylistEntity, items: List<PlaylistItemEntity>) {
-        if (playlist.id < 0) return
+        if (playlist.id == AUTO_PLAYLIST_ID) return
         viewModelScope.launch {
             val dir = java.io.File(context.getExternalFilesDir(android.os.Environment.DIRECTORY_MUSIC), "Playlists")
             dir.mkdirs()
@@ -978,12 +1103,6 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun removeFavoritePlaylistItem(item: PlaylistItemEntity) {
-        viewModelScope.launch {
-            database.favoritesDao().delete(item.mediaId, item.mediaKind)
-        }
-    }
-
     fun playFavoriteQueue(favorites: List<FavoriteMediaEntity>, favorite: FavoriteMediaEntity) {
         val audioFavorites = favorites.map { it.toMediaEntry() }
         val selected = favorite.toMediaEntry()
@@ -993,44 +1112,6 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         } else {
             play(selected)
         }
-    }
-
-    fun playOnlineQueue(tracks: List<OnlineTrack>, track: OnlineTrack) {
-        val queue = tracks.map { it.toMediaEntry() }
-        val startIndex = queue.indexOfFirst { it.id == track.stableMediaId }
-        if (startIndex >= 0) {
-            playQueue(queue, startIndex)
-        } else {
-            play(track.toMediaEntry())
-        }
-    }
-
-    fun toggleSavedOnlineTrack(track: OnlineTrack) {
-        viewModelScope.launch {
-            val exists = database.onlineSavedTracksDao().isSaved(track.providerId, track.sourceId)
-            if (exists) {
-                database.onlineSavedTracksDao().delete(track.providerId, track.sourceId)
-            } else {
-                database.onlineSavedTracksDao().upsert(
-                    OnlineSavedTrackEntity(
-                        providerId = track.providerId,
-                        sourceId = track.sourceId,
-                        title = track.title,
-                        artist = track.artist,
-                        album = track.album,
-                        artworkUrl = track.artworkUrl,
-                        streamUrl = track.streamUrl,
-                        downloadUrl = track.downloadUrl,
-                        durationMs = track.durationMs,
-                        sourcePageUrl = track.sourcePageUrl
-                    )
-                )
-            }
-        }
-    }
-
-    fun isOnlineTrackSaved(track: OnlineTrack): Boolean {
-        return _uiState.value.onlineSavedTracks.any { it.providerId == track.providerId && it.sourceId == track.sourceId }
     }
 
     @Deprecated("Use playFavoriteQueue for favorites section playback")
@@ -1085,74 +1166,28 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         )
     }
 
-    private fun OnlineSavedTrackEntity.toOnlineTrack(): OnlineTrack = OnlineTrack(
-        providerId = providerId,
-        providerLabel = providerId.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() },
-        sourceId = sourceId,
-        title = title,
-        artist = artist,
-        album = album,
-        artworkUrl = artworkUrl,
-        streamUrl = streamUrl,
-        downloadUrl = downloadUrl,
-        durationMs = durationMs,
-        sourcePageUrl = sourcePageUrl
-    )
-
-
     private fun mergeWithAutoPlaylist(
-        favorites: List<FavoriteMediaEntity>,
         stats: List<PlaybackStatsEntity>,
         playlists: List<PlaylistEntity>
     ): List<PlaylistEntity> {
-        val liked = PlaylistEntity(
-            id = NEXORA_LIKED_PLAYLIST_ID,
-            name = getApplication<Application>().getString(R.string.playlist_liked_songs),
-            createdAt = 0L,
-            updatedAt = favorites.filter { it.mediaKind == MediaKind.AUDIO.name }.maxOfOrNull { it.addedAt } ?: 0L
-        )
-        val mostPlayed = PlaylistEntity(
-            id = NEXORA_MOST_PLAYED_PLAYLIST_ID,
+        val auto = PlaylistEntity(
+            id = AUTO_PLAYLIST_ID,
             name = getApplication<Application>().getString(R.string.playlist_most_played),
             createdAt = 0L,
-            updatedAt = stats.filter { it.mediaKind == MediaKind.AUDIO.name }.maxOfOrNull { it.lastPlayedAt } ?: 0L
+            updatedAt = stats.maxOfOrNull { it.lastPlayedAt } ?: 0L
         )
         return buildList {
-            add(liked)
-            add(mostPlayed)
-            addAll(playlists.filterNot { it.id < 0 })
+            add(auto)
+            addAll(playlists.filterNot { it.id == AUTO_PLAYLIST_ID })
         }
     }
 
     private fun buildMostPlayedPlaylist(stats: List<PlaybackStatsEntity>): List<PlaylistItemEntity> {
-        return presentation.playlists.mostPlayedItems(
-            stats.filter { it.mediaKind == MediaKind.AUDIO.name },
-            NEXORA_MOST_PLAYED_PLAYLIST_ID
-        )
-    }
-
-    private fun buildLikedPlaylist(favorites: List<FavoriteMediaEntity>): List<PlaylistItemEntity> {
-        return favorites
-            .filter { it.mediaKind == MediaKind.AUDIO.name }
-            .sortedByDescending { it.addedAt }
-            .mapIndexed { index, favorite ->
-                PlaylistItemEntity(
-                    id = -("${favorite.mediaKind}:${favorite.mediaId}".hashCode().toLong().absoluteValue.coerceAtLeast(1L)),
-                    playlistId = NEXORA_LIKED_PLAYLIST_ID,
-                    mediaId = favorite.mediaId,
-                    mediaKind = favorite.mediaKind,
-                    title = favorite.title,
-                    artist = favorite.artist,
-                    album = favorite.album,
-                    durationMs = favorite.durationMs,
-                    uriString = favorite.uriString,
-                    orderIndex = index,
-                    addedAt = favorite.addedAt
-                )
-            }
+        return presentation.playlists.mostPlayedItems(stats, AUTO_PLAYLIST_ID)
     }
 
     private fun recordPlaybackIfNeeded(item: MediaEntry) {
+        if (item.source == MediaSource.ONLINE) return
         val key = item.mediaKey()
         if (lastRecordedPlaybackKey == key) return
         lastRecordedPlaybackKey = key
@@ -1205,6 +1240,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private fun persistPlaybackSessionIfNeeded() {
         val snapshot = PlayerEngine.snapshot.value
         if (snapshot.currentItem == null || snapshot.queue.isEmpty() || !_uiState.value.preferences.resumePlaybackEnabled) return
+        if (snapshot.currentItem?.source == MediaSource.ONLINE) return
         persistPlaybackSessionFromCurrentPlayer()
     }
 
@@ -1312,7 +1348,6 @@ private data class DatabaseBundle(
     val favorites: List<FavoriteMediaEntity>,
     val playlists: List<PlaylistEntity>,
     val history: List<PlaybackHistoryEntity>,
-    val onlineSaved: List<OnlineSavedTrackEntity>,
     val stats: List<PlaybackStatsEntity>,
     val notices: List<RemoteNoticeEntity>
 )

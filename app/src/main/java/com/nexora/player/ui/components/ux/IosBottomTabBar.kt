@@ -1,9 +1,11 @@
 package com.nexora.player.ui.components.ux
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -34,8 +36,9 @@ fun IosBottomTabBar(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 10.dp),
-            horizontalArrangement = Arrangement.Center,
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = 10.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             destinations.forEach { destination ->
@@ -50,7 +53,7 @@ fun IosBottomTabBar(
                     },
                     tonalElevation = if (isSelected) 4.dp else 0.dp,
                     shadowElevation = if (isSelected) 3.dp else 0.dp,
-                    modifier = Modifier.padding(horizontal = 4.dp)
+                    modifier = Modifier
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 14.dp, vertical = 11.dp),
