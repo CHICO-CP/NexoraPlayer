@@ -1089,30 +1089,19 @@ class NexoraOnlineApiClient(private val context: Context) {
             fun write(value: String) = out.write(value.toByteArray(StandardCharsets.UTF_8))
             fun field(name: String, value: String) {
                 if (value.isBlank()) return
-                write("--$boundary
-")
-                write("Content-Disposition: form-data; name="$name"
-")
-                write("Content-Type: text/plain; charset=UTF-8
-
-")
+                write("--$boundary\r\n")
+                write("Content-Disposition: form-data; name=\"$name\"\r\n")
+                write("Content-Type: text/plain; charset=UTF-8\r\n\r\n")
                 write(value)
-                write("
-")
+                write("\r\n")
             }
             fun filePart(name: String, filename: String, mimeType: String, sourceFile: File) {
-                write("--$boundary
-")
-                write("Content-Disposition: form-data; name="$name"; filename="$filename"
-")
-                write("Content-Type: $mimeType
-")
-                write("Content-Transfer-Encoding: binary
-
-")
+                write("--$boundary\r\n")
+                write("Content-Disposition: form-data; name=\"$name\"; filename=\"$filename\"\r\n")
+                write("Content-Type: $mimeType\r\n")
+                write("Content-Transfer-Encoding: binary\r\n\r\n")
                 sourceFile.inputStream().use { input -> input.copyTo(out, DEFAULT_BUFFER_SIZE) }
-                write("
-")
+                write("\r\n")
             }
 
             field("title", entry.title)
@@ -1132,8 +1121,7 @@ class NexoraOnlineApiClient(private val context: Context) {
                 filePart(coverFieldName, coverFile.name, coverFile.guessImageMimeType(), coverFile)
             }
             filePart(fileFieldName, entry.uploadFilename(), entry.safeUploadMimeType(), audioFile)
-            write("--$boundary--
-")
+            write("--$boundary--\r\n")
         }
         return multipart
     }
@@ -1148,19 +1136,12 @@ class NexoraOnlineApiClient(private val context: Context) {
         val multipart = File.createTempFile("nexora-single-file-", ".multipart", context.cacheDir)
         multipart.outputStream().use { out ->
             fun write(value: String) = out.write(value.toByteArray(StandardCharsets.UTF_8))
-            write("--$boundary
-")
-            write("Content-Disposition: form-data; name="$fieldName"; filename="$filename"
-")
-            write("Content-Type: $mimeType
-")
-            write("Content-Transfer-Encoding: binary
-
-")
+            write("--$boundary\r\n")
+            write("Content-Disposition: form-data; name=\"$fieldName\"; filename=\"$filename\"\r\n")
+            write("Content-Type: $mimeType\r\n")
+            write("Content-Transfer-Encoding: binary\r\n\r\n")
             sourceFile.inputStream().use { input -> input.copyTo(out, DEFAULT_BUFFER_SIZE) }
-            write("
---$boundary--
-")
+            write("\r\n--$boundary--\r\n")
         }
         return multipart
     }

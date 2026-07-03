@@ -991,8 +991,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 val text = buildString {
                     append(song.title)
                     song.artist?.takeIf { it.isNotBlank() }?.let { append(" • ").append(it) }
-                    append("
-")
+                    append("\n")
                     append(url)
                 }
                 val sendIntent = Intent(Intent.ACTION_SEND).apply {
