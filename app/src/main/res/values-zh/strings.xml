@@ -753,4 +753,20 @@ Try Nexora Player if you want a complete, lightweight and stylish player.
     <string name="online_password_complexity">请使用小写字母、大写字母、数字和符号，至少 6 个字符。</string>
     <string name="online_set_password">保存密码</string>
     <string name="online_health_ok">服务器在线</string>
+
+    <string name="online_pull_to_refresh">下拉刷新</string>
+    <string name="online_more_options">更多选项</string>
+    <string name="online_share_song">分享歌曲</string>
+    <string name="online_add_favorite">添加到收藏</string>
+    <string name="online_remove_favorite">从收藏中移除</string>
+    <string name="online_share_error">无法分享这首歌曲。</string>
+    <string name="online_favorite_error">无法更新收藏。</string>
+    <string name="online_profile_change_photo">更改头像</string>
+    <string name="online_profile_avatar_updated">头像已更新。</string>
+    <string name="online_profile_avatar_error">无法更新头像。</string>
+    <string name="online_profile_details_title">个人资料信息</string>
+    <string name="online_edit_profile">编辑个人资料</string>
+    <string name="online_profile_empty_bio">还没有简介。</string>
+    <string name="online_profile_back_home">返回在线首页。</string>
+    <string name="online_logout_subtitle">在此设备上关闭在线会话。</string>
 </resources>

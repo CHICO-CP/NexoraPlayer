@@ -1,6 +1,9 @@
 package com.nexora.player.data.online
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.provider.Settings
 import android.util.Base64
@@ -23,6 +26,8 @@ import java.security.MessageDigest
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 
+private const val MAX_COVER_BYTES = 10 * 1024 * 1024
+
 class NexoraOnlineApiClient(private val context: Context) {
     private val configuredBaseUrl: String = BuildConfig.NEXORA_ONLINE_API_BASE_URL.trimEnd('/').ifBlank {
         "https://nexoraplayerapi.vercel.app/api/v1"
@@ -38,6 +43,8 @@ class NexoraOnlineApiClient(private val context: Context) {
         Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID).orEmpty().ifBlank { "anonymous-device" }
     }
     private val uploadFileFieldNames = listOf("file", "audio", "song", "music", "track", "audioFile")
+    private val coverFileFieldNames = listOf("cover", "cover_file", "cover_image", "artwork", "thumbnail", "poster")
+    private val avatarFileFieldNames = listOf("file", "avatar", "avatar_file", "image")
 
     fun googleOAuthUrl(): String {
         ensureSupabaseConfigured()
@@ -150,6 +157,43 @@ class NexoraOnlineApiClient(private val context: Context) {
             appSignature = false
         )
         session.mergeProfileFromApi(json)
+    }
+
+    suspend fun uploadProfileAvatar(session: OnlineUserSession, imageUri: Uri): OnlineUserSession = withContext(Dispatchers.IO) {
+        val imageFile = copyImageUriToTempFile(imageUri)
+        try {
+            var lastFailure: Throwable? = null
+            for (fieldName in avatarFileFieldNames) {
+                val boundary = "NexoraAvatarBoundary${System.currentTimeMillis()}${fieldName.hashCode().toString().replace("-", "N")}"
+                val multipartFile = createSingleFileMultipart(
+                    boundary = boundary,
+                    fieldName = fieldName,
+                    sourceFile = imageFile,
+                    filename = imageFile.name,
+                    mimeType = imageFile.guessImageMimeType()
+                )
+                try {
+                    val json = requestMultipartJson(
+                        url = "$apiPrefix/users/me/avatar",
+                        method = "POST",
+                        multipartFile = multipartFile,
+                        boundary = boundary,
+                        bearerToken = session.accessToken,
+                        appSignature = false
+                    )
+                    return@withContext session.mergeProfileFromApi(json)
+                } catch (throwable: Throwable) {
+                    lastFailure = throwable
+                    val message = throwable.message.orEmpty()
+                    if (!message.contains("file", ignoreCase = true)) throw throwable
+                } finally {
+                    runCatching { multipartFile.delete() }
+                }
+            }
+            throw lastFailure ?: OnlineApiException(context.getString(R.string.online_profile_avatar_error))
+        } finally {
+            runCatching { imageFile.delete() }
+        }
     }
 
     suspend fun changePassword(session: OnlineUserSession, currentPassword: String?, newPassword: String): Unit = withContext(Dispatchers.IO) {
@@ -416,27 +460,36 @@ class NexoraOnlineApiClient(private val context: Context) {
 
     suspend fun uploadSong(session: OnlineUserSession, entry: MediaEntry): OnlineSongDto = withContext(Dispatchers.IO) {
         val audioFile = copyContentUriToTempFile(entry)
+        val coverFile = extractEmbeddedCoverToTempFile(entry)
         if (!audioFile.exists() || audioFile.length() <= 0L) {
             runCatching { audioFile.delete() }
+            runCatching { coverFile?.delete() }
             throw OnlineApiException(context.getString(R.string.online_error_read_local_file, entry.title))
         }
 
         try {
-            runCatching { uploadSongWithIntent(session, entry, audioFile) }
-                .getOrElse { uploadSongDirectMultipart(session, entry, audioFile) }
+            runCatching { uploadSongWithIntent(session, entry, audioFile, coverFile) }
+                .getOrElse { uploadSongDirectMultipart(session, entry, audioFile, coverFile) }
         } finally {
             runCatching { audioFile.delete() }
+            runCatching { coverFile?.delete() }
         }
     }
 
-    private fun uploadSongWithIntent(session: OnlineUserSession, entry: MediaEntry, audioFile: File): OnlineSongDto {
-        val intentBody = JSONObject()
+    private fun uploadSongWithIntent(session: OnlineUserSession, entry: MediaEntry, audioFile: File, coverFile: File?): OnlineSongDto {
+        val intentJsonBody = JSONObject()
             .put("original_filename", entry.uploadFilename())
             .put("file_size_bytes", audioFile.length())
             .put("mime_type", entry.safeUploadMimeType())
             .put("audio_format", entry.audioFormat())
-            .toString()
-            .toByteArray()
+            .put("include_cover_upload", coverFile != null)
+        if (coverFile != null) {
+            intentJsonBody
+                .put("cover_mime_type", coverFile.guessImageMimeType())
+                .put("cover_file_size_bytes", coverFile.length())
+                .put("cover_filename", coverFile.name)
+        }
+        val intentBody = intentJsonBody.toString().toByteArray()
         val intentJson = requestJson(
             url = "$apiPrefix/songs/upload/intents",
             method = "POST",
@@ -448,7 +501,16 @@ class NexoraOnlineApiClient(private val context: Context) {
         val signedUrl = intentData.optString("signed_url").takeIf { it.isNotBlank() }
             ?: throw OnlineApiException(context.getString(R.string.online_error_upload))
         uploadToSignedUrl(signedUrl, audioFile, entry.safeUploadMimeType())
-        val commitBody = JSONObject()
+
+        val coverUpload = intentData.optJSONObject("cover_upload")
+        if (coverFile != null && coverUpload != null) {
+            val coverSignedUrl = coverUpload.optString("signed_url").takeIf { it.isNotBlank() }
+            if (!coverSignedUrl.isNullOrBlank()) {
+                uploadToSignedUrl(coverSignedUrl, coverFile, coverFile.guessImageMimeType())
+            }
+        }
+
+        val commitJsonBody = JSONObject()
             .put("upload_id", intentData.optString("upload_id"))
             .put("storage_path", intentData.optString("storage_path"))
             .put("storage_bucket", intentData.optString("storage_bucket", "songs"))
@@ -459,9 +521,18 @@ class NexoraOnlineApiClient(private val context: Context) {
             .put("file_size_bytes", audioFile.length())
             .put("mime_type", entry.safeUploadMimeType())
             .put("audio_format", entry.audioFormat())
-            .put("cover_url", entry.artworkUrl.orEmpty())
-            .toString()
-            .toByteArray()
+            .put("client_metadata_ready", true)
+        if (coverFile != null && coverUpload != null) {
+            val coverPath = coverUpload.optString("storage_path").takeIf { it.isNotBlank() }
+            if (!coverPath.isNullOrBlank()) {
+                commitJsonBody
+                    .put("cover_storage_path", coverPath)
+                    .put("cover_storage_bucket", coverUpload.optString("storage_bucket", "covers"))
+            }
+        } else if (!entry.artworkUrl.isNullOrBlank()) {
+            commitJsonBody.put("cover_url", entry.artworkUrl)
+        }
+        val commitBody = commitJsonBody.toString().toByteArray()
         val commitJson = requestJson(
             url = "$apiPrefix/songs/upload/commit",
             method = "POST",
@@ -473,7 +544,7 @@ class NexoraOnlineApiClient(private val context: Context) {
         return parseSong(data.optJSONObject("song") ?: data)
     }
 
-    private fun uploadToSignedUrl(signedUrl: String, audioFile: File, mimeType: String) {
+    private fun uploadToSignedUrl(signedUrl: String, sourceFile: File, mimeType: String) {
         val methods = listOf("PUT", "POST")
         var lastError: Throwable? = null
         for (method in methods) {
@@ -484,10 +555,10 @@ class NexoraOnlineApiClient(private val context: Context) {
                     readTimeout = 180_000
                     useCaches = false
                     doOutput = true
-                    setFixedLengthStreamingMode(audioFile.length())
+                    setFixedLengthStreamingMode(sourceFile.length())
                     setRequestProperty("Content-Type", mimeType)
                 }
-                audioFile.inputStream().use { input ->
+                sourceFile.inputStream().use { input ->
                     connection.outputStream.use { output -> input.copyTo(output, DEFAULT_BUFFER_SIZE) }
                 }
                 val code = connection.responseCode
@@ -500,36 +571,41 @@ class NexoraOnlineApiClient(private val context: Context) {
         throw lastError ?: OnlineApiException(context.getString(R.string.online_error_upload))
     }
 
-    private fun uploadSongDirectMultipart(session: OnlineUserSession, entry: MediaEntry, audioFile: File): OnlineSongDto {
+    private fun uploadSongDirectMultipart(session: OnlineUserSession, entry: MediaEntry, audioFile: File, coverFile: File?): OnlineSongDto {
         var lastFailure: Throwable? = null
         val uploadEndpoints = listOf("$apiPrefix/songs/upload", "$apiPrefix/songs/upload-audio", "$apiPrefix/songs/upload/audio")
         for (endpoint in uploadEndpoints) {
             for (fileFieldName in uploadFileFieldNames) {
-                val boundary = "NexoraBoundary${System.currentTimeMillis()}${fileFieldName.hashCode().toString().replace("-", "N")}"
-                val multipartFile = createMultipartUploadFile(
-                    boundary = boundary,
-                    audioFile = audioFile,
-                    entry = entry,
-                    fileFieldName = fileFieldName
-                )
-                try {
-                    val json = requestMultipartJson(
-                        url = endpoint,
-                        method = "POST",
-                        multipartFile = multipartFile,
+                val coverFields = if (coverFile != null) coverFileFieldNames else listOf<String?>(null)
+                for (coverFieldName in coverFields) {
+                    val boundary = "NexoraBoundary${System.currentTimeMillis()}${fileFieldName.hashCode().toString().replace("-", "N")}${coverFieldName.orEmpty().hashCode().toString().replace("-", "N")}"
+                    val multipartFile = createMultipartUploadFile(
                         boundary = boundary,
-                        bearerToken = session.accessToken,
-                        appSignature = true
+                        audioFile = audioFile,
+                        coverFile = coverFile,
+                        entry = entry,
+                        fileFieldName = fileFieldName,
+                        coverFieldName = coverFieldName ?: "cover"
                     )
-                    val data = json.optJSONObject("data") ?: json
-                    return parseSong(data.optJSONObject("song") ?: data)
-                } catch (throwable: Throwable) {
-                    lastFailure = throwable
-                    val msg = throwable.message.orEmpty()
-                    val retryable = msg.contains("file", ignoreCase = true) || msg.contains("404") || msg.contains("405")
-                    if (!retryable) throw throwable
-                } finally {
-                    runCatching { multipartFile.delete() }
+                    try {
+                        val json = requestMultipartJson(
+                            url = endpoint,
+                            method = "POST",
+                            multipartFile = multipartFile,
+                            boundary = boundary,
+                            bearerToken = session.accessToken,
+                            appSignature = true
+                        )
+                        val data = json.optJSONObject("data") ?: json
+                        return parseSong(data.optJSONObject("song") ?: data)
+                    } catch (throwable: Throwable) {
+                        lastFailure = throwable
+                        val msg = throwable.message.orEmpty()
+                        val retryable = msg.contains("file", ignoreCase = true) || msg.contains("cover", ignoreCase = true) || msg.contains("404") || msg.contains("405")
+                        if (!retryable) throw throwable
+                    } finally {
+                        runCatching { multipartFile.delete() }
+                    }
                 }
             }
         }
@@ -822,13 +898,14 @@ class NexoraOnlineApiClient(private val context: Context) {
 
     private fun OnlineUserSession.mergeProfileFromApi(json: JSONObject): OnlineUserSession {
         val data = json.optJSONObject("data") ?: json.optJSONObject("user") ?: json
-        val profile = extractProfile(user = data, fallbackEmail = email, fallbackProvider = provider)
+        val profileObject = data.optJSONObject("user") ?: data.optJSONObject("profile") ?: data
+        val profile = extractProfile(user = profileObject, fallbackEmail = email, fallbackProvider = provider)
         return copy(
             email = profile.email ?: email,
-            userId = data.optString("id").takeIf { it.isNotBlank() } ?: userId,
+            userId = profileObject.optString("id").takeIf { it.isNotBlank() } ?: data.optString("id").takeIf { it.isNotBlank() } ?: userId,
             displayName = profile.displayName ?: displayName,
             username = profile.username ?: username,
-            avatarUrl = profile.avatarUrl ?: avatarUrl,
+            avatarUrl = profile.avatarUrl ?: data.optString("avatar_url").takeIf { it.isNotBlank() } ?: data.optString("avatarUrl").takeIf { it.isNotBlank() } ?: avatarUrl,
             provider = profile.provider ?: provider,
             bio = profile.bio ?: bio,
             phoneNumber = profile.phoneNumber ?: phoneNumber,
@@ -955,22 +1032,87 @@ class NexoraOnlineApiClient(private val context: Context) {
         return file
     }
 
+    private fun extractEmbeddedCoverToTempFile(entry: MediaEntry): File? {
+        val retriever = MediaMetadataRetriever()
+        return try {
+            retriever.setDataSource(context, entry.uri)
+            val bytes = retriever.embeddedPicture ?: return null
+            writeCoverBytesToTempFile(bytes)
+        } catch (_: Throwable) {
+            null
+        } finally {
+            runCatching { retriever.release() }
+        }
+    }
+
+    private fun writeCoverBytesToTempFile(bytes: ByteArray): File? {
+        val normalized = if (bytes.size > MAX_COVER_BYTES) {
+            val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return null
+            val temp = File.createTempFile("nexora-cover-", ".jpg", context.cacheDir)
+            FileOutputStream(temp).use { output -> bitmap.compress(Bitmap.CompressFormat.JPEG, 90, output) }
+            if (temp.length() > MAX_COVER_BYTES) {
+                runCatching { temp.delete() }
+                return null
+            }
+            return temp
+        } else {
+            bytes
+        }
+        val mime = guessImageMimeType(normalized)
+        val file = File.createTempFile("nexora-cover-", mime.imageExtension(), context.cacheDir)
+        FileOutputStream(file).use { output -> output.write(normalized) }
+        return file.takeIf { it.exists() && it.length() > 0L }
+    }
+
+    private fun copyImageUriToTempFile(uri: Uri): File {
+        val mime = context.contentResolver.getType(uri).orEmpty().ifBlank { "image/jpeg" }
+        val file = File.createTempFile("nexora-profile-avatar-", mime.imageExtension(), context.cacheDir)
+        context.contentResolver.openInputStream(uri)?.use { input ->
+            BufferedInputStream(input).use { buffered ->
+                FileOutputStream(file).use { output -> buffered.copyTo(output) }
+            }
+        } ?: throw OnlineApiException(context.getString(R.string.online_profile_avatar_error))
+        if (file.length() <= 0L) throw OnlineApiException(context.getString(R.string.online_profile_avatar_error))
+        return file
+    }
+
     private fun createMultipartUploadFile(
         boundary: String,
         audioFile: File,
+        coverFile: File?,
         entry: MediaEntry,
-        fileFieldName: String
+        fileFieldName: String,
+        coverFieldName: String
     ): File {
         val multipart = File.createTempFile("nexora-upload-body-", ".multipart", context.cacheDir)
         multipart.outputStream().use { out ->
             fun write(value: String) = out.write(value.toByteArray(StandardCharsets.UTF_8))
             fun field(name: String, value: String) {
                 if (value.isBlank()) return
-                write("--$boundary\r\n")
-                write("Content-Disposition: form-data; name=\"$name\"\r\n")
-                write("Content-Type: text/plain; charset=UTF-8\r\n\r\n")
+                write("--$boundary
+")
+                write("Content-Disposition: form-data; name="$name"
+")
+                write("Content-Type: text/plain; charset=UTF-8
+
+")
                 write(value)
-                write("\r\n")
+                write("
+")
+            }
+            fun filePart(name: String, filename: String, mimeType: String, sourceFile: File) {
+                write("--$boundary
+")
+                write("Content-Disposition: form-data; name="$name"; filename="$filename"
+")
+                write("Content-Type: $mimeType
+")
+                write("Content-Transfer-Encoding: binary
+
+")
+                sourceFile.inputStream().use { input -> input.copyTo(out, DEFAULT_BUFFER_SIZE) }
+                write("
+")
             }
 
             field("title", entry.title)
@@ -984,16 +1126,64 @@ class NexoraOnlineApiClient(private val context: Context) {
             field("mime_type", entry.safeUploadMimeType())
             field("file_size_bytes", audioFile.length().toString())
             field("client_metadata_ready", "true")
-            field("cover_url", entry.artworkUrl.orEmpty())
+            if (coverFile == null) field("cover_url", entry.artworkUrl.orEmpty())
 
-            write("--$boundary\r\n")
-            write("Content-Disposition: form-data; name=\"$fileFieldName\"; filename=\"${entry.uploadFilename()}\"\r\n")
-            write("Content-Type: ${entry.safeUploadMimeType()}\r\n")
-            write("Content-Transfer-Encoding: binary\r\n\r\n")
-            audioFile.inputStream().use { input -> input.copyTo(out, DEFAULT_BUFFER_SIZE) }
-            write("\r\n--$boundary--\r\n")
+            if (coverFile != null) {
+                filePart(coverFieldName, coverFile.name, coverFile.guessImageMimeType(), coverFile)
+            }
+            filePart(fileFieldName, entry.uploadFilename(), entry.safeUploadMimeType(), audioFile)
+            write("--$boundary--
+")
         }
         return multipart
+    }
+
+    private fun createSingleFileMultipart(
+        boundary: String,
+        fieldName: String,
+        sourceFile: File,
+        filename: String,
+        mimeType: String
+    ): File {
+        val multipart = File.createTempFile("nexora-single-file-", ".multipart", context.cacheDir)
+        multipart.outputStream().use { out ->
+            fun write(value: String) = out.write(value.toByteArray(StandardCharsets.UTF_8))
+            write("--$boundary
+")
+            write("Content-Disposition: form-data; name="$fieldName"; filename="$filename"
+")
+            write("Content-Type: $mimeType
+")
+            write("Content-Transfer-Encoding: binary
+
+")
+            sourceFile.inputStream().use { input -> input.copyTo(out, DEFAULT_BUFFER_SIZE) }
+            write("
+--$boundary--
+")
+        }
+        return multipart
+    }
+
+    private fun File.guessImageMimeType(): String = when (extension.lowercase()) {
+        "png" -> "image/png"
+        "webp" -> "image/webp"
+        "gif" -> "image/gif"
+        else -> "image/jpeg"
+    }
+
+    private fun guessImageMimeType(bytes: ByteArray): String = when {
+        bytes.size >= 8 && bytes[0] == 0x89.toByte() && bytes[1] == 0x50.toByte() && bytes[2] == 0x4E.toByte() && bytes[3] == 0x47.toByte() -> "image/png"
+        bytes.size >= 12 && bytes[0] == 0x52.toByte() && bytes[1] == 0x49.toByte() && bytes[2] == 0x46.toByte() && bytes[3] == 0x46.toByte() && bytes[8] == 0x57.toByte() && bytes[9] == 0x45.toByte() && bytes[10] == 0x42.toByte() && bytes[11] == 0x50.toByte() -> "image/webp"
+        bytes.size >= 6 && bytes[0] == 0x47.toByte() && bytes[1] == 0x49.toByte() && bytes[2] == 0x46.toByte() -> "image/gif"
+        else -> "image/jpeg"
+    }
+
+    private fun String.imageExtension(): String = when (lowercase()) {
+        "image/png" -> ".png"
+        "image/webp" -> ".webp"
+        "image/gif" -> ".gif"
+        else -> ".jpg"
     }
 
     private fun MediaEntry.safeUploadMimeType(): String {

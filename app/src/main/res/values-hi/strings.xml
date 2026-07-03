@@ -753,4 +753,20 @@ Try Nexora Player if you want a complete, lightweight and stylish player.
     <string name="online_password_complexity">छोटे अक्षर, बड़े अक्षर, संख्या और प्रतीक का उपयोग करें। न्यूनतम 6 अक्षर।</string>
     <string name="online_set_password">पासवर्ड सहेजें</string>
     <string name="online_health_ok">सर्वर ऑनलाइन</string>
+
+    <string name="online_pull_to_refresh">रीफ़्रेश करने के लिए नीचे खींचें</string>
+    <string name="online_more_options">अधिक विकल्प</string>
+    <string name="online_share_song">गीत साझा करें</string>
+    <string name="online_add_favorite">पसंदीदा में जोड़ें</string>
+    <string name="online_remove_favorite">पसंदीदा से हटाएँ</string>
+    <string name="online_share_error">यह गीत साझा नहीं हो सका।</string>
+    <string name="online_favorite_error">पसंदीदा अपडेट नहीं हो सके।</string>
+    <string name="online_profile_change_photo">प्रोफ़ाइल फ़ोटो बदलें</string>
+    <string name="online_profile_avatar_updated">प्रोफ़ाइल फ़ोटो अपडेट हो गई।</string>
+    <string name="online_profile_avatar_error">प्रोफ़ाइल फ़ोटो अपडेट नहीं हो सकी।</string>
+    <string name="online_profile_details_title">प्रोफ़ाइल जानकारी</string>
+    <string name="online_edit_profile">प्रोफ़ाइल संपादित करें</string>
+    <string name="online_profile_empty_bio">अभी कोई बायो नहीं है।</string>
+    <string name="online_profile_back_home">ऑनलाइन होम पर लौटें।</string>
+    <string name="online_logout_subtitle">इस डिवाइस पर यह ऑनलाइन सत्र बंद करें।</string>
 </resources>

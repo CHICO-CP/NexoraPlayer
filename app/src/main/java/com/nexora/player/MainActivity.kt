@@ -100,6 +100,12 @@ class MainActivity : AppCompatActivity() {
         ActivityResultContracts.RequestMultiplePermissions()
     ) { viewModel.refreshLibrary() }
 
+    private val onlineAvatarLauncher = registerForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let { viewModel.onlineUploadProfileAvatar(it) }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
@@ -701,8 +707,11 @@ private fun DestinationPagerContent(
                     onOnlineTabChange(0)
                 },
                 onPlaySong = viewModel::playOnlineSong,
+                onShareSong = viewModel::shareOnlineSong,
+                onToggleFavorite = viewModel::toggleOnlineFavorite,
                 onUpdateProfile = viewModel::onlineUpdateProfile,
                 onChangePassword = viewModel::onlineChangePassword,
+                onPickProfileAvatar = { onlineAvatarLauncher.launch("image/*") },
                 onToggleUploadSelection = viewModel::toggleOnlineUploadSelection,
                 onClearUploadSelection = viewModel::clearOnlineUploadSelection,
                 onUploadSelected = viewModel::uploadSelectedOnlineSongs

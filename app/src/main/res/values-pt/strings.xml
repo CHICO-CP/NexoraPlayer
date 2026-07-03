@@ -753,4 +753,20 @@ Try Nexora Player if you want a complete, lightweight and stylish player.
     <string name="online_password_complexity">Use minúsculas, maiúsculas, um número e um símbolo. Mínimo de 6 caracteres.</string>
     <string name="online_set_password">Salvar senha</string>
     <string name="online_health_ok">Servidor online</string>
+
+    <string name="online_pull_to_refresh">Puxe para baixo para atualizar</string>
+    <string name="online_more_options">Mais opções</string>
+    <string name="online_share_song">Compartilhar música</string>
+    <string name="online_add_favorite">Adicionar aos favoritos</string>
+    <string name="online_remove_favorite">Remover dos favoritos</string>
+    <string name="online_share_error">Não foi possível compartilhar esta música.</string>
+    <string name="online_favorite_error">Não foi possível atualizar os favoritos.</string>
+    <string name="online_profile_change_photo">Alterar foto de perfil</string>
+    <string name="online_profile_avatar_updated">Foto de perfil atualizada.</string>
+    <string name="online_profile_avatar_error">Não foi possível atualizar a foto de perfil.</string>
+    <string name="online_profile_details_title">Informações do perfil</string>
+    <string name="online_edit_profile">Editar perfil</string>
+    <string name="online_profile_empty_bio">Ainda sem biografia.</string>
+    <string name="online_profile_back_home">Voltar ao início online.</string>
+    <string name="online_logout_subtitle">Encerrar esta sessão online neste dispositivo.</string>
 </resources>

@@ -694,6 +694,35 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun onlineUploadProfileAvatar(uri: Uri) {
+        val session = _uiState.value.online.session ?: return
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                online = _uiState.value.online.copy(profileSaving = true, profileError = null, profileMessage = null)
+            )
+            val result = runCatching { onlineApiClient.uploadProfileAvatar(session, uri) }
+            result.onSuccess { updatedSession ->
+                onlineSessionStore.save(updatedSession)
+                _uiState.value = _uiState.value.copy(
+                    online = _uiState.value.online.copy(
+                        session = updatedSession,
+                        profileSaving = false,
+                        profileError = null,
+                        profileMessage = context.getString(R.string.online_profile_avatar_updated)
+                    )
+                )
+            }.onFailure { throwable ->
+                _uiState.value = _uiState.value.copy(
+                    online = _uiState.value.online.copy(
+                        profileSaving = false,
+                        profileMessage = null,
+                        profileError = onlineAuthErrorMessage(throwable, R.string.online_profile_avatar_error)
+                    )
+                )
+            }
+        }
+    }
+
     fun onlineChangePassword(currentPassword: String?, newPassword: String) {
         val session = _uiState.value.online.session ?: return
         if (!isStrongOnlinePassword(newPassword)) {
@@ -952,6 +981,69 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         playQueue(entries, startIndex)
     }
 
+    fun shareOnlineSong(song: OnlineSongDto) {
+        val session = _uiState.value.online.session ?: return
+        viewModelScope.launch {
+            val result = runCatching { onlineApiClient.getShareInfo(session, song.id) }
+            result.onSuccess { share ->
+                val url = share.shareUrl ?: share.deepLink ?: share.downloadUrl.orEmpty()
+                if (url.isBlank()) return@onSuccess
+                val text = buildString {
+                    append(song.title)
+                    song.artist?.takeIf { it.isNotBlank() }?.let { append(" • ").append(it) }
+                    append("
+")
+                    append(url)
+                }
+                val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    putExtra(Intent.EXTRA_TEXT, text)
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                val chooser = Intent.createChooser(sendIntent, context.getString(R.string.online_share_song)).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                context.startActivity(chooser)
+            }.onFailure { throwable ->
+                _uiState.value = _uiState.value.copy(
+                    online = _uiState.value.online.copy(songsError = throwable.message ?: context.getString(R.string.online_share_error))
+                )
+            }
+        }
+    }
+
+    fun toggleOnlineFavorite(song: OnlineSongDto) {
+        val session = _uiState.value.online.session ?: return
+        val nextFavorite = !song.favorited
+        viewModelScope.launch {
+            val result = runCatching { onlineApiClient.setFavorite(session, song.id, nextFavorite) }
+            result.onSuccess { favorited ->
+                val sourceSong = song.copy(favorited = favorited)
+                val current = _uiState.value.online
+                _uiState.value = _uiState.value.copy(
+                    online = current.copy(
+                        home = current.home.copy(
+                            popular = current.home.popular.updateOnlineFavorite(song.id, favorited),
+                            recentlyAdded = current.home.recentlyAdded.updateOnlineFavorite(song.id, favorited),
+                            recommendations = current.home.recommendations.updateOnlineFavorite(song.id, favorited)
+                        ),
+                        songs = current.songs.updateOnlineFavorite(song.id, favorited),
+                        searchResults = current.searchResults.updateOnlineFavorite(song.id, favorited),
+                        favorites = if (favorited) {
+                            listOf(sourceSong) + current.favorites.filterNot { it.id == song.id }
+                        } else {
+                            current.favorites.filterNot { it.id == song.id }
+                        }
+                    )
+                )
+            }.onFailure { throwable ->
+                _uiState.value = _uiState.value.copy(
+                    online = _uiState.value.online.copy(songsError = throwable.message ?: context.getString(R.string.online_favorite_error))
+                )
+            }
+        }
+    }
+
     fun toggleOnlineUploadSelection(entry: MediaEntry) {
         val current = _uiState.value.online.selectedUploadIds
         val next = if (entry.id in current) current - entry.id else current + entry.id
@@ -1012,6 +1104,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             )
             if (success > 0) loadOnlineSongs()
         }
+    }
+
+    private fun List<OnlineSongDto>.updateOnlineFavorite(songId: String, favorite: Boolean): List<OnlineSongDto> {
+        return map { song -> if (song.id == songId) song.copy(favorited = favorite) else song }
     }
 
     fun checkForUpdates(showDialogOnAvailable: Boolean = false) {
